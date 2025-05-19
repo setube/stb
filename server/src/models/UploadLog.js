@@ -1,0 +1,32 @@
+import mongoose from 'mongoose'
+
+const uploadLogSchema = new mongoose.Schema({
+  user: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'User',
+    required: true
+  },
+  ip: {
+    type: String,
+    required: true
+  },
+  location: {
+    country: String,
+    region: String,
+    province: String,
+    city: String,
+    isp: String
+  },
+  image: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Image',
+    required: true
+  },
+  originalName: String,
+  size: Number,
+  format: String,
+  width: Number,
+  height: Number
+}, { timestamps: true })
+
+export const UploadLog = mongoose.model('UploadLog', uploadLogSchema) 
