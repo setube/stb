@@ -7,22 +7,20 @@ import { Config } from '../models/Config.js'
 const router = express.Router()
 
 // 获取站点配置
-router.get('/config', async (req, res) => {
+router.post('/config', async (req, res) => {
   try {
     let config = await Config.findOne()
     if (!config) {
       return res.status(404).json({ error: config })
     }
-    res.json({
-      site: config.site
-    })
+    res.json(config)
   } catch (error) {
     res.status(500).json({ error: error.message })
   }
 })
 
 // 获取当前用户信息
-router.get('/info', auth, async (req, res) => {
+router.post('/info', auth, async (req, res) => {
   try {
     const user = await User.findById(req.user._id).select('-password')
     if (!user) {
@@ -36,16 +34,24 @@ router.get('/info', auth, async (req, res) => {
 
 router.post('/register', async (req, res) => {
   try {
-    const { username, password, email } = req.body
+    const { username, password, email, ip } = req.body
+    const config = await Config.findOne()
+    let register = false
+    if (!config) register = true
+    if (!config.site.register) {
+      return res.status(403).json({ error: '注册已关闭' })
+    }
     // 查询当前用户列表数量
     const userCount = await User.countDocuments()
     // 如果是第一个用户，则设置为创始人
     const user = new User({
+      ip,
       username,
       password,
       email,
       role: !userCount ? 'admin' : 'user',
-      founder: !userCount ? true : false
+      founder: !userCount ? true : false,
+      lastLogin: Date.now(),
     })
     await user.save()
     const token = jwt.sign(
@@ -83,7 +89,7 @@ router.post('/login', async (req, res) => {
       throw new Error('账号已被禁用')
     }
     // 更新最后登录时间
-    user.lastLogin = new Date()
+    user.lastLogin = Date.now()
     await user.save()
     const token = jwt.sign(
       { userId: user._id, role: user.role },

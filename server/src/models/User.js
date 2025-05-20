@@ -2,6 +2,15 @@ import mongoose from 'mongoose'
 import bcrypt from 'bcryptjs'
 
 const userSchema = new mongoose.Schema({
+  // 注册ip
+  ip: {
+    ipv4: {
+      type: String
+    },
+    ipv6: {
+      type: String
+    }
+  },
   username: {
     type: String,
     required: true,
@@ -34,19 +43,26 @@ const userSchema = new mongoose.Schema({
     enum: ['active', 'disabled'],
     default: 'active'
   },
+  // 最后登录时间
   lastLogin: {
-    type: Date
+    type: Number,
+    default: Date.now
+  },
+  // 注册时间
+  createdAt: {
+    type: Number,
+    default: Date.now
   }
 }, { timestamps: true })
 
-userSchema.pre('save', async function(next) {
+userSchema.pre('save', async function (next) {
   if (this.isModified('password')) {
     this.password = await bcrypt.hash(this.password, 10)
   }
   next()
 })
 
-userSchema.methods.comparePassword = async function(candidatePassword) {
+userSchema.methods.comparePassword = async function (candidatePassword) {
   return bcrypt.compare(candidatePassword, this.password)
 }
 

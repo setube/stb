@@ -2,46 +2,49 @@
   <div class="home-container">
     <!-- 上传区域 -->
     <a-card class="upload-card">
+      <p class="ant-upload-hint">
+        您单次最多可以上传{{ userStore.config.upload.concurrentUploads }}张图片, 最大文件大小：{{ userStore.config.upload.maxSize }}MB
+      </p>
       <a-upload-dragger v-model:fileList="fileList" :beforeUpload="beforeUpload" :customRequest="customRequest"
-        accept="image/*" :showUploadList="false">
+        :accept="formats" multiple :maxCount="userStore.config.upload.concurrentUploads" :showUploadList="false">
         <p class="ant-upload-drag-icon">
           <inbox-outlined />
         </p>
         <p class="ant-upload-text">点击或拖拽图片到此区域上传</p>
-        <p class="ant-upload-hint">支持单个或批量上传</p>
+        <p class="ant-upload-hint">
+          支持格式：{{ mimeTypes }}
+        </p>
       </a-upload-dragger>
     </a-card>
-    <!-- 图片展示区域 -->
-    <a-card class="gallery-card" title="我的图片">
-      <a-spin :spinning="loading">
-        <a-row :gutter="[16, 16]">
-          <a-col :span="6" v-for="image in images" :key="image._id">
-            <a-card hoverable>
-              <template #cover>
-                <a-image :src="userStore.config.site.url + image.url" :alt="image.name" />
-              </template>
-              <a-card-meta :title="image.name">
-                <template #description>
-                  <a-space>
-                    <a-button type="link" @click="copyImageUrl(image.url)">
-                      复制链接
-                    </a-button>
-                    <a-button type="link" danger @click="deleteImage(image._id)">
-                      删除
-                    </a-button>
-                  </a-space>
-                </template>
-              </a-card-meta>
-            </a-card>
-          </a-col>
-        </a-row>
-      </a-spin>
-    </a-card>
+    <!-- 上传成功后展示图片链接和多种格式 -->
+    <div v-if="uploadedImages.length > 0" class="result-panel">
+      <!-- 复制按钮 -->
+      <a-button type="primary" @click="copyImages">一键复制</a-button>
+      <!-- 格式切换 -->
+      <a-tabs v-model:activeKey="activeTab">
+        <a-tab-pane key="url" tab="URL">
+          <a-input class="ant-input" v-for="(img, idx) in uploadedImages" :key="img || idx" :value="img" readonly
+            @focus="$event.target.select()" />
+        </a-tab-pane>
+        <a-tab-pane key="html" tab="HTML">
+          <a-input class="ant-input" v-for="(img, idx) in uploadedImages" :key="img || idx"
+            :value="`<img src='${img}' alt='' />`" readonly @focus="$event.target.select()" />
+        </a-tab-pane>
+        <a-tab-pane key="bbcode" tab="BBCode">
+          <a-input class="ant-input" v-for="(img, idx) in uploadedImages" :key="img || idx" :value="`[img]${img}[/img]`"
+            readonly @focus="$event.target.select()" />
+        </a-tab-pane>
+        <a-tab-pane key="markdown" tab="Markdown">
+          <a-input class="ant-input" v-for="(img, idx) in uploadedImages" :key="img || idx" :value="`![](${img})`"
+            readonly @focus="$event.target.select()" />
+        </a-tab-pane>
+      </a-tabs>
+    </div>
   </div>
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, computed } from 'vue'
 import SparkMD5 from 'spark-md5'
 import { InboxOutlined } from '@ant-design/icons-vue'
 import { message } from 'ant-design-vue'
@@ -52,21 +55,48 @@ const userStore = useUserStore()
 
 const fileList = ref([])
 const images = ref([])
-const loading = ref(false)
 
-onMounted(() => fetchImages())
+const uploadedImages = ref([]) // 存储所有上传成功的图片URL
+const currentIndex = ref(0)
+const activeTab = ref('url')
 
-const fetchImages = async () => {
-  loading.value = true
-  try {
-    const response = await axios.get('/api/images')
-    images.value = response.data.images
-  } catch (error) {
-    message.error('获取图片列表失败')
-  } finally {
-    loading.value = false
-  }
+// 一键复制
+const copyImages = () => {
+  const urls = uploadedImages.value.join('\n')
+  navigator.clipboard.writeText(urls)
+  message.success('链接已复制到剪贴板')
 }
+
+// 上传成功后调用此方法
+const onUploadSuccess = (urls) => {
+  // 支持单张和多张
+  if (Array.isArray(urls)) {
+    uploadedImages.value.push(...urls)
+    currentIndex.value = uploadedImages.value.length - 1
+  } else if (typeof urls === 'string' && urls) {
+    uploadedImages.value.push(urls)
+    currentIndex.value = uploadedImages.value.length - 1
+  }
+  activeTab.value = 'url'
+}
+
+// 生成MIME类型字符串
+const formats = computed(() => {
+  const allowedFormats = userStore.config.upload.allowedFormats
+  if (!allowedFormats.length) {
+    return 'image/*'
+  }
+  return allowedFormats.map(f => `image/${f}`).join(',')
+})
+
+// 生成文件扩展名字符串
+const mimeTypes = computed(() => {
+  const allowedFormats = userStore.config.upload.allowedFormats
+  if (!allowedFormats.length) {
+    return 'all'
+  }
+  return allowedFormats.join(', ').toUpperCase()
+})
 
 const beforeUpload = (file) => {
   const isImage = file.type.startsWith('image/')
@@ -97,17 +127,14 @@ const customRequest = async ({ file }) => {
     const formData = new FormData()
     formData.append('image', file)
     formData.append('md5', md5)
-    formData.append('ip', user.ipv4 ? user.ipv4 : user.ipv6)
-    const response = await axios.post('/api/upload', formData, {
-      headers: {
-        'Content-Type': 'multipart/form-data'
-      }
-    })
+    formData.append('ip', user.ip.ipv4 ? user.ip.ipv4 : user.ip.ipv6)
+    const response = await axios.post('/api/upload', formData)
     images.value.unshift(response.data)
     if (response.data.isDuplicate) {
       message.warning('该图片已存在，已添加到你的图片库')
     } else {
       message.success('上传成功！')
+      onUploadSuccess(userStore.config.site.url + response.data.url)
     }
   } catch (error) {
     message.error(error?.response?.data?.error)
@@ -158,5 +185,9 @@ const deleteImage = async (id) => {
 
 .ant-upload-hint {
   color: rgba(0, 0, 0, 0.45);
+}
+
+.ant-input {
+  margin-bottom: 10px;
 }
 </style>

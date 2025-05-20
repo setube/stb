@@ -9,6 +9,7 @@ import { UploadLog } from '../models/UploadLog.js'
 import { getIpLocation } from '../utils/ipLocation.js'
 import { checkDailyLimit } from '../middleware/checkDailyLimit.js'
 import { checkIpWhitelist } from '../middleware/checkIpWhitelist.js'
+import fs from 'fs/promises'
 
 const router = express.Router()
 
@@ -38,6 +39,60 @@ const upload = multer({
 })
 
 // 上传图片
+
+// 获取图片列表
+router.post('/images', async (req, res) => {
+  try {
+    // 确保页码和每页数量为有效数字
+    const page = Math.max(1, parseInt(req.body.page))
+    const limit = Math.max(1, parseInt(req.body.limit))
+    // 计算跳过的记录数
+    const skip = (page - 1) * limit
+    // 查询图片
+    const images = await Image.find()
+      .populate('user', 'username')
+      .skip(skip)
+      .limit(limit)
+    // 获取总数
+    const total = await Image.countDocuments()
+    res.json({
+      images,
+      total
+    })
+  } catch (error) {
+    console.error('获取图片列表错误:', error)
+    res.status(500).json({ error: error.message })
+  }
+})
+
+// 删除图片
+router.delete('/images/:id', auth, async (req, res) => {
+  try {
+    const image = await Image.findOne({
+      _id: req.params.id,
+      user: req.user._id
+    })
+    if (!image) {
+      return res.status(404).json({ error: '图片不存在' })
+    }
+    // 删除本地文件
+    try {
+      const filePath = path.join(process.cwd(), image.url)
+      await fs.unlink(filePath)
+    } catch (error) {
+      console.error('删除文件失败:', error)
+      // 继续执行，即使文件删除失败
+    }
+    // 删除数据库记录
+    await Image.deleteOne({ _id: image._id })
+    // 删除相关的上传日志
+    await UploadLog.deleteMany({ image: image._id })
+    res.json({ message: '删除成功' })
+  } catch (error) {
+    res.status(500).json({ error: error.message })
+  }
+})
+
 router.post('/upload',
   auth,
   checkIpWhitelist,
@@ -70,13 +125,54 @@ router.post('/upload',
           fit: 'inside'
         })
       }
-      // 转换格式
+      // 转换格式和质量
       if (config.upload.convertFormat) {
-        imageProcessor = imageProcessor.toFormat(config.upload.convertFormat)
-      }
-      // 调整质量
-      if (config.upload.quality) {
-        imageProcessor = imageProcessor.jpeg({ quality: config.upload.quality })
+        switch (config.upload.convertFormat.toLowerCase()) {
+          case 'jpeg':
+          case 'jpg':
+            imageProcessor = imageProcessor.jpeg({
+              quality: config.upload.quality || 80
+            })
+            break
+          case 'png':
+            imageProcessor = imageProcessor.png({
+              quality: config.upload.quality || 80
+            })
+            break
+          case 'webp':
+            imageProcessor = imageProcessor.webp({
+              quality: config.upload.quality || 80
+            })
+            break
+          case 'gif':
+            imageProcessor = imageProcessor.gif()
+            break
+          default:
+            imageProcessor = imageProcessor.jpeg({
+              quality: config.upload.quality || 80
+            })
+        }
+      } else if (config.upload.quality) {
+        // 如果没有指定格式转换，但指定了质量，则使用原始格式
+        const format = imageInfo.format
+        switch (format) {
+          case 'jpeg':
+          case 'jpg':
+            imageProcessor = imageProcessor.jpeg({
+              quality: config.upload.quality
+            })
+            break
+          case 'png':
+            imageProcessor = imageProcessor.png({
+              quality: config.upload.quality
+            })
+            break
+          case 'webp':
+            imageProcessor = imageProcessor.webp({
+              quality: config.upload.quality
+            })
+            break
+        }
       }
       // 添加水印
       if (config.watermark.enabled) {
@@ -99,7 +195,6 @@ router.post('/upload',
             </svg>
           `
           // 根据位置计算偏移
-          const { width, height } = await imageProcessor.metadata()
           let gravity
           switch (position) {
             case 'top-left':
@@ -135,7 +230,6 @@ router.post('/upload',
             .resize(200) // 调整水印大小
             .toBuffer()
           // 根据位置计算偏移
-          const { width, height } = await imageProcessor.metadata()
           let gravity
           switch (position) {
             case 'top-left':
@@ -167,8 +261,15 @@ router.post('/upload',
         }
       }
       // 保存处理后的图片
-      const processedFilename = `processed_${file.filename}`
-      await imageProcessor.toFile(path.join(process.env.UPLOAD_DIR, processedFilename))
+      const processedFilename = `processed_${Date.now()}_${path.basename(file.originalname, path.extname(file.originalname))}.${config.upload.convertFormat || imageInfo.format}`
+      const processedPath = path.join(process.env.UPLOAD_DIR, processedFilename)
+      await imageProcessor.toFile(processedPath)
+      // 删除原始上传的图片
+      try {
+        await fs.unlink(file.path)
+      } catch (error) {
+        console.error('删除原始文件失败:', error)
+      }
       // 使用前端传来的IP，如果没有则使用请求IP
       const clientIp = req.body.ip || req.ip
       // 记录上传日志
@@ -200,6 +301,14 @@ router.post('/upload',
       await log.save()
       res.status(201).json(image)
     } catch (error) {
+      // 如果处理过程中出错，也要尝试删除原始文件
+      if (req.file) {
+        try {
+          await fs.unlink(req.file.path)
+        } catch (unlinkError) {
+          console.error('删除原始文件失败:', unlinkError)
+        }
+      }
       if (error.message.includes('E11000')) {
         res.status(400).json({ error: '图片已存在' })
         return
@@ -209,79 +318,5 @@ router.post('/upload',
   }
 )
 
-// 获取图片列表
-router.get('/images', async (req, res) => {
-  try {
-    // 确保页码和每页数量为有效数字
-    const page = Math.max(1, parseInt(req.query.page) || 1)
-    const limit = Math.max(1, Math.min(100, parseInt(req.query.limit) || 20))
-    const sortBy = req.query.sortBy || 'time'
-    const sortOrder = req.query.sortOrder || 'desc'
-
-    // 构建排序条件
-    let sort = {}
-    switch (sortBy) {
-      case 'time':
-        sort = { createdAt: sortOrder === 'desc' ? -1 : 1 }
-        break
-      case 'resolution':
-        sort = {
-          width: sortOrder === 'desc' ? -1 : 1,
-          height: sortOrder === 'desc' ? -1 : 1
-        }
-        break
-      case 'size':
-        sort = { size: sortOrder === 'desc' ? -1 : 1 }
-        break
-      case 'user':
-        sort = { 'user.username': sortOrder === 'desc' ? -1 : 1 }
-        break
-      default:
-        sort = { createdAt: -1 }
-    }
-
-    // 计算跳过的记录数
-    const skip = (page - 1) * limit
-
-    // 查询图片
-    const images = await Image.find()
-      .populate('user', 'username')
-      .sort(sort)
-      .skip(skip)
-      .limit(limit)
-
-    // 获取总数
-    const total = await Image.countDocuments()
-
-    res.json({
-      images,
-      total,
-      page,
-      limit,
-      totalPages: Math.ceil(total / limit)
-    })
-  } catch (error) {
-    console.error('获取图片列表错误:', error)
-    res.status(500).json({ error: error.message })
-  }
-})
-
-// 删除图片
-router.delete('/images/:id', auth, async (req, res) => {
-  try {
-    const image = await Image.findOneAndDelete({
-      _id: req.params.id,
-      user: req.user._id
-    })
-
-    if (!image) {
-      return res.status(404).json({ error: '图片不存在' })
-    }
-
-    res.json({ message: '删除成功' })
-  } catch (error) {
-    res.status(500).json({ error: error.message })
-  }
-})
 
 export default router

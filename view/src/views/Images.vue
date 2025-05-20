@@ -1,17 +1,31 @@
 <template>
   <div class="images">
-    <a-table :columns="columns" :data-source="images" :loading="loading" row-key="_id">
-      <template #bodyCell="{ column, record }">
-        <template v-if="column.key === 'preview'">
-          <a-image :src="userStore.config.site.url + record.url" :alt="record.name" style="max-width: 100px" />
+    <el-table :data="images" :scrollbar-always-on="true" fit>
+      <el-table-column prop="url" label="预览" fixed>
+        <template #default="{ row }">
+          <a-image :src="userStore.config.site.url + row.url" :alt="row.name" style="max-width: 100px" />
         </template>
-        <template v-if="column.key === 'action'">
-          <a-button type="link" danger @click="handleDelete(record)">
+      </el-table-column>
+      <el-table-column prop="name" label="文件名" />
+      <el-table-column prop="size" label="大小">
+        <template #default="{ row }">
+          {{ formatFileSize(row.size) }}
+        </template>
+      </el-table-column>
+      <el-table-column prop="name" label="上传者">
+        <template #default="{ row }">
+          {{ row.user.username  }}
+        </template>
+      </el-table-column>
+      <el-table-column prop="date" label="上传时间" />
+      <el-table-column label="操作" fixed="right">
+        <template #default="{ row }">
+          <a-button type="link" danger @click="handleDelete(row._id)">
             删除
           </a-button>
         </template>
-      </template>
-    </a-table>
+      </el-table-column>
+    </el-table>
   </div>
 </template>
 
@@ -25,32 +39,6 @@ const userStore = useUserStore()
 const images = ref([])
 const loading = ref(false)
 
-const columns = [
-  {
-    title: '预览',
-    key: 'preview'
-  },
-  {
-    title: '文件名',
-    dataIndex: 'name',
-    key: 'name'
-  },
-  {
-    title: '上传者',
-    dataIndex: ['user', 'username'],
-    key: 'username'
-  },
-  {
-    title: '上传时间',
-    dataIndex: 'createdAt',
-    key: 'createdAt'
-  },
-  {
-    title: '操作',
-    key: 'action'
-  }
-]
-
 const fetchImages = async () => {
   loading.value = true
   try {
@@ -63,13 +51,22 @@ const fetchImages = async () => {
   }
 }
 
-const handleDelete = (record) => {
+// 格式化文件大小
+const formatFileSize = (bytes) => {
+  if (bytes === 0) return '0 B'
+  const k = 1024
+  const sizes = ['B', 'KB', 'MB', 'GB']
+  const i = Math.floor(Math.log(bytes) / Math.log(k))
+  return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i]
+}
+
+const handleDelete = (id) => {
   Modal.confirm({
     title: '确认删除',
     content: '确定要删除这张图片吗？',
     async onOk() {
       try {
-        await axios.delete(`/api/admin/images/${record._id}`)
+        await axios.delete(`/api/admin/images/${id}`)
         message.success('删除成功')
         fetchImages()
       } catch (error) {

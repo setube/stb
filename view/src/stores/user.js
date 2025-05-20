@@ -4,11 +4,16 @@ import { getIpAddress } from './getIp'
 
 export const useUserStore = defineStore('user', {
   state: () => ({
+    ip: JSON.parse(localStorage.getItem('ip')) || null,
     user: JSON.parse(localStorage.getItem('user')) || null,
     token: localStorage.getItem('token') || null,
     config: localStorage.getItem('config') || null,
   }),
   actions: {
+    setIp(ip) {
+      this.ip = ip
+      localStorage.setItem('ip', JSON.stringify(ip))
+    },
     setUser(user) {
       this.user = user
       localStorage.setItem('user', JSON.stringify(user))
@@ -23,19 +28,8 @@ export const useUserStore = defineStore('user', {
     },
     async fetchUserInfo() {
       try {
-        const response = await axios.get('/api/auth/info')
-        // 获取真实IP
-        setTimeout(() => {
-          getIpAddress((ip) => {
-            try {
-              if (/\b(?:\d{1,3}\.){3}\d{1,3}\b/.test(ip)) response.data.ipv4 = ip
-              else if (/^(?:[0-9a-fA-F]{1,4}:){7}[0-9a-fA-F]{1,4}$/.test(ip)) response.data.ipv6 = ip
-              this.setUser(response.data)
-            } catch (error) {
-              console.error(error)
-            }
-          })
-        }, 100)
+        const response = await axios.post('/api/auth/info')
+        this.setUser(response.data)
         return response.data
       } catch (error) {
         throw error
@@ -53,7 +47,7 @@ export const useUserStore = defineStore('user', {
     },
     async register(username, password, email) {
       try {
-        const response = await axios.post('/api/auth/register', { username, password, email })
+        const response = await axios.post('/api/auth/register', { username, password, email, ip: this.ip })
         this.setToken(response.data.token)
         this.setUser(response.data.user)
         return response.data

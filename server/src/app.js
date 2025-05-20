@@ -2,6 +2,7 @@ import express from 'express'
 import cors from 'cors'
 import mongoose from 'mongoose'
 import dotenv from 'dotenv'
+import bodyParser from 'body-parser'
 import authRoutes from './routes/auth.js'
 import imageRoutes from './routes/images.js'
 import adminRoutes from './routes/admin.js'
@@ -17,6 +18,8 @@ const app = express()
 // 中间件
 app.use(cors())
 app.use(express.json())
+app.use(bodyParser.urlencoded({ extended: true }))
+app.use(bodyParser.json())
 app.use('/uploads', express.static('uploads'))
 
 // 路由
@@ -38,13 +41,12 @@ const connectDB = async () => {
       serverSelectionTimeoutMS: 5000, // 超时时间
       socketTimeoutMS: 45000, // Socket 超时时间
     })
-    console.log('Connected to MongoDB')
-
+    console.log('数据库连接成功')
     // 初始化配置
     await Config.initialize()
   } catch (err) {
-    console.error('MongoDB connection error:', err)
-    process.exit(1) // 如果数据库连接失败，终止程序
+    console.error('数据库连接失败:', err)
+    process.exit(1)
   }
 }
 
@@ -53,5 +55,5 @@ connectDB()
 
 const PORT = process.env.PORT || 3000
 app.listen(PORT, () => {
-  console.log(`Server is running on port ${PORT}`)
+  console.log(`后端服务启动成功, 端口号:${PORT}`)
 }) 

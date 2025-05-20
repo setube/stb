@@ -10,6 +10,9 @@
           <a-form-item label="网站URL">
             <a-input v-model:value="formState.site.url" />
           </a-form-item>
+          <a-form-item label="验证码">
+            <a-switch v-model:checked="formState.site.captcha" checked-children="启用" un-checked-children="禁用" />
+          </a-form-item>
         </a-card>
         <!-- 上传设置 -->
         <a-card title="上传设置" class="mb-4">
@@ -24,6 +27,9 @@
           </a-form-item>
           <a-form-item label="最大文件大小(MB)">
             <a-input-number v-model:value="formState.upload.maxSize" :min="1" :max="100" />
+          </a-form-item>
+          <a-form-item label="最多同时上传图片数量">
+            <a-input-number v-model:value="formState.upload.concurrentUploads" :min="1" />
           </a-form-item>
           <a-row :gutter="16">
             <a-col :span="12">
@@ -94,11 +100,20 @@
               </a-form-item>
             </template>
             <template v-else>
-              <a-form-item label="水印图片">
+              <a-form-item label="上传水印">
                 <a-upload v-model:fileList="watermarkFileList" :beforeUpload="handleWatermarkUpload"
                   :showUploadList="false">
                   <a-button>选择水印图片</a-button>
                 </a-upload>
+              </a-form-item>
+              <a-form-item label="水印管理">
+                <a-button>删除水印图片</a-button>
+              </a-form-item>
+              <a-form-item label="水印图片" v-if="formState.watermark.image.path">
+                <a-image :src="userStore.config.site.url + formState.watermark.image.path" />
+              </a-form-item>
+              <a-form-item label="水印图片URL" v-if="formState.watermark.image.path">
+                <a-textarea v-model:value="formState.watermark.image.path" auto-size disabled />
               </a-form-item>
               <a-form-item label="透明度">
                 <a-slider v-model:value="formState.watermark.image.opacity" :min="0" :max="1" :step="0.1" />
@@ -114,12 +129,6 @@
               </a-select>
             </a-form-item>
           </template>
-        </a-card>
-        <!-- 验证码设置 -->
-        <a-card title="验证码设置" class="mb-4">
-          <a-form-item>
-            <a-switch v-model:checked="formState.site.captcha" checked-children="启用" un-checked-children="禁用" />
-          </a-form-item>
         </a-card>
         <!-- IP设置 -->
         <a-card title="IP设置" class="mb-4">
@@ -173,7 +182,7 @@ const ipBlacklistText = ref('')
 const formState = ref({
   site: {
     title: '网站标题',
-    url: 'URL_ADDRESS.com',
+    url: '',
     captcha: false
   },
   upload: {

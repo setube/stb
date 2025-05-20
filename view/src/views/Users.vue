@@ -44,7 +44,10 @@ const columns = [
   {
     title: 'IP地址',
     dataIndex: 'ip',
-    key: 'ip'
+    key: 'ip',
+    customRender: ({ text }) => {
+      return text.ipv4 ? text.ipv4 : text.ipv6
+    }
   },
   {
     title: '注册邮箱',

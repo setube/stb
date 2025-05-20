@@ -21,13 +21,18 @@ const configSchema = new mongoose.Schema({
     // 是否开启注册
     register: {
       type: Boolean,
-      default: false
+      default: true
     }
   },
   upload: {
     allowedFormats: {
       type: [String],
       default: ['jpg', 'jpeg', 'png', 'gif', 'webp']
+    },
+    // 同时上传数量
+    concurrentUploads: {
+      type: Number,
+      default: 10
     },
     maxSize: {
       type: Number,  // 单位：MB
@@ -51,10 +56,13 @@ const configSchema = new mongoose.Schema({
     },
     convertFormat: {
       type: String,
-      default: ''  // 空字符串表示不转换
+      enum: ['', 'jpeg', 'jpg', 'png', 'webp', 'gif'],
+      default: ''
     },
     quality: {
       type: Number,
+      min: 1,
+      max: 100,
       default: 80
     },
     dailyLimit: {
