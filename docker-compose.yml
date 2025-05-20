@@ -11,9 +11,11 @@ services:
       - ./server/uploads:/app/uploads
       - ./.env:/app/.env  # 挂载 .env 文件以持久化 JWT_SECRET
     depends_on:
-      - mongodb
+      mongodb:
+        condition: service_healthy  # 等待 mongodb 健康检查通过
     networks:
       - app-network
+    restart: unless-stopped  # 添加重启策略
 
   mongodb:
     image: mongo:latest
@@ -23,6 +25,13 @@ services:
       - mongodb_data:/data/db
     networks:
       - app-network
+    healthcheck:  # 添加健康检查
+      test: ["CMD", "mongosh", "--eval", "db.adminCommand('ping')"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+    restart: unless-stopped  # 添加重启策略
 
 networks:
   app-network:

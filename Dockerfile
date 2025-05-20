@@ -52,8 +52,19 @@ RUN node -e "require('fs').writeFileSync('.env', \
     'UPLOAD_DIR=/app/uploads\n' \
 )"
 
+# 创建等待脚本
+RUN echo '#!/bin/sh\n\
+echo "Waiting for MongoDB to be ready..."\n\
+until mongosh --host mongodb --eval "db.adminCommand(\"ping\")" > /dev/null 2>&1; do\n\
+  echo "MongoDB is not ready yet. Waiting..."\n\
+  sleep 2\n\
+done\n\
+echo "MongoDB is ready!"\n\
+exec "$@"' > /app/wait-for-mongodb.sh && \
+chmod +x /app/wait-for-mongodb.sh
+
 # 暴露端口
 EXPOSE 25519
 
 # 启动命令
-CMD ["pnpm", "start"] 
+CMD ["/app/wait-for-mongodb.sh", "pnpm", "start"] 

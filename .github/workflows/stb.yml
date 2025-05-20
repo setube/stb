@@ -22,13 +22,21 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GHCR_TOKEN }}
 
+      - name: 登录 Docker Hub
+        uses: docker/login-action@v2
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
       - name: 构建并推送 amd64 Docker镜像
         uses: docker/build-push-action@v3
         with:
           context: .
           platforms: linux/amd64
           push: true
-          tags: ghcr.io/${{ github.repository_owner }}/stb:amd64
+          tags: |
+            ghcr.io/${{ github.repository_owner }}/stb:amd64
+            ${{ secrets.DOCKERHUB_USERNAME }}/stb:amd64
 
   build-arm64:
     runs-on: ubuntu-22.04-arm
@@ -46,13 +54,21 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GHCR_TOKEN }}
 
+      - name: 登录 Docker Hub
+        uses: docker/login-action@v2
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
       - name: 构建并推送 arm64 Docker镜像
         uses: docker/build-push-action@v3
         with:
           context: .
           platforms: linux/arm64
           push: true
-          tags: ghcr.io/${{ github.repository_owner }}/stb:arm64
+          tags: |
+            ghcr.io/${{ github.repository_owner }}/stb:arm64
+            ${{ secrets.DOCKERHUB_USERNAME }}/stb:arm64
 
   create-manifest:
     needs: [build-amd64, build-arm64]
@@ -68,9 +84,22 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GHCR_TOKEN }}
 
+      - name: 登录 Docker Hub
+        uses: docker/login-action@v2
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
       - name: 创建并推送多架构清单
         run: |
+          # GitHub Container Registry
           docker manifest create ghcr.io/${{ github.repository_owner }}/stb:latest \
             ghcr.io/${{ github.repository_owner }}/stb:amd64 \
             ghcr.io/${{ github.repository_owner }}/stb:arm64
           docker manifest push ghcr.io/${{ github.repository_owner }}/stb:latest
+          
+          # Docker Hub
+          docker manifest create ${{ secrets.DOCKERHUB_USERNAME }}/stb:latest \
+            ${{ secrets.DOCKERHUB_USERNAME }}/stb:amd64 \
+            ${{ secrets.DOCKERHUB_USERNAME }}/stb:arm64
+          docker manifest push ${{ secrets.DOCKERHUB_USERNAME }}/stb:latest
