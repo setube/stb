@@ -23,6 +23,9 @@ FROM node:18-alpine
 
 WORKDIR /app
 
+# 安装 MongoDB Shell
+RUN apk add --no-cache mongodb-tools
+
 # 复制后端 package.json
 COPY server/package.json server/pnpm-lock.yaml ./
 
@@ -55,7 +58,7 @@ RUN node -e "require('fs').writeFileSync('.env', \
 # 创建等待脚本
 RUN echo '#!/bin/sh\n\
 echo "Waiting for MongoDB to be ready..."\n\
-until mongosh --host mongodb --eval "db.adminCommand(\"ping\")" > /dev/null 2>&1; do\n\
+until mongo --host mongodb --eval "db.adminCommand(\"ping\")" > /dev/null 2>&1; do\n\
   echo "MongoDB is not ready yet. Waiting..."\n\
   sleep 2\n\
 done\n\
