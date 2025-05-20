@@ -10,8 +10,13 @@ import configRoutes from './routes/config.js'
 import logsRoutes from './routes/logs.js'
 import { errorHandler } from './middleware/errorHandler.js'
 import { Config } from './models/Config.js'
+import path from 'path'
+import { fileURLToPath } from 'url'
 
 dotenv.config()
+
+const __filename = fileURLToPath(import.meta.url)
+const __dirname = path.dirname(__filename)
 
 const app = express()
 
@@ -28,6 +33,14 @@ app.use('/api', imageRoutes)
 app.use('/api/admin', adminRoutes)
 app.use('/api/admin', configRoutes)
 app.use('/api/admin', logsRoutes)
+
+// 静态文件服务
+app.use(express.static(path.join(__dirname, '../public')))
+
+// 所有未匹配的路由都返回前端页面
+app.get('*', (req, res) => {
+  res.sendFile(path.join(__dirname, '../public/index.html'))
+})
 
 // 错误处理
 app.use(errorHandler)
