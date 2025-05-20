@@ -44,6 +44,10 @@ COPY --from=frontend-build /app/frontend/dist ./public
 # 创建上传目录
 RUN mkdir -p uploads/watermarks
 
+# 复制等待脚本
+COPY wait-for-mongodb.sh /app/
+RUN chmod +x /app/wait-for-mongodb.sh
+
 # 生成随机 JWT_SECRET 并创建 .env 文件
 RUN node -e "require('fs').writeFileSync('.env', \
     'JWT_SECRET=' + require('crypto').randomBytes(64).toString('hex') + '\n' + \
@@ -54,17 +58,6 @@ RUN node -e "require('fs').writeFileSync('.env', \
     '# 默认上传目录\n' + \
     'UPLOAD_DIR=/app/uploads\n' \
 )"
-
-# 创建等待脚本
-RUN echo '#!/bin/sh\n\
-echo "Waiting for MongoDB to be ready..."\n\
-until mongo --host mongodb --eval "db.adminCommand(\"ping\")" > /dev/null 2>&1; do\n\
-  echo "MongoDB is not ready yet. Waiting..."\n\
-  sleep 2\n\
-done\n\
-echo "MongoDB is ready!"\n\
-exec "$@"' > /app/wait-for-mongodb.sh && \
-chmod +x /app/wait-for-mongodb.sh
 
 # 暴露端口
 EXPOSE 25519
