@@ -44,10 +44,6 @@ COPY --from=frontend-build /app/frontend/dist ./public
 # 创建上传目录
 RUN mkdir -p uploads/watermarks
 
-# 复制等待脚本
-COPY wait-for-mongodb.sh /app/
-RUN chmod +x /app/wait-for-mongodb.sh
-
 # 生成随机 JWT_SECRET 并创建 .env 文件
 RUN node -e "require('fs').writeFileSync('.env', \
     'JWT_SECRET=' + require('crypto').randomBytes(64).toString('hex') + '\n' + \
@@ -63,4 +59,4 @@ RUN node -e "require('fs').writeFileSync('.env', \
 EXPOSE 25519
 
 # 启动命令
-CMD ["/app/wait-for-mongodb.sh", "pnpm", "start"] 
+CMD ["pnpm", "start"] 
