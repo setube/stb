@@ -6,7 +6,7 @@ services:
       context: .
       dockerfile: Dockerfile
     ports:
-      - "3000:3000"
+      - "25519:25519"
     volumes:
       - ./server/uploads:/app/uploads
       - ./.env:/app/.env  # 挂载 .env 文件以持久化 JWT_SECRET

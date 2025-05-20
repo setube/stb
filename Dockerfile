@@ -1,5 +1,5 @@
 # 构建前端
-FROM node:18-alpine as frontend-build
+FROM node:18-alpine AS frontend-build
 
 WORKDIR /app/frontend
 
@@ -42,16 +42,18 @@ COPY --from=frontend-build /app/frontend/dist ./public
 RUN mkdir -p uploads/watermarks
 
 # 生成随机 JWT_SECRET 并创建 .env 文件
-RUN echo "JWT_SECRET=$(node -e \"console.log(require('crypto').randomBytes(64).toString('hex'))\")" > .env && \
-    echo "# 端口号" >> .env && \
-    echo "PORT=25519" >> .env && \
-    echo "# 数据库连接字符串 27017是mongodb的默认端口 stb是数据库默认名称" >> .env && \
-    echo "MONGODB_URI=mongodb://mongodb:27017/stb" >> .env && \
-    echo "# 默认上传目录" >> .env && \
-    echo "UPLOAD_DIR=/app/uploads" >> .env
+RUN node -e "require('fs').writeFileSync('.env', \
+    'JWT_SECRET=' + require('crypto').randomBytes(64).toString('hex') + '\n' + \
+    '# 端口号\n' + \
+    'PORT=25519\n' + \
+    '# 数据库连接字符串 27017是mongodb的默认端口 stb是数据库默认名称\n' + \
+    'MONGODB_URI=mongodb://mongodb:27017/stb\n' + \
+    '# 默认上传目录\n' + \
+    'UPLOAD_DIR=/app/uploads\n' \
+)"
 
 # 暴露端口
-EXPOSE 3000
+EXPOSE 25519
 
 # 启动命令
 CMD ["pnpm", "start"] 
