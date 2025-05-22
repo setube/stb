@@ -1,0 +1,58 @@
+node_modules
+.pnpm-store
+.pnpm-debug.log
+
+# 环境配置
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+# 日志
+logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+
+# 构建输出
+dist
+dist-ssr
+server/public
+*.local
+
+# 编辑器目录
+.vscode/*
+!.vscode/extensions.json
+.idea
+.DS_Store
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+
+# 测试覆盖率
+coverage
+*.lcov
+
+# 缓存
+.npm
+.eslintcache
+.stylelintcache
+.rpt2_cache/
+.rts2_cache_cjs/
+.rts2_cache_es/
+.rts2_cache_umd/
+.node_repl_history
+
+# 上传文件目录（可能包含用户上传的内容）
+server/uploads/*
+!server/uploads/.gitkeep
+!server/uploads/watermarks/.gitkeep
+
+# Docker 卷备份
+mongodb_data
