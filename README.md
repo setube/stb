@@ -1,9 +1,12 @@
+<div align="center">
+
 # Stb图床
 [![Stb GitHub's stars](https://img.shields.io/github/stars/setube/stb?style=social)](https://github.com/setube/stb/stargazers)
 [![Stb GitHub's forks](https://img.shields.io/github/forks/setube/stb?style=social)](https://github.com/setube/stb/network/members)
-[![License](https://img.shields.io/badge/license-GPL_V2.0-yellowgreen.svg)](https://github.com/setube/stb/blob/master/LICENSE)
+[![Stb is released under the Apache 2.0 license.](https://img.shields.io/badge/License-Apache%202.0-blue)](/LICENSE)
 
-目录: [安装](/docs/安装图床.md) | [许可证](#开源许可) 
+[安装图床](/docs/安装图床.md) • [界面展示](#界面展示) • [星标趋势](#星标趋势) • [开源协议](#开源协议)
+</div>
 
 ## 特点
 * [x] 支持设置图片质量
@@ -15,7 +18,7 @@
 * [x] 支持上传其他文件格式
 * [x] 在线管理图片
 
-## 界面演示
+## 界面展示
  ![Stb图床 - 上传界面](./docs/1.png)
  ![Stb图床 - 广场界面](./docs/2.png)
  ![Stb图床 - 统计界面](./docs/3.png)
@@ -25,12 +28,12 @@
  ![Stb图床 - 登录界面](./docs/7.png)
  ![Stb图床 - 注册界面](./docs/8.png)
 
-## 环境要求
-> 推荐环境：Node.js + MongoDB
+## 星标趋势
 
-## 开源许可
+如果你觉得 Stb 对你有帮助，欢迎点击右上角 ⭐Star 支持我们，让更多人了解和使用这个项目。
 
- - [GPL-2.0](https://github.com/icret/EasyImages2.0/blob/master/LICENSE) 
- - Copyright © 2025 Stb Developer By [setube](https://github.com/setube)
+<img src="https://api.star-history.com/svg?repos=setube/stb&type=Date" style="width: 60%; height: auto;">
 
-[![Stargazers over time](https://starchart.cc/setube/stb.svg)](https://github.com/setube/stb/stargazers)
+## 开源协议
+
+Stb 遵循 [Apache-2.0](https://opensource.org/license/apache-2-0) 协议进行分发和使用，更多详情请参见[协议文件](/LICENSE)。
