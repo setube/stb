@@ -11,6 +11,10 @@ export default defineConfig({
       '@': path.resolve(__dirname, 'src')
     }
   },
+  build: {
+    outDir: '../server/public',
+    emptyOutDir: true,
+  },
   plugins: [
     AutoImport({
       resolvers: [ElementPlusResolver()],
