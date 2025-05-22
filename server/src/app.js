@@ -47,26 +47,43 @@ app.use(errorHandler)
 
 // 数据库连接配置
 const connectDB = async () => {
+  const maxRetries = 5
+  let retries = 0
+
+  while (retries < maxRetries) {
+    try {
+      await mongoose.connect(process.env.MONGODB_URI, {
+        serverSelectionTimeoutMS: 5000, // 超时时间
+        socketTimeoutMS: 45000, // Socket 超时时间
+      })
+      console.log('MongoDB数据库连接成功')
+      // 初始化配置
+      await Config.initialize()
+      return
+    } catch (error) {
+      retries++
+      console.log(`MongoDB连接尝试${retries}失败：`, error.message)
+      if (retries === maxRetries) {
+        console.error(`在${maxRetries}次尝试后连接到MongoDB失败`)
+        throw error
+      }
+      // 等待 5 秒后重试
+      await new Promise(resolve => setTimeout(resolve, 5000))
+    }
+  }
+}
+
+// 启动服务器
+const startServer = async () => {
   try {
-    await mongoose.connect(process.env.MONGODB_URI, {
-      useNewUrlParser: true,
-      useUnifiedTopology: true,
-      serverSelectionTimeoutMS: 5000, // 超时时间
-      socketTimeoutMS: 45000, // Socket 超时时间
+    await connectDB()
+    app.listen(process.env.PORT, () => {
+      console.log(`后端服务正在${process.env.PORT}端口上运行`)
     })
-    console.log('数据库连接成功')
-    // 初始化配置
-    await Config.initialize()
-  } catch (err) {
-    console.error('数据库连接失败:', err)
+  } catch (error) {
+    console.error('启动后端服务失败：', error)
     process.exit(1)
   }
 }
 
-// 连接数据库
-connectDB()
-
-const PORT = process.env.PORT || 3000
-app.listen(PORT, () => {
-  console.log(`后端服务启动成功, 端口号:${PORT}`)
-}) 
+startServer() 

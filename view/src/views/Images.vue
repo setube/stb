@@ -14,10 +14,14 @@
       </el-table-column>
       <el-table-column prop="name" label="上传者">
         <template #default="{ row }">
-          {{ row.user.username  }}
+          {{ row.user.username }}
         </template>
       </el-table-column>
-      <el-table-column prop="date" label="上传时间" />
+      <el-table-column prop="date" label="上传时间">
+        <template #default="{ row }">
+          {{ formatDate(row.date) }}
+        </template>
+      </el-table-column>
       <el-table-column label="操作" fixed="right">
         <template #default="{ row }">
           <a-button type="link" danger @click="handleDelete(row._id)">
@@ -34,6 +38,7 @@ import { ref, onMounted } from 'vue'
 import axios from '@/stores/axios'
 import { message, Modal } from 'ant-design-vue'
 import { useUserStore } from '@/stores/user'
+import formatDate from '@/stores/formatDate'
 
 const userStore = useUserStore()
 const images = ref([])

@@ -1,84 +1,57 @@
 <template>
   <div class="users">
-    <a-table :columns="columns" :data-source="users" :loading="loading" row-key="_id">
-      <template #bodyCell="{ column, record }">
-        <template v-if="column.key === 'status'">
-          <a-tag :color="record.status === 'active' ? 'green' : 'red'">
-            {{ record.status === 'active' ? '活跃' : '禁用' }}
+    <el-table :data="users" :scrollbar-always-on="true" fit>
+      <el-table-column prop="username" label="用户名" fixed />
+      <el-table-column prop="name" label="IP地址">
+        <template #default="{ row }">
+          {{ row.ip.ipv4 || row.ip.ipv6 }}
+        </template>
+      </el-table-column>
+      <el-table-column prop="email" label="注册邮箱" />
+      <el-table-column prop="role" label="角色">
+        <template #default="{ row }">
+          {{ row.role === 'admin' ? '管理员' : '用户' }}
+        </template>
+      </el-table-column>
+      <el-table-column prop="date" label="状态">
+        <template #default="{ row }">
+          <a-tag :color="row.status === 'active' ? 'green' : 'red'">
+            {{ row.status === 'active' ? '活跃' : '禁用' }}
           </a-tag>
         </template>
-        <template v-if="column.key === 'role'">
-          <a-tag :color="record.role === 'admin' ? 'blue' : 'default'">
-            {{ record.role === 'admin' ? '管理员' : '用户' }}
-          </a-tag>
+      </el-table-column>
+      <el-table-column prop="createdAt" label="注册时间">
+        <template #default="{ row }">
+          {{ formatDate(row.createdAt) }}
         </template>
-        <template v-if="column.key === 'action'">
-          <a-space>
-            <a-button type="link" @click="handleStatusChange(record)">
-              {{ record.status === 'active' ? '禁用' : '启用' }}
-            </a-button>
-            <a-button type="link" @click="handleRoleChange(record)">
-              {{ record.role === 'admin' ? '设为用户' : '设为管理员' }}
-            </a-button>
-          </a-space>
+      </el-table-column>
+      <el-table-column prop="lastLogin" label="最后登录">
+        <template #default="{ row }">
+          {{ formatDate(row.lastLogin) }}
         </template>
-      </template>
-    </a-table>
+      </el-table-column>
+      <el-table-column label="操作" fixed="right">
+        <template #default="{ row }">
+          <a-button type="link" @click="handleStatusChange(row)">
+            {{ row.status === 'active' ? '禁用' : '启用' }}
+          </a-button>
+          <a-button type="link" @click="handleRoleChange(row)">
+            {{ row.role === 'admin' ? '设为用户' : '设为管理员' }}
+          </a-button>
+        </template>
+      </el-table-column>
+    </el-table>
   </div>
 </template>
 
 <script setup>
 import { ref, onMounted } from 'vue'
 import axios from '@/stores/axios'
+import formatDate from '@/stores/formatDate'
 import { message } from 'ant-design-vue'
 
 const users = ref([])
 const loading = ref(false)
-
-const columns = [
-  {
-    title: '用户名',
-    dataIndex: 'username',
-    key: 'username'
-  },
-  {
-    title: 'IP地址',
-    dataIndex: 'ip',
-    key: 'ip',
-    customRender: ({ text }) => {
-      return text.ipv4 ? text.ipv4 : text.ipv6
-    }
-  },
-  {
-    title: '注册邮箱',
-    dataIndex: 'email',
-    key: 'email'
-  },
-  {
-    title: '角色',
-    dataIndex: 'role',
-    key: 'role'
-  },
-  {
-    title: '状态',
-    dataIndex: 'status',
-    key: 'status'
-  },
-  {
-    title: '注册时间',
-    dataIndex: 'createdAt',
-    key: 'createdAt'
-  },
-  {
-    title: '最后登录',
-    dataIndex: 'lastLogin',
-    key: 'lastLogin'
-  },
-  {
-    title: '操作',
-    key: 'action'
-  }
-]
 
 const fetchUsers = async () => {
   loading.value = true

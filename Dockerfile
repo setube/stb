@@ -44,19 +44,5 @@ COPY --from=frontend-build /app/frontend/dist ./public
 # 创建上传目录
 RUN mkdir -p uploads/watermarks
 
-# 生成随机 JWT_SECRET 并创建 .env 文件
-RUN node -e "require('fs').writeFileSync('.env', \
-    'JWT_SECRET=' + require('crypto').randomBytes(64).toString('hex') + '\n' + \
-    '# 端口号\n' + \
-    'PORT=25519\n' + \
-    '# 数据库连接字符串 27017是mongodb的默认端口 stb是数据库默认名称\n' + \
-    'MONGODB_URI=mongodb://mongodb:27017/stb\n' + \
-    '# 默认上传目录\n' + \
-    'UPLOAD_DIR=/app/uploads\n' \
-)"
-
-# 暴露端口
-EXPOSE 25519
-
 # 启动命令
 CMD ["pnpm", "start"] 
