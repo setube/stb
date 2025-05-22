@@ -3,6 +3,8 @@
 [![Stb GitHub's forks](https://img.shields.io/github/forks/setube/stb?style=social)](https://github.com/setube/stb/network/members)
 [![License](https://img.shields.io/badge/license-GPL_V2.0-yellowgreen.svg)](https://github.com/setube/stb/blob/master/LICENSE)
 
+目录: [安装](/docs/安装图床.md) | [许可证](#开源许可) 
+
 ## 特点
 * [x] 支持设置图片质量
 * [x] 支持压缩图片大小
@@ -30,3 +32,5 @@
 
  - [GPL-2.0](https://github.com/icret/EasyImages2.0/blob/master/LICENSE) 
  - Copyright © 2025 Stb Developer By [setube](https://github.com/setube)
+
+[![Stargazers over time](https://starchart.cc/setube/stb.svg)](https://github.com/setube/stb/stargazers)
