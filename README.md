@@ -47,7 +47,7 @@
 
 如果你觉得 Stb 对你有帮助，欢迎点击右上角 ⭐Star 支持我们，让更多人了解和使用这个项目。
 
-<img src="https://api.star-history.com/svg?repos=setube/stb&type=Date" style="width: 60%; height: auto;">
+<img src="https://api.star-history.com/svg?repos=setube/stb&type=Date" />
 
 ## 开源协议
 
