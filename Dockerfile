@@ -56,13 +56,21 @@ RUN node -e "require('fs').writeFileSync('.env', \
     'MONGODB_URI=mongodb://mongodb:27017/stb\n' + \
     '# 默认上传目录\n' + \
     'UPLOAD_DIR=/app/server/uploads\n' \
+    '# 图床标题'\
+    'VITE_APP_TITLE=Stb 图床\n' \
 )"
 
 # 切回主目录
 WORKDIR /app
 
+# 复制入口脚本并给予执行权限
+COPY docker-entrypoint.sh /docker-entrypoint.sh
+RUN chmod +x /docker-entrypoint.sh
+
 # 暴露端口
 EXPOSE 25519
+
+ENTRYPOINT ["/docker-entrypoint.sh"]
 
 # 启动命令
 CMD ["pnpm", "--filter=./server", "start"] 

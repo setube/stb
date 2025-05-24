@@ -1,8 +1,5 @@
 import axios from 'axios'
 
-// 配置 axios 默认值
-axios.defaults.baseURL = import.meta.env.VITE_BASE_URL
-
 // 添加请求拦截器
 axios.interceptors.request.use(config => {
   const token = localStorage.getItem('token')
