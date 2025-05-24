@@ -1,5 +1,50 @@
 #!/bin/bash
 
+# --- Script Configuration ---
+# 定义应用端口
+APP_PORT=25519
+
+# 自动获取服务器IP地址。
+# 尝试使用 'hostname -I' 获取第一个IP，如果失败则回退到 'localhost'。
+SERVER_IP=$(hostname -I 2>/dev/null | awk '{print $1}')
+if [ -z "$SERVER_IP" ]; then
+    echo "警告: 无法自动获取IP地址, 将使用 'localhost' 作为备用。"
+    SERVER_IP="localhost"
+fi
+
+# --- URL 配置路径选择 ---
+DEFAULT_URL="http://${SERVER_IP}:${APP_PORT}"
+FINAL_URL="" # 用于存储最终确认的URL
+
+echo "=============================================="
+echo "脚本检测到以下默认配置："
+echo "服务器IP: ${SERVER_IP}"
+echo "应用端口: ${APP_PORT}"
+echo "默认访问URL为: ${DEFAULT_URL}"
+echo "=============================================="
+
+read -p "是否确认使用此默认URL进行部署? [Y/n]: " confirm
+# 如果用户直接按回车，则默认为 'Y'
+confirm=${confirm:-Y}
+
+if [[ "$confirm" == "Y" || "$confirm" == "y" ]]; then
+    FINAL_URL=$DEFAULT_URL
+    echo "✅ 已确认, 将使用默认URL: ${FINAL_URL}"
+else
+    echo "您选择了自定义URL路径。"
+    read -p "请输入您期望使用的完整访问域名 (例如: https://stb.yourdomain.com): " CUSTOM_DOMAIN
+    # 循环直到用户输入了非空内容
+    while [ -z "$CUSTOM_DOMAIN" ]; do
+        echo "错误: 域名不能为空, 请重新输入。"
+        read -p "请输入您的完整访问域名 (例如: https://stb.yourdomain.com): " CUSTOM_DOMAIN
+    done
+    FINAL_URL=$CUSTOM_DOMAIN
+    echo "✅ 已确认, 将使用自定义URL: ${FINAL_URL}"
+fi
+echo "=============================================="
+# --- End URL Configuration ---
+
+
 # 检查命令是否存在
 command_exists() {
     command -v "$1" >/dev/null 2>&1
@@ -23,7 +68,6 @@ if ! docker compose version >/dev/null 2>&1; then
     exit 1
 fi
 
-
 # 1. 下载源码
 if [ -d "stb" ]; then
     echo "目录 'stb' 已存在，跳过下载。"
@@ -40,6 +84,7 @@ cd stb
 
 # 2. 创建 docker-compose.yml 文件
 echo "正在创建 docker-compose.yml 文件..."
+# 使用 cat <<EOL 创建文件，以支持变量和多行文本
 cat <<EOL > docker-compose.yml
 version: '3.8'
 
@@ -49,7 +94,7 @@ services:
       context: .
       dockerfile: Dockerfile
     ports:
-      - "25519:25519"
+      - "${APP_PORT}:${APP_PORT}"
     volumes:
       - ./server/uploads:/app/server/uploads
       - ./.env:/app/server/.env
@@ -60,17 +105,18 @@ services:
       - app-network
     restart: unless-stopped
     environment:
-      - PORT=25519
+      - PORT=${APP_PORT}
       - UPLOAD_DIR=/app/server/uploads
       - MONGODB_URI=mongodb://mongodb:27017/stb
       - JWT_SECRET=\${JWT_SECRET:?error}
       - VITE_BASE_URL=\${VITE_BASE_URL:?error}
       - VITE_APP_TITLE=\${VITE_APP_TITLE:?error}
     expose:
-      - 25519
+      - ${APP_PORT}
 
   mongodb:
-    image: mongo:latest
+    # 针对ARM架构（如Apple M1/M2/M3）优化，如果您的服务器是标准x86_64，也可以使用 mongo:latest
+    image: arm64v8/mongo
     ports:
       - "27017:27017"
     volumes:
@@ -96,15 +142,17 @@ EOL
 
 # 3. 创建 .env 文件并设置变量
 if [ -f ".env" ]; then
-    echo ".env 文件已存在，跳过创建。"
+    echo ".env 文件已存在，将使用新配置覆盖 VITE_BASE_URL..."
+    # 使用 sed 命令只修改 VITE_BASE_URL，保留可能已有的其他自定义设置
+    # 注意：使用 # 作为 sed 的分隔符，以避免 URL 中的 / 字符造成冲突
+    sed -i.bak "s#^VITE_BASE_URL=.*#VITE_BASE_URL=${FINAL_URL}#" .env
 else
     echo "正在创建并配置 .env 文件..."
-    # 为 JWT_SECRET 生成一个随机字符串
     JWT_SECRET_VALUE=$(openssl rand -hex 32)
     cat <<EOL > .env
 # 应用配置
 VITE_APP_TITLE=STB
-VITE_BASE_URL=http://localhost:25519
+VITE_BASE_URL=${FINAL_URL}
 
 # 安全密钥 (自动生成)
 JWT_SECRET=${JWT_SECRET_VALUE}
@@ -113,12 +161,12 @@ fi
 
 # 4. 运行 Docker Compose
 echo "正在使用 Docker Compose 启动服务..."
-docker compose up -d
+docker compose up -d --build
 
 if [ $? -eq 0 ]; then
     echo "✅ 部署成功！"
     echo "服务正在后台运行。"
-    echo "您现在可以通过 http://localhost:25519 访问应用。"
+    echo "您现在可以通过 ${FINAL_URL} 访问应用。"
 else
     echo "❌ 部署失败。请检查以上输出信息。"
 fi
