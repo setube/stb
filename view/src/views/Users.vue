@@ -47,7 +47,7 @@
 <script setup>
 import { ref, onMounted } from 'vue'
 import axios from '@/stores/axios'
-import formatDate from '@/stores/formatDate'
+import { formatDate } from '@/stores/formatDate'
 import { message } from 'ant-design-vue'
 
 const users = ref([])

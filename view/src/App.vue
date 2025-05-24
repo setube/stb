@@ -12,9 +12,12 @@
         </div>
       </div>
     </div>
+    <!-- 遮罩 -->
+    <div class="mask" :class="{ 'mask-active': isMenuActive }" @click="isMenuActive = false"></div>
+    <!-- 菜单 -->
     <div class="menu" :class="{ 'menu-active': isMenuActive }" v-if="userStore.token">
       <div class="logo">{{ userStore.config?.site?.title }}</div>
-      <a-menu v-model:selectedKeys="selectedKeys" theme="dark" mode="inline">
+      <a-menu v-model:selectedKeys="selectedKeys" :open-keys="['admin']" theme="dark" mode="inline">
         <a-menu-item key="home">
           <router-link to="/">
             <HomeOutlined />
@@ -62,17 +65,21 @@
       </a-menu>
     </div>
     <div class="content" :style="{
-      margin: userStore.token ? '50px 0 0 200px' : '0',
+      margin: userStore.token ? '50px 0 44px 200px' : '0',
       padding: 0
     }">
       <router-view />
+    </div>
+    <div class="footer">
+      All rights reserved © 2025
+      <a-button class="goLink" type="link" href="https://github.com/setube/stb" target="_blank">Stb</a-button>
     </div>
   </div>
 </template>
 
 <script setup>
-import { ref, watch, onMounted } from 'vue'
-import { useRoute, useRouter } from 'vue-router'
+import { ref, onMounted } from 'vue'
+import { useRouter } from 'vue-router'
 import { useUserStore } from '@/stores/user'
 import { getIpAddress } from '@/stores/getIp'
 import axios from '@/stores/axios'
@@ -86,18 +93,12 @@ import {
 } from '@ant-design/icons-vue'
 
 const router = useRouter()
-const route = useRoute()
 const userStore = useUserStore()
 const selectedKeys = ref(['home'])
 const isMenuActive = ref(false)
 const userIp = ref({
   ipv4: '',
   ipv6: ''
-})
-
-watch(() => route.path, (path) => {
-  const key = path.split('/')[1] || 'home'
-  selectedKeys.value = [key]
 })
 
 // 获取配置
@@ -127,6 +128,10 @@ const handleLogout = () => {
   router.push('/login')
 }
 
+onMounted(() => {
+  const segments = location.pathname.split('/').filter(Boolean)
+  selectedKeys.value = segments.length > 1 ? [segments[1]] : [segments[0] || 'home']
+})
 
 onMounted(async () => {
   fetchConfig()
@@ -134,7 +139,6 @@ onMounted(async () => {
     try {
       await userStore.fetchUserInfo()
     } catch (error) {
-      // 如果获取用户信息失败（比如 token 过期），清除用户信息
       userStore.logout()
     }
   }
@@ -152,7 +156,7 @@ onMounted(async () => {
   background: #001529;
   position: fixed;
   width: 100%;
-  z-index: 100;
+  z-index: 101;
 }
 
 .app-header-left {
@@ -193,10 +197,45 @@ onMounted(async () => {
   bottom: 0;
   background: #001529;
   transition: transform 0.3s ease;
+  z-index: 101;
+}
+
+.mask {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-color: rgba(0, 0, 0, 0.5);
+  z-index: 0;
+  transition: opacity 0.3s ease;
+  opacity: 0;
+}
+
+.mask-active {
+  opacity: 1;
+  z-index: 100;
 }
 
 .content {
   padding: 24px;
+}
+
+.footer {
+  position: fixed;
+  bottom: 0;
+  width: 100%;
+  text-align: center;
+  padding: 10px 0;
+  color: rgba(255, 255, 255, 0.65);
+  background-color: #001529;
+  z-index: 101;
+}
+
+.goLink {
+  height: auto;
+  padding: 0;
+  border-radius: 0;
 }
 
 /* 移动端 */

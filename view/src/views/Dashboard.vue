@@ -1,25 +1,22 @@
 <template>
   <div class="dashboard">
-    <a-row :gutter="16">
-      <a-col :span="8">
-        <a-card>
-          <template #title>用户总数</template>
-          <h2>{{ stats.userCount }}</h2>
+    <a-spin :spinning="spinning">
+      <div class="ant-row">
+        <a-card class="ant-row-item" v-for="(item, index) in stats" :key="index">
+          <template #title>{{ item.name }}</template>
+          <h2>{{ item.value }}</h2>
         </a-card>
-      </a-col>
-      <a-col :span="8">
-        <a-card>
-          <template #title>图片总数</template>
-          <h2>{{ stats.imageCount }}</h2>
+      </div>
+      <div class="ant-row">
+        <a-card class="ant-row-item-table">
+          <template #title>系统信息</template>
+          <el-table stripe :data="system" :show-header="false">
+            <el-table-column prop="name" />
+            <el-table-column prop="value" />
+          </el-table>
         </a-card>
-      </a-col>
-      <a-col :span="8">
-        <a-card>
-          <template #title>活跃用户</template>
-          <h2>{{ stats.activeUsers }}</h2>
-        </a-card>
-      </a-col>
-    </a-row>
+      </div>
+    </a-spin>
   </div>
 </template>
 
@@ -27,16 +24,16 @@
 import { ref, onMounted } from 'vue'
 import axios from '@/stores/axios'
 
-const stats = ref({
-  userCount: 0,
-  imageCount: 0,
-  activeUsers: 0
-})
+const stats = ref([])
+const system = ref([])
+const spinning = ref(true)
 
 const fetchStats = async () => {
   try {
     const response = await axios.get('/api/admin/stats')
-    stats.value = response.data
+    stats.value = response.data.stats
+    system.value = response.data.system
+    spinning.value = false
   } catch (error) {
     console.error('获取统计信息失败:', error)
   }
@@ -49,4 +46,27 @@ onMounted(fetchStats)
 .dashboard {
   padding: 24px;
 }
-</style> 
+
+.ant-row {
+  display: flex;
+  flex-wrap: wrap;
+  margin-bottom: 10px;
+  justify-content: center;
+}
+
+.ant-row-item {
+  width: calc(24% - 16px);
+  margin: 8px;
+  text-align: center;
+}
+
+.ant-row-item-table {
+  width: 100%;
+}
+
+@media screen and (max-width: 768px) {
+  .ant-row-item {
+    width: calc(50% - 16px);
+  }
+}
+</style>

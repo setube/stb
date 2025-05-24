@@ -9,9 +9,32 @@ import { UploadLog } from '../models/UploadLog.js'
 import { getIpLocation } from '../utils/ipLocation.js'
 import { checkDailyLimit } from '../middleware/checkDailyLimit.js'
 import { checkIpWhitelist } from '../middleware/checkIpWhitelist.js'
+import {
+  uploadToOSS, uploadToCOS, uploadToS3,
+  uploadToR2, getUploadToken, uploadToQiNiu,
+  uploadToUpyun, uploadToSftp, uploadToFtp,
+  uploadToWebdav, uploadToTelegram, uploadToGithub
+} from '../utils/oss.js'
 import fs from 'fs/promises'
+import crypto from 'crypto'
+import { createReadStream } from 'fs'
 
 const router = express.Router()
+
+async function checkAndCreateDir(dirPath) {
+  try {
+    await fs.access(dirPath)
+  } catch (error) {
+    console.log('目录不存在，正在创建:', dirPath)
+    try {
+      await fs.mkdir(dirPath, { recursive: true })
+      console.log('目录创建成功:', dirPath)
+    } catch (mkdirError) {
+      console.error('创建目录失败:', dirPath, mkdirError)
+      throw mkdirError
+    }
+  }
+}
 
 // 配置文件上传
 const storage = multer.diskStorage({
@@ -38,7 +61,16 @@ const upload = multer({
   }
 })
 
-// 上传图片
+// 修改计算 SHA-1 的函数
+async function calculateSHA1(filePath) {
+  return new Promise((resolve, reject) => {
+    const hash = crypto.createHash('sha1')
+    const stream = createReadStream(filePath)
+    stream.on('error', err => reject(err))
+    stream.on('data', chunk => hash.update(chunk))
+    stream.on('end', () => resolve(hash.digest('hex')))
+  })
+}
 
 // 获取图片列表
 router.post('/images', async (req, res) => {
@@ -261,9 +293,188 @@ router.post('/upload',
         }
       }
       // 保存处理后的图片
-      const processedFilename = `processed_${Date.now()}_${path.basename(file.originalname, path.extname(file.originalname))}.${config.upload.convertFormat || imageInfo.format}`
-      const processedPath = path.join(process.env.UPLOAD_DIR, processedFilename)
+      const uploadPath = process.env.UPLOAD_DIR + config.storage.local.path
+      checkAndCreateDir(uploadPath)
+      const processedFilename = `${Date.now()}.${config.upload.convertFormat || imageInfo.format}`
+      const processedPath = path.join(uploadPath, processedFilename)
       await imageProcessor.toFile(processedPath)
+
+      // 获取处理后的文件大小
+      const processedStats = await fs.stat(processedPath)
+      const processedSize = processedStats.size
+
+      // 计算处理后的图片的 SHA-1 值
+      const sha1 = await calculateSHA1(processedPath)
+
+      let url = '', filePath = ''
+      switch (config.storage.type) {
+        case 'local':
+          url = `/${uploadPath}${processedFilename}`
+          filePath = url
+          break
+        case 'oss':
+          // 上传到OSS
+          const ossPath = `${config.storage.oss.path}${processedFilename}`
+          filePath = ossPath
+          // 上传到OSS后删除本地文件 
+          try {
+            url = await uploadToOSS(processedPath, ossPath)
+            await fs.unlink(processedPath)
+          } catch (error) {
+            await fs.unlink(processedPath)
+            console.error('OSS上传失败:', error)
+            throw new Error('上传到OSS失败: ' + error.message)
+          }
+          break
+        case 'cos':
+          // 上传到COS
+          const cosPath = `${config.storage.cos.filePath}/${processedFilename}`
+          filePath = cosPath
+          try {
+            url = await uploadToCOS(processedPath, cosPath, processedFilename)
+            // 上传成功后删除本地文件
+            await fs.unlink(processedPath)
+          } catch (error) {
+            await fs.unlink(processedPath)
+            console.error('COS上传失败:', error)
+            throw new Error('上传到COS失败: ' + error.message)
+          }
+          break
+        case 's3':
+          // 上传到S3
+          filePath = `${config.storage.s3.directory}/${processedFilename}`
+          try {
+            url = await uploadToS3(processedPath)
+            await fs.unlink(processedPath)
+          } catch (error) {
+            await fs.unlink(processedPath)
+            console.error('S3上传失败:', error)
+            throw new Error('上传到S3失败: ' + error.message)
+          }
+          break
+        case 'r2':
+          // 上传到R2
+          filePath = `${config.storage.r2.directory}/${processedFilename}`
+          try {
+            url = await uploadToR2(processedPath)
+            // 上传成功后删除本地文件
+            await fs.unlink(processedPath)
+          } catch (error) {
+            await fs.unlink(processedPath)
+            console.error('R2上传失败:', error)
+            throw new Error(error)
+          }
+          break
+        case 'qiniu':
+          // 上传到七牛
+          filePath = `/${processedFilename}`
+          try {
+            // 获取上传凭证
+            const token = await getUploadToken()
+            // 上传到七牛
+            const urlInfo = await uploadToQiNiu(token, processedPath, processedFilename)
+            if (urlInfo) {
+              url = urlInfo
+              await fs.unlink(processedPath)
+            }
+          } catch (error) {
+            await fs.unlink(processedPath)
+            console.error('七牛上传失败:', error)
+            throw new Error(error)
+          }
+          break
+        case 'upyun':
+          // 上传到七牛
+          filePath = `${config.storage.upyun.directory}/${processedFilename}`
+          try {
+            const urlInfo = await uploadToUpyun(processedPath)
+            if (urlInfo) {
+              url = urlInfo
+              await fs.unlink(processedPath)
+            }
+          } catch (error) {
+            await fs.unlink(processedPath)
+            console.error('又拍云上传失败:', error)
+            throw new Error(error)
+          }
+          break
+        case 'sftp':
+          // 上传到SFTP
+          filePath = `${config.storage.sftp.directory}/${processedFilename}`
+          try {
+            const urlInfo = await uploadToSftp(processedPath, processedFilename)
+            if (urlInfo) {
+              url = urlInfo
+              await fs.unlink(processedPath)
+            }
+          } catch (error) {
+            await fs.unlink(processedPath)
+            console.error('SFTP上传失败:', error)
+            throw new Error(error)
+          }
+          break
+        case 'ftp':
+          // 上传到FTP
+          filePath = `${config.storage.ftp.directory}/${processedFilename}`
+          try {
+            const urlInfo = await uploadToFtp(processedPath, processedFilename)
+            if (urlInfo) {
+              url = urlInfo
+              await fs.unlink(processedPath)
+            }
+          } catch (error) {
+            await fs.unlink(processedPath)
+            console.error('FTP上传失败:', error)
+            throw new Error(error)
+          }
+          break
+        case 'webdav':
+          // 上传到WEBDAV
+          filePath = `${config.storage.webdav.directory}/${processedFilename}`
+          try {
+            const urlInfo = await uploadToWebdav(processedPath, processedFilename)
+            if (urlInfo) {
+              url = urlInfo
+              await fs.unlink(processedPath)
+            }
+          } catch (error) {
+            await fs.unlink(processedPath)
+            console.error('WebDAV上传失败:', error)
+            throw new Error(error)
+          }
+          break
+        case 'telegram':
+          try {
+            const urlInfo = await uploadToTelegram(processedPath, processedFilename, req.user)
+            if (urlInfo) {
+              url = urlInfo.url
+              filePath = urlInfo.fileId
+              await fs.unlink(processedPath)
+            }
+          } catch (error) {
+            await fs.unlink(processedPath)
+            console.error('Telegram上传失败:', error)
+            throw new Error(error)
+          }
+          break
+          case 'github':
+            filePath = `${config.storage.github.directory}/${processedFilename}`
+            try {
+              const urlInfo = await uploadToGithub(processedPath, processedFilename, req.user)
+              if (urlInfo) {
+                url = urlInfo
+                await fs.unlink(processedPath)
+              }
+            } catch (error) {
+              await fs.unlink(processedPath)
+              console.error('Github上传失败:', error)
+              throw new Error(error)
+            }
+            break
+        default:
+          gravity = 'southeast'
+      }
+
       // 删除原始上传的图片
       try {
         await fs.unlink(file.path)
@@ -274,41 +485,40 @@ router.post('/upload',
       const clientIp = req.body.ip || req.ip
       // 记录上传日志
       const location = getIpLocation(clientIp)
-      // 保存图片记录
+      // 保存图片记录，添加 SHA-1 值
       const image = new Image({
         name: file.originalname,
-        url: `/uploads/${processedFilename}`,
+        url,
         md5: req.body.md5,
+        sha1, // 添加 SHA-1 值
+        type: config.storage.type,
         user: req.user._id,
         width: imageInfo.width,
         height: imageInfo.height,
         date: Date.now(),
         ip: clientIp,
-        size: file.size
+        size: processedSize,
+        filePath,
+        filename: processedFilename,
       })
       await image.save()
+      // 上传日志也添加 SHA-1 值
       const log = new UploadLog({
         user: req.user._id,
         ip: clientIp,
         location,
         image: image._id,
         originalName: file.originalname,
-        size: file.size,
+        size: processedSize,
         format: imageInfo.format,
         width: imageInfo.width,
-        height: imageInfo.height
+        height: imageInfo.height,
+        sha1,
+        filename: processedFilename,
       })
       await log.save()
       res.status(201).json(image)
     } catch (error) {
-      // 如果处理过程中出错，也要尝试删除原始文件
-      if (req.file) {
-        try {
-          await fs.unlink(req.file.path)
-        } catch (unlinkError) {
-          console.error('删除原始文件失败:', unlinkError)
-        }
-      }
       if (error.message.includes('E11000')) {
         res.status(400).json({ error: '图片已存在' })
         return
@@ -317,6 +527,5 @@ router.post('/upload',
     }
   }
 )
-
 
 export default router

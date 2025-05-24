@@ -17,25 +17,13 @@
       </a-upload-dragger>
     </a-card>
     <!-- 上传成功后展示图片链接和多种格式 -->
-    <div v-if="uploadedImages.length > 0" class="result-panel">
+    <div v-if="uploadedImages[activeTab].length > 0" class="result-panel">
       <!-- 复制按钮 -->
       <a-button type="primary" @click="copyImages">一键复制</a-button>
       <!-- 格式切换 -->
       <a-tabs v-model:activeKey="activeTab">
-        <a-tab-pane key="url" tab="URL">
-          <a-input class="ant-input" v-for="(img, idx) in uploadedImages" :key="img || idx" :value="img" readonly
-            @focus="$event.target.select()" />
-        </a-tab-pane>
-        <a-tab-pane key="html" tab="HTML">
-          <a-input class="ant-input" v-for="(img, idx) in uploadedImages" :key="img || idx"
-            :value="`<img src='${img}' alt='' />`" readonly @focus="$event.target.select()" />
-        </a-tab-pane>
-        <a-tab-pane key="bbcode" tab="BBCode">
-          <a-input class="ant-input" v-for="(img, idx) in uploadedImages" :key="img || idx" :value="`[img]${img}[/img]`"
-            readonly @focus="$event.target.select()" />
-        </a-tab-pane>
-        <a-tab-pane key="markdown" tab="Markdown">
-          <a-input class="ant-input" v-for="(img, idx) in uploadedImages" :key="img || idx" :value="`![](${img})`"
+        <a-tab-pane v-for="item in tabList" :key="item.key" :tab="item.tab">
+          <a-input class="ant-input" v-for="(img, idx) in uploadedImages[activeTab]" :key="img || idx" :value="img"
             readonly @focus="$event.target.select()" />
         </a-tab-pane>
       </a-tabs>
@@ -44,7 +32,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted, computed } from 'vue'
+import { ref, onMounted, computed, watch } from 'vue'
 import SparkMD5 from 'spark-md5'
 import { InboxOutlined } from '@ant-design/icons-vue'
 import { message } from 'ant-design-vue'
@@ -55,29 +43,55 @@ const userStore = useUserStore()
 
 const fileList = ref([])
 const images = ref([])
-
-const uploadedImages = ref([]) // 存储所有上传成功的图片URL
+const uploadedImages = ref({
+  url: [],
+  html: [],
+  bbcode: [],
+  markdown: []
+}) // 存储所有上传成功的图片URL
 const currentIndex = ref(0)
 const activeTab = ref('url')
+const tabList = [
+  {
+    key: 'url',
+    tab: 'URL'
+  },
+  {
+    key: 'html',
+    tab: 'HTML'
+  },
+  {
+    key: 'bbcode',
+    tab: 'BBCode'
+  },
+  {
+    key: 'markdown',
+    tab: 'Markdown'
+  }
+]
 
 // 一键复制
 const copyImages = () => {
-  const urls = uploadedImages.value.join('\n')
-  navigator.clipboard.writeText(urls)
+  navigator.clipboard.writeText(uploadedImages.value[activeTab.value].join('\n'))
   message.success('链接已复制到剪贴板')
+  images.value = []
+  fileList.value = []
+  uploadedImages.value = {
+    url: [],
+    html: [],
+    bbcode: [],
+    markdown: []
+  }
+  currentIndex.value = 0
 }
 
 // 上传成功后调用此方法
-const onUploadSuccess = (urls) => {
-  // 支持单张和多张
-  if (Array.isArray(urls)) {
-    uploadedImages.value.push(...urls)
-    currentIndex.value = uploadedImages.value.length - 1
-  } else if (typeof urls === 'string' && urls) {
-    uploadedImages.value.push(urls)
-    currentIndex.value = uploadedImages.value.length - 1
-  }
-  activeTab.value = 'url'
+const onUploadSuccess = (name, url) => {
+  uploadedImages.value.url.push(url)
+  uploadedImages.value.html.push(`<img src="${url}" alt="${name}" />`)
+  uploadedImages.value.bbcode.push(`[img]${url}[/img]`)
+  uploadedImages.value.markdown.push(`![${name}](${url})`)
+  currentIndex.value = uploadedImages.value[activeTab.value].length - 1
 }
 
 // 生成MIME类型字符串
@@ -129,29 +143,14 @@ const customRequest = async ({ file }) => {
     formData.append('md5', md5)
     formData.append('ip', user.ip.ipv4 ? user.ip.ipv4 : user.ip.ipv6)
     const response = await axios.post('/api/upload', formData)
+    const { url, type, filename, isDuplicate } = response.data
     images.value.unshift(response.data)
-    if (response.data.isDuplicate) {
+    if (isDuplicate) {
       message.warning('该图片已存在，已添加到你的图片库')
     } else {
       message.success('上传成功！')
-      onUploadSuccess(userStore.config.site.url + response.data.url)
+      onUploadSuccess(filename, type == 'local' ? userStore.config.site.url + url : url)
     }
-  } catch (error) {
-    message.error(error?.response?.data?.error)
-  }
-}
-
-const copyImageUrl = (url) => {
-  const fullUrl = userStore.config.site.url + url
-  navigator.clipboard.writeText(fullUrl)
-  message.success('链接已复制到剪贴板')
-}
-
-const deleteImage = async (id) => {
-  try {
-    await axios.delete(`/api/images/${id}`)
-    images.value = images.value.filter(img => img._id !== id)
-    message.success('删除成功')
   } catch (error) {
     message.error(error?.response?.data?.error)
   }

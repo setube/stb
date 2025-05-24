@@ -39,6 +39,7 @@ const upload = multer({
 // 获取系统配置
 router.get('/config', auth, checkRole(['admin']), async (req, res) => {
   try {
+    await Config.initialize()
     let config = await Config.findOne()
     if (!config) {
       config = await Config.create({})

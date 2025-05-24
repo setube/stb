@@ -3,13 +3,26 @@
     <el-table :data="images" :scrollbar-always-on="true" fit>
       <el-table-column prop="url" label="预览" fixed>
         <template #default="{ row }">
-          <a-image :src="userStore.config.site.url + row.url" :alt="row.name" style="max-width: 100px" />
+          <a-image :src="row.type == 'local' ? userStore.config.site.url + row.url : row.url" :alt="row.name"
+            style="max-width: 100px" />
         </template>
       </el-table-column>
       <el-table-column prop="name" label="文件名" />
+      <el-table-column prop="md5" label="MD5" />
+      <el-table-column prop="sha1" label="SHA-1" />
       <el-table-column prop="size" label="大小">
         <template #default="{ row }">
           {{ formatFileSize(row.size) }}
+        </template>
+      </el-table-column>
+      <el-table-column prop="type" label="类型">
+        <template #default="{ row }">
+          {{ imageStoreType[row.type] }}
+        </template>
+      </el-table-column>
+      <el-table-column prop="type" label="存储目录">
+        <template #default="{ row }">
+          {{ row.filePath }}
         </template>
       </el-table-column>
       <el-table-column prop="name" label="上传者">
@@ -17,6 +30,7 @@
           {{ row.user.username }}
         </template>
       </el-table-column>
+      <el-table-column prop="ip" label="IP地址" />
       <el-table-column prop="date" label="上传时间">
         <template #default="{ row }">
           {{ formatDate(row.date) }}
@@ -34,11 +48,11 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, computed } from 'vue'
 import axios from '@/stores/axios'
 import { message, Modal } from 'ant-design-vue'
 import { useUserStore } from '@/stores/user'
-import formatDate from '@/stores/formatDate'
+import { formatDate, imageStoreType } from '@/stores/formatDate'
 
 const userStore = useUserStore()
 const images = ref([])

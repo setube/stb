@@ -1,6 +1,6 @@
 <div align="center">
 
-# Stb图床
+# Stb图床 - 现代化图片托管解决方案
 [![Stb GitHub's stars](https://img.shields.io/github/stars/setube/stb?style=social)](https://github.com/setube/stb/stargazers)
 [![Stb GitHub's forks](https://img.shields.io/github/forks/setube/stb?style=social)](https://github.com/setube/stb/network/members)
 [![Stb is released under the Apache 2.0 license.](https://img.shields.io/badge/License-Apache%202.0-blue)](/LICENSE)
@@ -17,6 +17,21 @@
 * [x] 支持限制最低宽度/高度上传
 * [x] 支持上传其他文件格式
 * [x] 在线管理图片
+* [x] 支持上传第三方存储
+
+## 已支持以下第三方存储
+* [x] Telegram
+* [x] Github
+* [x] 阿里云OSS
+* [x] 腾讯云COS
+* [x] AWS S3
+* [x] Cloudflare R2
+* [x] 七牛云 Kodo
+* [x] 又拍云 USS
+* [x] SFTP
+* [x] FTP
+* [x] WebDAV
+
 
 ## 界面展示
  ![Stb图床 - 上传界面](./docs/1.png)

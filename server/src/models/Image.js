@@ -1,7 +1,13 @@
 import mongoose from 'mongoose'
 
 const imageSchema = new mongoose.Schema({
+  // 原文件名
   name: {
+    type: String,
+    required: true
+  },
+  // 现文件名
+  filename: {
     type: String,
     required: true
   },
@@ -38,7 +44,19 @@ const imageSchema = new mongoose.Schema({
   size: {
     type: Number,
     required: true
-  }
+  },
+  type: {
+    type: String,
+    required: true
+  },
+  sha1: {
+    type: String,
+    required: true
+  },
+  filePath: {
+    type: String,
+    required: true
+  },
 }, { timestamps: true })
 
 export const Image = mongoose.model('Image', imageSchema) 

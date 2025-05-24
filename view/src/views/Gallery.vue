@@ -6,7 +6,7 @@
         <template #default="{ item }">
           <a-card hoverable>
             <template #cover>
-              <a-image class="ant-image-img" :src="userStore.config.site.url + item.url" />
+              <a-image class="ant-image-img" :src="item.type == 'local' ? userStore.config.site.url + item.url : item.url" />
             </template>
           </a-card>
         </template>
