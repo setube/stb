@@ -3,7 +3,7 @@
   "private": true,
   "packageManager": "pnpm@10.8.1",
   "scripts": {
-    "dev": "start pnpm --filter=\"./view\" dev & start pnpm --filter=\"./server\" start",
+    "dev": "pnpm --filter=\"./view\" dev & pnpm --filter=\"./server\" start",
     "build": "pnpm --filter=\"./view\" build && pnpm --filter=\"./server\" build",
     "start": "pnpm --filter=\"./server\" start",
     "lint": "pnpm -r lint",

@@ -69,7 +69,6 @@ router.beforeEach((to, from, next) => {
   const userStore = useUserStore()
   const requiresAuth = to.matched.some(record => record.meta.requiresAuth)
   const requiresAdmin = to.matched.some(record => record.meta.requiresAdmin)
-
   if (requiresAuth && !userStore.token) {
     next('/login')
   } else if (requiresAdmin && userStore.user?.role !== 'admin') {

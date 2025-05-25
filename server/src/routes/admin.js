@@ -23,7 +23,7 @@ const router = express.Router()
 const statsCache = new NodeCache({ stdTTL: 60 })
 
 // 获取所有用户列表
-router.get('/users', auth, checkRole(['admin']), async (req, res) => {
+router.post('/users', auth, checkRole(['admin']), async (req, res) => {
   try {
     const users = await User.find({}, '-password')
     res.json(users)
@@ -78,7 +78,7 @@ router.patch('/users/:id/role', auth, checkRole(['admin']), async (req, res) => 
 })
 
 // 获取所有图片
-router.get('/images', auth, checkRole(['admin']), async (req, res) => {
+router.post('/images', auth, checkRole(['admin']), async (req, res) => {
   try {
     const images = await Image.find().populate('user', 'username')
     res.json(images)
@@ -160,7 +160,7 @@ router.delete('/images/:id', auth, checkRole(['admin']), async (req, res) => {
 })
 
 // 获取系统统计信息
-router.get('/stats', auth, checkRole(['admin']), async (req, res) => {
+router.post('/stats', auth, checkRole(['admin']), async (req, res) => {
   try {
     // 检查缓存
     const cachedStats = statsCache.get('systemStats')

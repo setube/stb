@@ -13,7 +13,11 @@ router.post('/config', async (req, res) => {
     if (!config) {
       return res.status(404).json({ error: config })
     }
-    res.json(config)
+    const { _id, __v, ...configWithoutId } = config.toObject()
+    res.json({
+      upload: config.upload,
+      site: config.site
+    })
   } catch (error) {
     res.status(500).json({ error: error.message })
   }

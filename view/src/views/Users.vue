@@ -1,6 +1,6 @@
 <template>
   <div class="users">
-    <el-table :data="users" :scrollbar-always-on="true" fit>
+    <el-table :data="users" :scrollbar-always-on="true" fit v-loading="loading">
       <el-table-column prop="username" label="用户名" fixed />
       <el-table-column prop="name" label="IP地址">
         <template #default="{ row }">
@@ -56,7 +56,7 @@ const loading = ref(false)
 const fetchUsers = async () => {
   loading.value = true
   try {
-    const response = await axios.get('/api/admin/users')
+    const response = await axios.post('/api/admin/users')
     users.value = response.data
   } catch (error) {
     message.error('获取用户列表失败')

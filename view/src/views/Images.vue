@@ -1,6 +1,6 @@
 <template>
   <div class="images">
-    <el-table :data="images" :scrollbar-always-on="true" fit>
+    <el-table :data="images" :scrollbar-always-on="true" fit v-loading="loading">
       <el-table-column prop="url" label="预览" fixed>
         <template #default="{ row }">
           <a-image :src="row.type == 'local' ? userStore.config.site.url + row.url : row.url" :alt="row.name"
@@ -38,6 +38,9 @@
       </el-table-column>
       <el-table-column label="操作" fixed="right">
         <template #default="{ row }">
+          <a-button type="link" @click="copyImages(row)">
+            复制
+          </a-button>
           <a-button type="link" danger @click="handleDelete(row._id)">
             删除
           </a-button>
@@ -61,7 +64,7 @@ const loading = ref(false)
 const fetchImages = async () => {
   loading.value = true
   try {
-    const response = await axios.get('/api/admin/images')
+    const response = await axios.post('/api/admin/images')
     images.value = response.data
   } catch (error) {
     message.error('获取图片列表失败')
@@ -93,6 +96,13 @@ const handleDelete = (id) => {
       }
     }
   })
+}
+
+// 一键复制所有图片链接
+const copyImages = (image) => {
+  const url = image.type == 'local'? userStore.config.site.url + image.url : image.url
+  navigator.clipboard.writeText(url)
+  message.success('链接已复制到剪贴板')
 }
 
 onMounted(fetchImages)

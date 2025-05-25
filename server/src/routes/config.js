@@ -37,14 +37,15 @@ const upload = multer({
 })
 
 // 获取系统配置
-router.get('/config', auth, checkRole(['admin']), async (req, res) => {
+router.post('/config', auth, checkRole(['admin']), async (req, res) => {
   try {
     await Config.initialize()
     let config = await Config.findOne()
     if (!config) {
       config = await Config.create({})
     }
-    res.json(config)
+    const { _id, __v, ...configWithoutId } = config.toObject()
+    res.json(configWithoutId)
   } catch (error) {
     res.status(500).json({ error: error.message })
   }
@@ -53,11 +54,7 @@ router.get('/config', auth, checkRole(['admin']), async (req, res) => {
 // 更新系统配置
 router.put('/config', auth, checkRole(['admin']), async (req, res) => {
   try {
-    const config = await Config.findOneAndUpdate(
-      {},
-      { $set: req.body },
-      { new: true, upsert: true }
-    )
+    await Config.findOneAndUpdate({}, { $set: req.body }, { new: true, upsert: true })
     res.status(200).json({ message: '站点配置保存成功' })
   } catch (error) {
     res.status(500).json({ error: error.message })

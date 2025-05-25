@@ -52,6 +52,11 @@ const userSchema = new mongoose.Schema({
   createdAt: {
     type: Number,
     default: Date.now
+  },
+  // 社会化登录类型
+  socialType: {
+    type: String,
+    default: 'email'
   }
 }, { timestamps: true })
 

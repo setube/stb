@@ -1,5 +1,11 @@
 import axios from 'axios'
 
+// 判断当前环境
+if (process.env.NODE_ENV === 'development') {
+  // 默认请求域名
+  axios.defaults.baseURL = 'http://localhost:25519'
+}
+
 // 添加请求拦截器
 axios.interceptors.request.use(config => {
   const token = localStorage.getItem('token')

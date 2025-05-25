@@ -172,9 +172,21 @@ router.post('/upload',
             })
             break
           case 'webp':
-            imageProcessor = imageProcessor.webp({
-              quality: config.upload.quality || 80
-            })
+            // 检查是否为 GIF 动画
+            const metadata = await imageProcessor.metadata()
+            if (metadata.pages && metadata.pages > 1) {
+              // 如果是多帧 GIF，使用 toFormat 方法
+              imageProcessor = imageProcessor.toFormat('webp', {
+                quality: config.upload.quality || 80,
+                animated: true,
+                effort: 6
+              })
+            } else {
+              // 单帧图片
+              imageProcessor = imageProcessor.webp({
+                quality: config.upload.quality || 80
+              })
+            }
             break
           case 'gif':
             imageProcessor = imageProcessor.gif()
@@ -457,20 +469,20 @@ router.post('/upload',
             throw new Error(error)
           }
           break
-          case 'github':
-            filePath = `${config.storage.github.directory}/${processedFilename}`
-            try {
-              const urlInfo = await uploadToGithub(processedPath, processedFilename, req.user)
-              if (urlInfo) {
-                url = urlInfo
-                await fs.unlink(processedPath)
-              }
-            } catch (error) {
+        case 'github':
+          filePath = `${config.storage.github.directory}/${processedFilename}`
+          try {
+            const urlInfo = await uploadToGithub(processedPath, processedFilename, req.user)
+            if (urlInfo) {
+              url = urlInfo
               await fs.unlink(processedPath)
-              console.error('Github上传失败:', error)
-              throw new Error(error)
             }
-            break
+          } catch (error) {
+            await fs.unlink(processedPath)
+            console.error('Github上传失败:', error)
+            throw new Error(error)
+          }
+          break
         default:
           gravity = 'southeast'
       }

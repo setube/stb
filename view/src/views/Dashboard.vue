@@ -30,7 +30,7 @@ const spinning = ref(true)
 
 const fetchStats = async () => {
   try {
-    const response = await axios.get('/api/admin/stats')
+    const response = await axios.post('/api/admin/stats')
     stats.value = response.data.stats
     system.value = response.data.system
     spinning.value = false
