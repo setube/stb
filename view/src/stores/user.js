@@ -7,7 +7,7 @@ export const useUserStore = defineStore('user', {
     ip: JSON.parse(localStorage.getItem('ip')) || null,
     user: JSON.parse(localStorage.getItem('user')) || null,
     token: localStorage.getItem('token') || null,
-    config: localStorage.getItem('config') || null,
+    config: JSON.parse(localStorage.getItem('config')) || null,
   }),
   actions: {
     setIp(ip) {

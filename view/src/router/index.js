@@ -1,29 +1,37 @@
 import { createRouter, createWebHistory } from 'vue-router'
-import { useUserStore } from '../stores/user'
+import { useUserStore } from '@/stores/user'
+import login from '@/views/Login.vue'
+import register from '@/views/Register.vue'
+import home from '@/views/Home.vue'
+import gallery from '@/views/Gallery.vue'
+import dashboard from '@/views/Dashboard.vue'
+import users from '@/views/Users.vue'
+import images from '@/views/Images.vue'
+import config from '@/views/Config.vue'
 
 const routes = [
   {
     path: '/login',
     name: 'Login',
-    component: () => import('../views/Login.vue'),
+    component: login,
     meta: { requiresAuth: false }
   },
   {
     path: '/register',
     name: 'Register',
-    component: () => import('../views/Register.vue'),
+    component: register,
     meta: { requiresAuth: false }
   },
   {
     path: '/',
     name: 'Home',
-    component: () => import('../views/Home.vue'),
+    component: home,
     meta: { requiresAuth: true }
   },
   {
     path: '/gallery',
     name: 'Gallery',
-    component: () => import('../views/Gallery.vue'),
+    component: gallery,
     meta: {
       requiresAuth: true
     }
@@ -39,22 +47,22 @@ const routes = [
       {
         path: 'dashboard',
         name: 'AdminDashboard',
-        component: () => import('../views/Dashboard.vue')
+        component: dashboard
       },
       {
         path: 'users',
         name: 'AdminUsers',
-        component: () => import('../views/Users.vue')
+        component: users
       },
       {
         path: 'images',
         name: 'AdminImages',
-        component: () => import('../views/Images.vue')
+        component: images
       },
       {
         path: 'config',
         name: 'AdminConfig',
-        component: () => import('../views/Config.vue')
+        component: config
       }
     ]
   }
