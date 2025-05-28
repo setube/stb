@@ -10,7 +10,7 @@ export const checkDailyLimit = async (req, res, next) => {
     const today = new Date()
     today.setHours(0, 0, 0, 0)
     const count = await UploadLog.countDocuments({
-      user: req.user._id,
+      user: config.site.anonymousUpload ? null : req.user._id,
       createdAt: { $gte: today }
     })
     if (count >= config.upload.dailyLimit) {

@@ -1,6 +1,6 @@
 <template>
   <div class="app">
-    <div class="app-header" v-if="userStore.token">
+    <div class="app-header">
       <div class="app-header-left">
         <div class="app-header-title">
           {{ userStore.config?.site?.title }}
@@ -12,90 +12,99 @@
         </div>
       </div>
     </div>
-    <!-- 遮罩 -->
-    <div class="mask" :class="{ 'mask-active': isMenuActive }" @click="isMenuActive = false"></div>
-    <!-- 菜单 -->
-    <div class="menu" :class="{ 'menu-active': isMenuActive }" v-if="userStore.token">
-      <div class="logo">{{ userStore.config?.site?.title }}</div>
-      <a-menu v-model:selectedKeys="selectedKeys" :open-keys="['admin']" theme="dark" mode="inline">
-        <a-menu-item key="home">
-          <router-link to="/">
-            <HomeOutlined />
-            首页
-          </router-link>
-        </a-menu-item>
-        <a-menu-item key="gallery">
-          <router-link to="/gallery">
-            <FireOutlined />
-            图片广场
-          </router-link>
-        </a-menu-item>
-        <a-sub-menu key="admin" v-if="userStore.user?.founder">
-          <template #title>
-            <span>
-              <SettingOutlined />
-              后台管理
-            </span>
-          </template>
-          <a-menu-item key="dashboard">
-            <router-link to="/admin/dashboard">
-              仪表盘
+    <a-config-provider :locale="locale">
+      <!-- 遮罩 -->
+      <div class="mask" :class="{ 'mask-active': isMenuActive }" @click="isMenuActive = false"></div>
+      <!-- 菜单 -->
+      <div class="menu" :class="{ 'menu-active': isMenuActive }">
+        <div class="logo">{{ userStore.config?.site?.title }}</div>
+        <a-menu v-model:selectedKeys="selectedKeys" :open-keys="['admin']" theme="dark" mode="inline">
+          <a-menu-item key="home">
+            <router-link to="/">
+              <HomeOutlined />
+              首页
             </router-link>
           </a-menu-item>
-          <a-menu-item key="users">
-            <router-link to="/admin/users">
-              用户管理
+          <a-menu-item key="gallery">
+            <router-link to="/gallery">
+              <FireOutlined />
+              图片广场
             </router-link>
           </a-menu-item>
-          <a-menu-item key="images">
-            <router-link to="/admin/images">
-              图片管理
+          <a-sub-menu key="admin" v-if="userStore.user?.founder">
+            <template #title>
+              <span>
+                <SettingOutlined />
+                后台管理
+              </span>
+            </template>
+            <a-menu-item key="dashboard">
+              <router-link to="/admin/dashboard">
+                仪表盘
+              </router-link>
+            </a-menu-item>
+            <a-menu-item key="users">
+              <router-link to="/admin/users">
+                用户管理
+              </router-link>
+            </a-menu-item>
+            <a-menu-item key="images">
+              <router-link to="/admin/images">
+                图片管理
+              </router-link>
+            </a-menu-item>
+            <a-menu-item key="config">
+              <router-link to="/admin/config">
+                系统配置
+              </router-link>
+            </a-menu-item>
+          </a-sub-menu>
+          <a-menu-item key="login" v-if="!userStore.token">
+            <router-link to="/login">
+              <UserOutlined />
+              注册 / 登录
             </router-link>
           </a-menu-item>
-          <a-menu-item key="config">
-            <router-link to="/admin/config">
-              系统配置
-            </router-link>
+          <a-menu-item key="logout" style="float: right" @click="handleLogout" v-if="userStore.token">
+            <PoweroffOutlined />
+            退出登录
           </a-menu-item>
-        </a-sub-menu>
-        <a-menu-item key="logout" style="float: right" @click="handleLogout">
-          <PoweroffOutlined />
-          退出登录
-        </a-menu-item>
-      </a-menu>
-    </div>
-    <div class="content" :style="{
-      margin: userStore.token ? '50px 0 44px 200px' : '0',
-      padding: 0
-    }">
-      <router-view />
-    </div>
-    <div class="footer">
-      All rights reserved © 2025
-      <a-button class="goLink" type="link" href="https://github.com/setube/stb" target="_blank">Stb</a-button>
-    </div>
+        </a-menu>
+      </div>
+      <div :class="['content', selectedKeys]">
+        <router-view />
+      </div>
+      <div class="footer">
+        All rights reserved © 2025
+        <a-button class="goLink" type="link" href="https://github.com/setube/stb" target="_blank">Stb</a-button>
+      </div>
+    </a-config-provider>
   </div>
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue'
-import { useRouter } from 'vue-router'
+import { ref, onMounted, watch } from 'vue'
+import { useRouter, useRoute } from 'vue-router'
 import { useUserStore } from '@/stores/user'
 import { getIpAddress } from '@/stores/getIp'
 import axios from '@/stores/axios'
 import { message } from 'ant-design-vue'
+import zhCN from 'ant-design-vue/es/locale/zh_CN'
 import {
   HomeOutlined,
   SettingOutlined,
   FireOutlined,
   PoweroffOutlined,
-  MenuOutlined
+  MenuOutlined,
+  UserOutlined
 } from '@ant-design/icons-vue'
 
+const route = useRoute()
 const router = useRouter()
 const userStore = useUserStore()
 const selectedKeys = ref(['home'])
 const isMenuActive = ref(false)
+const locale = ref(zhCN)
 const userIp = ref({
   ipv4: '',
   ipv6: ''
@@ -104,15 +113,15 @@ const userIp = ref({
 // 获取配置
 const fetchConfig = async () => {
   try {
-    const response = await axios.post('/api/auth/config')
-    userStore.setConfig(response.data)
+    const { data } = await axios.post('/api/auth/config')
+    userStore.config = data
     // 获取真实IP
     setTimeout(() => {
       getIpAddress((ip) => {
         try {
           if (/\b(?:\d{1,3}\.){3}\d{1,3}\b/.test(ip)) userIp.value.ipv4 = ip
           else if (/^(?:[0-9a-fA-F]{1,4}:){7}[0-9a-fA-F]{1,4}$/.test(ip)) userIp.value.ipv6 = ip
-          userStore.setIp(userIp.value)
+          userStore.ip = userIp.value
         } catch (error) {
           console.error(error)
         }
@@ -123,23 +132,39 @@ const fetchConfig = async () => {
   }
 }
 
-const handleLogout = () => {
-  userStore.logout()
-  router.push('/login')
+const fetchUserInfo = async () => {
+  try {
+    const { data } = await axios.post('/api/auth/info')
+    userStore.user = data
+  } catch (error) {
+    message.error(error?.response?.data?.error || '获取用户信息失败')
+  }
 }
 
-onMounted(() => {
-  const segments = location.pathname.split('/').filter(Boolean)
+const handleLogout = () => {
+  userStore.user = null
+  userStore.token = null
+  router.push('/login')
+  message.warning('账号已退出')
+}
+
+const routerWatch = (url) => {
+  const segments = url.split('/').filter(Boolean)
+  if (segments[0] === 'register') return selectedKeys.value = ['login']
   selectedKeys.value = segments.length > 1 ? [segments[1]] : [segments[0] || 'home']
-})
+}
+
+watch(() => route.path, (newPath) => routerWatch(newPath))
 
 onMounted(async () => {
+  routerWatch(location.pathname)
   fetchConfig()
-  if (userStore.token) {
+  const { config, token } = userStore
+  if (!config?.site?.anonymousUpload && token) {
     try {
-      await userStore.fetchUserInfo()
+      await fetchUserInfo()
     } catch (error) {
-      userStore.logout()
+      handleLogout()
     }
   }
 })
@@ -200,25 +225,9 @@ onMounted(async () => {
   z-index: 101;
 }
 
-.mask {
-  position: fixed;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  background-color: rgba(0, 0, 0, 0.5);
-  z-index: 0;
-  transition: opacity 0.3s ease;
-  opacity: 0;
-}
-
-.mask-active {
-  opacity: 1;
-  z-index: 100;
-}
-
 .content {
-  padding: 24px;
+  padding: 50px 0 44px 200px;
+  margin-bottom: 50px;
 }
 
 .footer {
@@ -249,6 +258,23 @@ onMounted(async () => {
     transform: translateX(-100%);
   }
 
+  .mask {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.5);
+    z-index: 0;
+    transition: opacity 0.3s ease;
+    opacity: 0;
+  }
+
+  .mask-active {
+    opacity: 1;
+    z-index: 100;
+  }
+
   .menu-active {
     transform: translateX(0);
   }
@@ -263,6 +289,8 @@ onMounted(async () => {
 
   .content {
     margin-left: 0 !important;
+    padding: 0;
+    margin-top: 60px;
   }
 }
 
@@ -316,5 +344,15 @@ body {
 ::-webkit-scrollbar-thumb:hover {
   cursor: pointer;
   background-color: #0000004d;
+}
+
+
+.ant-image-img,
+.ant-image-mask {
+  border-radius: 8px;
+}
+
+.ant-image-mask {
+  transition: 0.1s ease;
 }
 </style>

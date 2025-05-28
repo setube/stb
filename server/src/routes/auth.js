@@ -43,8 +43,6 @@ router.post('/register', async (req, res) => {
   try {
     const { username, password, email, ip } = req.body
     const config = await Config.findOne()
-    let register = false
-    if (!config) register = true
     if (!config.site.register) {
       return res.status(403).json({ error: '注册已关闭' })
     }

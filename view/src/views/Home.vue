@@ -3,12 +3,12 @@
     <!-- 上传区域 -->
     <a-card class="upload-card">
       <p class="ant-upload-hint">
-        您单次最多可以上传{{ userStore.config.upload.concurrentUploads }}张图片, 最大文件大小：{{ userStore.config.upload.maxSize }}MB
+        您单次最多可以上传{{ userStore.config?.upload?.concurrentUploads }}张图片, 最大文件大小：{{ userStore.config?.upload?.maxSize }}MB
       </p>
       <a-upload-dragger v-model:fileList="fileList" :beforeUpload="beforeUpload" :customRequest="customRequest"
-        :accept="formats" multiple :maxCount="userStore.config.upload.concurrentUploads" :showUploadList="false">
+        :accept="formats" multiple :maxCount="userStore.config?.upload?.concurrentUploads" :showUploadList="false">
         <p class="ant-upload-drag-icon">
-          <inbox-outlined />
+          <CloudUploadOutlined />
         </p>
         <p class="ant-upload-text">点击、拖拽或粘贴图片上传</p>
         <p class="ant-upload-hint">
@@ -19,12 +19,12 @@
     <!-- 上传成功后展示图片链接和多种格式 -->
     <div v-if="uploadedImages[activeTab].length > 0" class="result-panel">
       <!-- 复制按钮 -->
-      <a-button type="primary" @click="copyImages">一键复制</a-button>
+      <a-button class="copyAll" type="primary" @click="copyImages">一键复制</a-button>
       <!-- 格式切换 -->
       <a-tabs v-model:activeKey="activeTab">
         <a-tab-pane v-for="item in tabList" :key="item.key" :tab="item.tab">
-          <a-input class="ant-input" v-for="(img, idx) in uploadedImages[activeTab]" :key="img || idx" :value="img"
-            readonly @focus="inputFocus($event)" />
+          <a-input class="ant-input" v-for="(img, idx) in uploadedImages[activeTab]" :key="idx" :value="img" readonly
+            @focus="inputFocus($event)" />
         </a-tab-pane>
       </a-tabs>
     </div>
@@ -34,21 +34,22 @@
 <script setup>
 import { ref, computed } from 'vue'
 import SparkMD5 from 'spark-md5'
-import { InboxOutlined } from '@ant-design/icons-vue'
+import ClipboardJS from 'clipboard'
+import { CloudUploadOutlined } from '@ant-design/icons-vue'
 import { message } from 'ant-design-vue'
 import { useUserStore } from '@/stores/user'
 import axios from '@/stores/axios'
 
 const userStore = useUserStore()
-
 const fileList = ref([])
 const images = ref([])
+const currentClipboard = ref(null)
 const uploadedImages = ref({
   url: [],
   html: [],
   bbcode: [],
   markdown: []
-}) // 存储所有上传成功的图片URL
+})
 const currentIndex = ref(0)
 const activeTab = ref('url')
 const tabList = [
@@ -72,40 +73,66 @@ const tabList = [
 
 // 复制链接
 const inputFocus = (event) => {
-  event.target.select()
-  navigator.clipboard.writeText(event.target.value)
-  message.success('链接已复制到剪贴板')
-  event.target.blur()
+  // 如果存在之前的实例，先销毁它
+  if (currentClipboard.value) {
+    currentClipboard.value.destroy()
+  }
+  // 创建新的实例
+  currentClipboard.value = new ClipboardJS(event.target, {
+    text: () => {
+      return event.target.value
+    }
+  })
+  currentClipboard.value.on('success', (e) => {
+    e.clearSelection()
+    message.success('链接已复制到剪贴板')
+  })
+  currentClipboard.value.on('error', (e) => {
+    message.error('复制失败, 请手动复制')
+  })
 }
 
 // 一键复制所有图片链接
 const copyImages = () => {
-  navigator.clipboard.writeText(uploadedImages.value[activeTab.value].join('\n'))
-  message.success('链接已复制到剪贴板')
-  images.value = []
-  fileList.value = []
-  uploadedImages.value = {
-    url: [],
-    html: [],
-    bbcode: [],
-    markdown: []
-  }
-  currentIndex.value = 0
+  const clipboard = new ClipboardJS('.copyAll', {
+    text: () => {
+      return uploadedImages.value[activeTab.value].join('\n')
+    }
+  })
+  clipboard.on('success', (e) => {
+    images.value = []
+    fileList.value = []
+    uploadedImages.value = {
+      url: [],
+      html: [],
+      bbcode: [],
+      markdown: []
+    }
+    currentIndex.value = 0
+    e.clearSelection()
+    message.success('链接已复制到剪贴板')
+    clipboard.destroy()
+  })
+  clipboard.on('error', (e) => {
+    message.error('复制失败, 请手动复制')
+    clipboard.destroy()
+  })
 }
 
 // 上传成功后调用此方法
-const onUploadSuccess = (name, url) => {
-  uploadedImages.value.url.push(url)
-  uploadedImages.value.html.push(`<img src="${url}" alt="${name}" />`)
-  uploadedImages.value.bbcode.push(`[img]${url}[/img]`)
-  uploadedImages.value.markdown.push(`![${name}](${url})`)
+const onUploadSuccess = (name, uri) => {
+  const { url, html, bbcode, markdown } = uploadedImages.value
+  url.push(uri)
+  html.push(`<img src="${uri}" alt="${name}" />`)
+  bbcode.push(`[img]${uri}[/img]`)
+  markdown.push(`![${name}](${uri})`)
   currentIndex.value = uploadedImages.value[activeTab.value].length - 1
 }
 
 // 生成MIME类型字符串
 const formats = computed(() => {
-  const allowedFormats = userStore.config.upload.allowedFormats
-  if (!allowedFormats.length) {
+  const allowedFormats = userStore.config?.upload?.allowedFormats
+  if (!allowedFormats?.length) {
     return 'image/*'
   }
   return allowedFormats.map(f => `image/${f}`).join(',')
@@ -113,8 +140,8 @@ const formats = computed(() => {
 
 // 生成文件扩展名字符串
 const mimeTypes = computed(() => {
-  const allowedFormats = userStore.config.upload.allowedFormats
-  if (!allowedFormats.length) {
+  const allowedFormats = userStore.config?.upload?.allowedFormats
+  if (!allowedFormats?.length) {
     return 'all'
   }
   return allowedFormats.join(', ').toUpperCase()
@@ -142,27 +169,23 @@ const calculateMD5 = async (file) => {
 }
 
 // 通用的上传函数
-const uploadImage = async (file, options = {}) => {
-  const { showMessage = true } = options
+const uploadImage = async (file) => {
   try {
-    // 计算 MD5
+    const { ip, config } = userStore
     const md5 = await calculateMD5(file)
-    const user = userStore.user
     const formData = new FormData()
     formData.append('image', file)
     formData.append('md5', md5)
-    formData.append('ip', user.ip.ipv4 ? user.ip.ipv4 : user.ip.ipv6)
-    const response = await axios.post('/api/upload', formData)
-    const { url, type, filename, isDuplicate } = response.data
-    images.value.unshift(response.data)
+    formData.append('ip', ip?.ipv4 ? ip?.ipv4 : ip?.ipv6)
+    const isTourist = config?.site?.anonymousUpload ? '/api/tourist/upload' : '/api/upload'
+    const { data } = await axios.post(isTourist, formData)
+    const { url, type, filename, isDuplicate } = data
+    images.value.unshift(data)
     if (!isDuplicate) {
-      onUploadSuccess(filename, type == 'local' ? userStore.config.site.url + url : url)
+      onUploadSuccess(filename, type == 'local' ? config?.site?.url + url : url)
     }
-    return { ...response.data, isDuplicate }
+    return { ...data, isDuplicate }
   } catch (error) {
-    if (showMessage) {
-      message.error(error?.response?.data?.error || '上传失败')
-    }
     throw error
   }
 }
@@ -184,7 +207,7 @@ const handlePaste = async (event) => {
     try {
       // 使用通用上传函数处理所有图片
       const results = await Promise.all(
-        imageFiles.map(file => uploadImage(file, { showMessage: false }))
+        imageFiles.map(file => uploadImage(file))
       )
       // 统计重复和非重复的图片数量
       const duplicates = results.filter(r => r.isDuplicate).length
@@ -224,8 +247,8 @@ const handlePaste = async (event) => {
 // 处理拖拽上传
 const customRequest = async ({ file }) => {
   try {
-    const result = await uploadImage(file)
-    if (result.isDuplicate) {
+    const { isDuplicate } = await uploadImage(file)
+    if (isDuplicate) {
       message.warning('该图片已存在，已添加到你的图片库')
     } else {
       message.success('上传成功！')

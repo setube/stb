@@ -1,15 +1,29 @@
 <template>
   <div class="drag-verify">
     <div class="range" :class="verifyResult ? 'success' : ''">
-      <div class="block" @mousedown="onStart" @touchstart="onStart">
-        <i :class="verifyResult ? successIcon : startIcon"></i>
+      <div class="block" @mousedown="onStart" @touchstart.passive="onStart">
+        <span>
+          <CheckCircleOutlined v-if="verifyResult" />
+          <DoubleRightOutlined v-else />
+        </span>
       </div>
-      <span class="text">{{ verifyResult ? successText : startText }}</span>
+      <span class="text" v-if="verifyResult">
+        <UnlockOutlined />
+        {{ successText }}
+      </span>
+      <span class="text" v-else>
+        <LockOutlined />
+        {{ startText }}
+      </span>
     </div>
   </div>
 </template>
 <script setup>
 import { ref, defineEmits, defineProps, defineOptions } from 'vue'
+import {
+  CheckCircleOutlined, DoubleRightOutlined,
+  UnlockOutlined, LockOutlined
+} from '@ant-design/icons-vue'
 
 defineOptions({
   name: 'Captcha'
@@ -21,25 +35,15 @@ defineProps({
     type: Boolean,
     defalut: false,
   },
-  // 成功图标
-  successIcon: {
-    type: String,
-    default: 'iconfont icon-status-nor',
-  },
   // 成功文字
   successText: {
     type: String,
     default: '验证成功',
   },
-  // 开始的图标
-  startIcon: {
-    type: String,
-    default: 'iconfont icon-login-slid',
-  },
   // 开始的文字
   startText: {
     type: String,
-    default: '拖动滑块到最右边',
+    default: '请按住滑块，拖动到最右边',
   },
 })
 
@@ -56,27 +60,21 @@ const onStart = (ev) => {
   const startX = ev.clientX || ev.touches[0].pageX
   const parentWidth = ele.offsetWidth
   const MaxX = parentWidth - iconWidth
-  if (verifyResult.value) {
-    return false
-  }
+  if (verifyResult.value) return false
   // 滑块触摸移动
   const onMove = (e) => {
     const endX = e.clientX || e.touches[0].pageX
     disX = endX - startX
-    if (disX <= 0) {
-      disX = 0
-    }
-    if (disX >= MaxX - iconWidth) {
-      disX = MaxX
-    }
+    if (disX <= 0) disX = 0
+    if (disX >= MaxX - iconWidth) disX = MaxX
     ele.style.transition = '.1s all'
-    ele.style.transform = `translateX(${disX}px)`
+    ele.style.transform = `translate3d(${disX}px, 0, 0)`
   }
   // 滑块触摸结束
   const onEnd = () => {
     if (disX !== MaxX) {
       ele.style.transition = '.5s all'
-      ele.style.transform = 'translateX(0)'
+      ele.style.transform = 'translate3d(0, 0, 0)'
     } else {
       // 执行成功
       verifyResult.value = true
@@ -85,6 +83,7 @@ const onStart = (ev) => {
     document.removeEventListener(moveEvent, onMove)
     document.removeEventListener(upEvent, onEnd)
   }
+  // 添加 passive 选项
   document.addEventListener(moveEvent, onMove)
   document.addEventListener(upEvent, onEnd)
 }
@@ -107,10 +106,11 @@ const onStart = (ev) => {
   justify-content: center;
   align-items: center;
   height: 40px;
+  border: #d9d9d9 solid 1px;
 }
 
 .drag-verify .range.success {
-  background-color: #03c5e5;
+  background-color: rgb(118, 198, 29);
   color: #fff;
 }
 
@@ -119,8 +119,8 @@ const onStart = (ev) => {
   z-index: 1;
 }
 
-.drag-verify .range.success .block i {
-  color: #03c5e5;
+.drag-verify .range.success .block span {
+  color: rgb(118, 198, 29);
 }
 
 .drag-verify .range .block {
@@ -129,12 +129,12 @@ const onStart = (ev) => {
   left: calc(-100% + 40px);
   width: 100%;
   height: 100%;
-  background: #03c5e5;
-  border-radius: 4px;
+  background: rgb(118, 198, 29);
   overflow: hidden;
+  border-radius: 0 4px 4px 0;
 }
 
-.drag-verify .range .block i {
+.drag-verify .range .block span {
   position: absolute;
   right: 0;
   width: 40px;
@@ -142,11 +142,10 @@ const onStart = (ev) => {
   font-size: 20px;
   color: #c8c9cc;
   background-color: #fff;
-  border: 1px solid #e5e5e5;
-  border-radius: 4px;
   cursor: pointer;
   display: flex;
   justify-content: center;
   align-items: center;
+  border-radius: 0 4px 4px 0;
 }
 </style>

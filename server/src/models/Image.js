@@ -11,6 +11,12 @@ const imageSchema = new mongoose.Schema({
     type: String,
     required: true
   },
+  // 缩略图链接
+  thumb: {
+    type: String,
+    required: true
+  },
+  // 原图链接
   url: {
     type: String,
     required: true
@@ -23,7 +29,8 @@ const imageSchema = new mongoose.Schema({
   user: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'User',
-    required: true
+    required: false,
+    default: null
   },
   width: {
     type: Number,
@@ -56,6 +63,10 @@ const imageSchema = new mongoose.Schema({
   filePath: {
     type: String,
     required: true
+  },
+  thumbnailUrl: {
+    type: String,
+    required: false
   },
 }, { timestamps: true })
 

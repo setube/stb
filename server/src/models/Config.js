@@ -22,7 +22,12 @@ const configSchema = new mongoose.Schema({
     register: {
       type: Boolean,
       default: true
-    }
+    },
+    // 是否开启游客上传
+    anonymousUpload: {
+      type: Boolean,
+      default: false
+    },
   },
   upload: {
     allowedFormats: {

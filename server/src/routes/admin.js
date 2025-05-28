@@ -80,8 +80,23 @@ router.patch('/users/:id/role', auth, checkRole(['admin']), async (req, res) => 
 // 获取所有图片
 router.post('/images', auth, checkRole(['admin']), async (req, res) => {
   try {
-    const images = await Image.find().populate('user', 'username')
-    res.json(images)
+    // 确保页码和每页数量为有效数字
+    const page = Math.max(1, parseInt(req.body.page))
+    const limit = Math.max(1, parseInt(req.body.limit))
+    // 计算跳过的记录数 
+    const skip = (page - 1) * limit
+    // 查询图片
+    const images = await Image.find()
+      .populate('user', 'username')
+      .skip(skip)
+      .limit(limit)
+    // 获取总数
+    const total = await Image.countDocuments()
+    res.json({
+      images,
+      total
+    })
+    // res.json(images)
   } catch (error) {
     res.status(500).json({ error: error.message })
   }
@@ -97,7 +112,6 @@ router.delete('/images/:id', auth, checkRole(['admin']), async (req, res) => {
     if (!imageInfo) {
       return res.status(404).json({ error: '图片不存在' })
     }
-
     // 根据存储类型删除文件
     switch (imageInfo.type) {
       case 'local':
@@ -149,6 +163,9 @@ router.delete('/images/:id', auth, checkRole(['admin']), async (req, res) => {
       default:
         console.error('未知的存储类型:', imageInfo.type)
     }
+    // 删除本地缩略图
+    const thumbFilePath = path.join(process.cwd(), imageInfo.thumb)
+    await fs.unlink(thumbFilePath)
     // 删除数据库记录
     await Image.deleteOne({ _id: imageInfo._id })
     // 删除相关的上传日志

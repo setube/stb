@@ -1,13 +1,12 @@
 import { createRouter, createWebHistory } from 'vue-router'
-import { useUserStore } from '@/stores/user'
 import login from '@/views/Login.vue'
 import register from '@/views/Register.vue'
 import home from '@/views/Home.vue'
 import gallery from '@/views/Gallery.vue'
-import dashboard from '@/views/Dashboard.vue'
-import users from '@/views/Users.vue'
-import images from '@/views/Images.vue'
-import config from '@/views/Config.vue'
+import dashboard from '@/views/admin/Dashboard.vue'
+import users from '@/views/admin/Users.vue'
+import images from '@/views/admin/Images.vue'
+import config from '@/views/admin/Config.vue'
 
 const routes = [
   {
@@ -71,21 +70,6 @@ const routes = [
 const router = createRouter({
   history: createWebHistory(),
   routes
-})
-
-router.beforeEach((to, from, next) => {
-  const userStore = useUserStore()
-  const requiresAuth = to.matched.some(record => record.meta.requiresAuth)
-  const requiresAdmin = to.matched.some(record => record.meta.requiresAdmin)
-  if (requiresAuth && !userStore.token) {
-    next('/login')
-  } else if (requiresAdmin && userStore.user?.role !== 'admin') {
-    next('/')
-  } else if (!requiresAuth && userStore.token) {
-    next('/')
-  } else {
-    next()
-  }
 })
 
 export default router 
