@@ -115,20 +115,8 @@ const fetchConfig = async () => {
   try {
     const { data } = await axios.post('/api/auth/config')
     userStore.config = data
-    // 获取真实IP
-    setTimeout(() => {
-      getIpAddress((ip) => {
-        try {
-          if (/\b(?:\d{1,3}\.){3}\d{1,3}\b/.test(ip)) userIp.value.ipv4 = ip
-          else if (/^(?:[0-9a-fA-F]{1,4}:){7}[0-9a-fA-F]{1,4}$/.test(ip)) userIp.value.ipv6 = ip
-          userStore.ip = userIp.value
-        } catch (error) {
-          console.error(error)
-        }
-      })
-    }, 100)
   } catch (error) {
-    message.error(error?.response?.data?.error)
+    message.error(error)
   }
 }
 
@@ -154,11 +142,23 @@ const routerWatch = (url) => {
   selectedKeys.value = segments.length > 1 ? [segments[1]] : [segments[0] || 'home']
 }
 
-watch(() => route.path, (newPath) => routerWatch(newPath))
+watch(() => route.path, async (newPath) => {
+  // 获取真实IP
+  await getIpAddress((ip) => {
+    try {
+      if (/\b(?:\d{1,3}\.){3}\d{1,3}\b/.test(ip)) userIp.value.ipv4 = ip
+      else if (/^(?:[0-9a-fA-F]{1,4}:){7}[0-9a-fA-F]{1,4}$/.test(ip)) userIp.value.ipv6 = ip
+      userStore.ip = userIp.value
+    } catch (error) {
+      console.error(error)
+    }
+  })
+  routerWatch(newPath)
+})
 
 onMounted(async () => {
-  routerWatch(location.pathname)
   fetchConfig()
+  routerWatch(location.pathname)
   const { config, token } = userStore
   if (!config?.site?.anonymousUpload && token) {
     try {

@@ -125,18 +125,6 @@ const configSchema = new mongoose.Schema({
       type: Boolean,
       default: false
     },
-    whitelistEnabled: {
-      type: Boolean,
-      default: false
-    },
-    blacklistEnabled: {
-      type: Boolean,
-      default: false
-    },
-    whitelist: {
-      type: [String],
-      default: []
-    },
     blacklist: {
       type: [String],
       default: []
@@ -153,7 +141,7 @@ const configSchema = new mongoose.Schema({
     local: {
       path: {
         type: String,
-        default: '/uploads'
+        default: '/'
       }
     },
     // 阿里oss
@@ -531,6 +519,92 @@ const configSchema = new mongoose.Schema({
       domain: { // 访问域名
         type: String,
         default: ''
+      }
+    }
+  },
+  // 鉴黄配置
+  ai: {
+    enabled: {
+      type: Boolean,
+      default: false
+    },
+    // 是否开启自动拉黑
+    autoBlack: {
+      type: Boolean,
+      default: false
+    },
+    // 审核动作
+    action: {
+      type: String,
+      // 标记为不健康或者直接删除
+      enum: ['reject', 'mark'],
+      default: 'reject'
+    },
+    // 审核类型
+    type: {
+      type: String,
+      enum: ['tencent', 'aliyun', 'nsfwjs', 'moderatecontent'],
+      default: 'tencent'
+    },
+    // 腾讯云
+    tencent: {
+      secretId: {
+        type: String,
+        default: ''
+      },
+      secretKey: {
+        type: String,
+        default: ''
+      },
+      region: {
+        type: String,
+        default: 'ap-guangzhou'
+      },
+      endpoint: {
+        type: String,
+        default: 'ims.tencentcloudapi.com'
+      },
+      bizType: {
+        type: String,
+        default: ''
+      }
+    },
+    // 阿里云
+    aliyun: {
+      accessKeyId: {
+        type: String,
+        default: ''
+      },
+      accessKeySecret: {
+        type: String,
+        default: ''
+      },
+      region: {
+        type: String,
+        default: ''
+      },
+      // 检测 Service
+      service: {
+        type: String,
+        default: 'baselineCheck'
+      },
+      // 阈值
+      threshold: {
+        type: Number,
+        default: 50
+      }
+    },
+    // NsfwJs
+    nsfwjs: {
+      // 接口地址
+      apiUrl: {
+        type: String,
+        default: ''
+      },
+      // 阈值
+      threshold: {
+        type: Number,
+        default: 60
       }
     }
   }

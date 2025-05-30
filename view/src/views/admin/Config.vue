@@ -4,10 +4,10 @@
       <a-form :model="formState" layout="vertical" @finish="handleSubmit">
         <a-collapse v-model:activeKey="activeKey" accordion :bordered="false" style="background: rgb(255, 255, 255)">
           <a-collapse-panel class="ant-collapse-item" key="1" header="站点设置">
-            <a-form-item label="网站标题">
+            <a-form-item required label="网站标题">
               <a-input v-model:value="formState.site.title" />
             </a-form-item>
-            <a-form-item label="网站URL">
+            <a-form-item required label="网站URL">
               <a-input v-model:value="formState.site.url" />
             </a-form-item>
             <a-form-item label="是否开启验证码">
@@ -22,68 +22,7 @@
                 un-checked-children="禁用" />
             </a-form-item>
           </a-collapse-panel>
-          <a-collapse-panel class="ant-collapse-item" key="2" header="上传设置">
-            <a-form-item label="允许的图片格式">
-              <a-select v-model:value="formState.upload.allowedFormats" mode="multiple" placeholder="选择允许的图片格式">
-                <a-select-option value="jpg">JPG</a-select-option>
-                <a-select-option value="jpeg">JPEG</a-select-option>
-                <a-select-option value="png">PNG</a-select-option>
-                <a-select-option value="gif">GIF</a-select-option>
-                <a-select-option value="webp">WEBP</a-select-option>
-              </a-select>
-            </a-form-item>
-            <a-form-item label="最大文件大小(MB)">
-              <a-input-number v-model:value="formState.upload.maxSize" :min="1" :max="100" />
-            </a-form-item>
-            <a-form-item label="最多同时上传图片数量">
-              <a-input-number v-model:value="formState.upload.concurrentUploads" :min="1" />
-            </a-form-item>
-            <a-row :gutter="16">
-              <a-col :span="12">
-                <a-form-item label="最小宽度(px)">
-                  <a-input-number v-model:value="formState.upload.minWidth" :min="0" />
-                </a-form-item>
-              </a-col>
-              <a-col :span="12">
-                <a-form-item label="最小高度(px)">
-                  <a-input-number v-model:value="formState.upload.minHeight" :min="0" />
-                </a-form-item>
-              </a-col>
-            </a-row>
-            <a-row :gutter="16">
-              <a-col :span="12">
-                <a-form-item label="最大宽度(px)">
-                  <a-input-number v-model:value="formState.upload.maxWidth" :min="0" />
-                </a-form-item>
-              </a-col>
-              <a-col :span="12">
-                <a-form-item label="最大高度(px)">
-                  <a-input-number v-model:value="formState.upload.maxHeight" :min="0" />
-                </a-form-item>
-              </a-col>
-            </a-row>
-            <a-form-item label="转换格式">
-              <a-select v-model:value="formState.upload.convertFormat" allowClear placeholder="选择转换格式">
-                <a-select-option value="">不转换</a-select-option>
-                <a-select-option value="jpeg">JPEG</a-select-option>
-                <a-select-option value="png">PNG</a-select-option>
-                <a-select-option value="webp">WEBP</a-select-option>
-              </a-select>
-            </a-form-item>
-            <a-form-item label="图片质量">
-              <a-slider v-model:value="formState.upload.quality" :min="1" :max="100" :marks="{
-                1: '1%',
-                25: '25%',
-                50: '50%',
-                75: '75%',
-                100: '100%'
-              }" />
-            </a-form-item>
-            <a-form-item label="每日上传限制">
-              <a-input-number v-model:value="formState.upload.dailyLimit" :min="0" placeholder="0表示不限制" />
-            </a-form-item>
-          </a-collapse-panel>
-          <a-collapse-panel class="ant-collapse-item" key="3" header="水印设置">
+          <a-collapse-panel class="ant-collapse-item" key="2" header="水印设置">
             <a-form-item>
               <a-switch v-model:checked="formState.watermark.enabled" checked-children="启用" un-checked-children="禁用" />
             </a-form-item>
@@ -136,7 +75,7 @@
               </a-form-item>
             </template>
           </a-collapse-panel>
-          <a-collapse-panel class="ant-collapse-item" key="4" header="存储设置">
+          <a-collapse-panel class="ant-collapse-item" key="3" header="存储设置">
             <a-form-item label="存储类型">
               <a-select v-model:value="formState.storage.type">
                 <a-select-option v-for="(item, index) in imageStoreArray" :value="item.value" :key="index">{{ item.label
@@ -447,29 +386,150 @@
               </a-form-item>
             </template>
           </a-collapse-panel>
-          <a-collapse-panel class="ant-collapse-item" key="5" header="IP设置">
-            <a-tabs v-model:activeKey="activeTab">
-              <a-tab-pane key="whitelist" tab="白名单">
-                <a-form-item>
-                  <a-switch v-model:checked="formState.ip.whitelistEnabled" checked-children="启用"
-                    un-checked-children="禁用" />
+          <a-collapse-panel class="ant-collapse-item" key="4" header="鉴黄设置">
+            <a-form-item label="鉴黄开关">
+              <a-switch v-model:checked="formState.ai.enabled" checked-children="启用" un-checked-children="禁用" />
+              <p>设置上传是否需要应用第三方审查，违规的图片会被标记为不健康的图片，或直接被删除。</p>
+            </a-form-item>
+            <a-form-item label="自动拉黑">
+              <a-switch v-model:checked="formState.ai.autoBlack" checked-children="启用" un-checked-children="禁用" />
+              <p>该功能需要同步弃用IP设置里的黑名单开关。设置之后用户如果上传违规图片，会被自动列入IP黑名单</p>
+            </a-form-item>
+            <template v-if="formState.ai.enabled">
+              <a-form-item label="图片处理">
+                <a-radio-group v-model:value="formState.ai.action">
+                  <a-radio value="reject">标记为不健康</a-radio>
+                  <a-radio value="mark">直接删除</a-radio>
+                </a-radio-group>
+              </a-form-item>
+              <a-form-item label="图片审核">
+                <a-select v-model:value="formState.ai.type">
+                  <a-select-option value="tencent">腾讯云</a-select-option>
+                  <a-select-option value="aliyun">阿里云</a-select-option>
+                  <a-select-option value="nsfwjs">NsfwJs</a-select-option>
+                </a-select>
+              </a-form-item>
+              <template v-if="formState.ai.type === 'tencent'">
+                <a-form-item required label="Endpoint">
+                  <a-input v-model:value="formState.ai.tencent.endpoint" placeholder="请输入 Endpoint" />
                 </a-form-item>
-                <a-form-item label="IP白名单">
-                  <a-textarea v-model:value="ipWhitelistText" :rows="4" placeholder="每行一个IP地址"
-                    @change="handleIpWhitelistChange" />
+                <a-form-item required label="SecretId">
+                  <a-input v-model:value="formState.ai.tencent.secretId" placeholder="请输入 SecretId" />
                 </a-form-item>
-              </a-tab-pane>
-              <a-tab-pane key="blacklist" tab="黑名单">
-                <a-form-item>
-                  <a-switch v-model:checked="formState.ip.blacklistEnabled" checked-children="启用"
-                    un-checked-children="禁用" />
+                <a-form-item required label="SecretKey">
+                  <a-input-password v-model:value="formState.ai.tencent.secretKey" placeholder="请输入 SecretKey" />
                 </a-form-item>
-                <a-form-item label="IP黑名单">
-                  <a-textarea v-model:value="ipBlacklistText" :rows="4" placeholder="每行一个IP地址"
-                    @change="handleIpBlacklistChange" />
+                <a-form-item required label="地域">
+                  <a-input v-model:value="formState.ai.tencent.region" placeholder="请输入地域节点，例如：ap-beijing" />
                 </a-form-item>
-              </a-tab-pane>
-            </a-tabs>
+                <a-form-item label="场景名称(Biztype名称)">
+                  <a-input v-model:value="formState.ai.tencent.bizType" placeholder="业务场景名称，可为空" />
+                </a-form-item>
+              </template>
+              <template v-if="formState.ai.type === 'aliyun'">
+                <a-form-item required label="AccessKeyId">
+                  <a-input v-model:value="formState.ai.aliyun.accessKeyId" placeholder="请输入 AccessKeyId" />
+                </a-form-item>
+                <a-form-item required label="AccessKeySecret">
+                  <a-input-password v-model:value="formState.ai.aliyun.accessKeySecret"
+                    placeholder="请输入 AccessKeySecret" />
+                </a-form-item>
+                <a-form-item required label="地域节点">
+                  <a-input v-model:value="formState.ai.aliyun.region" placeholder="请输入地域节点，例如：cn-shanghai" />
+                </a-form-item>
+                <a-form-item required label="检测 Service">
+                  <a-input v-model:value="formState.ai.aliyun.service" placeholder="检测服务规则配置，示例：baselineCheck" />
+                </a-form-item>
+                <a-form-item required label="阈值">
+                  <a-input-number v-model:value="formState.ai.aliyun.threshold" :min="1" :max="100"
+                    placeholder="取值 1-100" />
+                  <p>阈值是指图片违规程度上限，取值 1-100 之间，数值越低审核越严格</p>
+                </a-form-item>
+              </template>
+              <template v-if="formState.ai.type === 'nsfwjs'">
+                <a-form-item required label="接口地址">
+                  <a-input v-model:value="formState.ai.nsfwjs.apiUrl"
+                    placeholder="请输入接口地址，http(s)://domain.com/classify" />
+                </a-form-item>
+                <a-form-item required label="阈值">
+                  <a-input-number v-model:value="formState.ai.nsfwjs.threshold" :min="1" :max="100"
+                    placeholder="取值 1-100" />
+                  <p>阈值是指图片违规程度上限，取值 1-100 之间，数值越低审核越严格</p>
+                </a-form-item>
+              </template>
+            </template>
+          </a-collapse-panel>
+          <a-collapse-panel class="ant-collapse-item" key="5" header="上传设置">
+            <a-form-item label="允许的图片格式">
+              <a-select v-model:value="formState.upload.allowedFormats" mode="multiple" placeholder="选择允许的图片格式">
+                <a-select-option value="jpg">JPG</a-select-option>
+                <a-select-option value="jpeg">JPEG</a-select-option>
+                <a-select-option value="png">PNG</a-select-option>
+                <a-select-option value="gif">GIF</a-select-option>
+                <a-select-option value="webp">WEBP</a-select-option>
+              </a-select>
+            </a-form-item>
+            <a-form-item label="最大文件大小(MB)">
+              <a-input-number v-model:value="formState.upload.maxSize" :min="1" :max="100" />
+            </a-form-item>
+            <a-form-item label="最多同时上传图片数量">
+              <a-input-number v-model:value="formState.upload.concurrentUploads" :min="1" />
+            </a-form-item>
+            <a-row :gutter="16">
+              <a-col :span="12">
+                <a-form-item label="最小宽度(px)">
+                  <a-input-number v-model:value="formState.upload.minWidth" :min="0" />
+                </a-form-item>
+              </a-col>
+              <a-col :span="12">
+                <a-form-item label="最小高度(px)">
+                  <a-input-number v-model:value="formState.upload.minHeight" :min="0" />
+                </a-form-item>
+              </a-col>
+            </a-row>
+            <a-row :gutter="16">
+              <a-col :span="12">
+                <a-form-item label="最大宽度(px)">
+                  <a-input-number v-model:value="formState.upload.maxWidth" :min="0" />
+                </a-form-item>
+              </a-col>
+              <a-col :span="12">
+                <a-form-item label="最大高度(px)">
+                  <a-input-number v-model:value="formState.upload.maxHeight" :min="0" />
+                </a-form-item>
+              </a-col>
+            </a-row>
+            <a-form-item label="转换格式">
+              <a-select v-model:value="formState.upload.convertFormat" allowClear placeholder="选择转换格式">
+                <a-select-option value="">不转换</a-select-option>
+                <a-select-option value="jpeg">JPEG</a-select-option>
+                <a-select-option value="png">PNG</a-select-option>
+                <a-select-option value="webp">WEBP</a-select-option>
+              </a-select>
+            </a-form-item>
+            <a-form-item label="图片质量">
+              <a-slider v-model:value="formState.upload.quality" :min="1" :max="100" :marks="{
+                1: '1%',
+                25: '25%',
+                50: '50%',
+                75: '75%',
+                100: '100%'
+              }" />
+            </a-form-item>
+            <a-form-item label="每日上传限制">
+              <a-input-number v-model:value="formState.upload.dailyLimit" :min="0" placeholder="0表示不限制" />
+              <p>该功能仅限制已登录用户, 游客模式下无效</p>
+            </a-form-item>
+          </a-collapse-panel>
+          <a-collapse-panel class="ant-collapse-item" key="6" header="IP设置">
+              <a-form-item label="黑名单开关">
+                <a-switch v-model:checked="formState.ip.enabled" checked-children="启用"
+                  un-checked-children="禁用" />
+              </a-form-item>
+              <a-form-item label="IP黑名单">
+                <a-textarea v-model:value="ipBlacklistText" :rows="4" placeholder="每行一个IP地址"
+                  @change="handleIpBlacklistChange" />
+              </a-form-item>
           </a-collapse-panel>
         </a-collapse>
         <a-form-item>
@@ -492,9 +552,7 @@ import { imageStoreType } from '@/stores/formatDate'
 const userStore = useUserStore()
 const loading = ref(false)
 const submitting = ref(false)
-const activeTab = ref('whitelist')
 const watermarkFileList = ref([])
-const ipWhitelistText = ref('')
 const ipBlacklistText = ref('')
 const activeKey = ref('1')
 const imageStoreArray = Object.entries(imageStoreType)
@@ -502,110 +560,12 @@ const imageStoreArray = Object.entries(imageStoreType)
   .map(([value, label]) => ({ value, label }))
 
 const formState = ref({
-  site: {
-    title: '网站标题',
-    url: '',
-    captcha: false
-  },
-  upload: {
-    allowedFormats: [],
-    maxSize: 5,
-    minWidth: 0,
-    minHeight: 0,
-    maxWidth: 0,
-    maxHeight: 0,
-    convertFormat: '',
-    quality: 80,
-    dailyLimit: 100
-  },
-  storage: {
-    type: 'local',
-    local: {
-      path: '/uploads'
-    },
-    oss: {
-      accessKeyId: '',
-      accessKeySecret: '',
-      bucket: '',
-      region: '',
-      endpoint: '',
-      internal: '',
-      isCname: false
-    },
-    cos: {
-      path: '',
-      isCname: false,
-      internal: '',
-      accessKeyId: '',
-      accessKeySecret: '',
-      bucket: '',
-      region: '',
-      endpoint: ''
-    },
-    s3: {
-      accessKeyId: '',
-      secretAccessKey: '',
-      bucket: '',
-      region: '',
-      endpoint: '',
-      directory: ''
-    },
-    qiniu: {
-      accessKey: '',
-      secretKey: '',
-      bucket: ''
-    },
-    // upyun: {
-    //   serviceName: '',
-    //   operator: '',
-    //   password: '',
-    //   region: '',
-    //   path: ''
-    // },
-    // sftp: {
-    //   host: '',
-    //   port: 22,
-    //   username: '',
-    //   password: '',
-    //   path: ''
-    // },
-    // ftp: {
-    //   host: '',
-    //   port: 21,
-    //   username: '',
-    //   password: '',
-    //   path: ''
-    // },
-    // webdav: {
-    //   host: '',
-    //   port: 80,
-    //   username: '',
-    //   password: '',
-    //   path: ''
-    // }
-  },
-  watermark: {
-    enabled: false,
-    type: 'text',
-    text: {
-      content: '',
-      fontSize: 24,
-      color: '#ffffff',
-      position: 'bottom-right'
-    },
-    image: {
-      path: '',
-      opacity: 0.5,
-      position: 'bottom-right'
-    }
-  },
-  ip: {
-    blacklist: [],
-    blacklistEnabled: false,
-    enabled: false,
-    whitelist: [],
-    whitelistEnabled: false
-  }
+  site: {},
+  upload: {},
+  storage: {},
+  watermark: {},
+  ip: {},
+  ai: {}
 })
 
 // 获取配置
@@ -615,7 +575,6 @@ const fetchConfig = async () => {
     const { data } = await axios.post('/api/admin/config')
     const { ip } = data
     formState.value = data
-    ipWhitelistText.value = ip.whitelist.join('\n')
     ipBlacklistText.value = ip.blacklist.join('\n')
   } catch (error) {
     message.error('获取配置失败')
@@ -639,12 +598,6 @@ const handleWatermarkUpload = async (file) => {
   }
 }
 
-// 处理IP白名单变化
-const handleIpWhitelistChange = (e) => {
-  const { ip } = formState.value
-  ip.whitelist = e.target.value.split('\n').map(ip => ip.trim()).filter(ip => ip)
-}
-
 // 处理IP黑名单变化
 const handleIpBlacklistChange = (e) => {
   const { ip } = formState.value
@@ -656,7 +609,14 @@ const handleSubmit = async () => {
   submitting.value = true
   try {
     const { data } = await axios.put('/api/admin/config', formState.value)
-    userStore.config = { site: formState.value.site }
+    const { site, upload, ai } = formState.value
+    userStore.config = {
+      site,
+      upload,
+      ai: {
+        enabled: ai.enabled
+      }
+    }
     message.success(data.message)
   } catch (error) {
     message.error(error.response?.data?.error)

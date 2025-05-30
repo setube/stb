@@ -13,13 +13,16 @@ router.post('/config', async (req, res) => {
     if (!config) {
       return res.status(404).json({ error: config })
     }
-    const { _id, __v, ...configWithoutId } = config.toObject()
+    const { upload, site, ai } = config
     res.json({
-      upload: config.upload,
-      site: config.site
+      upload,
+      site,
+      ai: {
+        enabled: ai.enabled
+      }
     })
-  } catch (error) {
-    res.status(500).json({ error: error.message })
+  } catch ({ message }) {
+    res.status(500).json({ error: message })
   }
 })
 
@@ -34,8 +37,8 @@ router.post('/info', auth, async (req, res) => {
     user.lastLogin = Date.now()
     await user.save()
     res.json(user)
-  } catch (error) {
-    res.status(500).json({ error: error.message })
+  } catch ({ message }) {
+    res.status(500).json({ error: message })
   }
 })
 
@@ -59,27 +62,25 @@ router.post('/register', async (req, res) => {
       lastLogin: Date.now(),
     })
     await user.save()
-    const token = jwt.sign(
-      { userId: user._id, role: user.role },
-      process.env.JWT_SECRET
-    )
+    const { _id, role, status, founder } = user
+    const token = jwt.sign({ userId: _id, role }, process.env.JWT_SECRET)
     res.status(201).json({
       token,
       user: {
-        _id: user._id,
-        username: user.username,
-        role: user.role,
-        status: user.status,
-        email: user.email,
-        founder: user.founder
+        _id,
+        username,
+        role,
+        status,
+        email,
+        founder
       }
     })
-  } catch (error) {
-    if (error.message.includes('E11000')) {
+  } catch ({ message }) {
+    if (message.includes('E11000')) {
       res.status(400).json({ error: '用户名已存在' })
       return
     }
-    res.status(400).json({ error: error.message })
+    res.status(400).json({ error: message })
   }
 })
 
@@ -90,29 +91,27 @@ router.post('/login', async (req, res) => {
     if (!user || !(await user.comparePassword(password))) {
       throw new Error('用户名或密码错误')
     }
-    if (user.status === 'disabled') {
+    const { _id, role, status, email, founder } = user
+    if (status === 'disabled') {
       throw new Error('账号已被禁用')
     }
     // 更新最后登录时间
     user.lastLogin = Date.now()
     await user.save()
-    const token = jwt.sign(
-      { userId: user._id, role: user.role },
-      process.env.JWT_SECRET
-    )
+    const token = jwt.sign({ userId: _id, role }, process.env.JWT_SECRET)
     res.json({
       token,
       user: {
-        _id: user._id,
-        username: user.username,
-        role: user.role,
-        status: user.status,
-        email: user.email,
-        founder: user.founder
+        _id,
+        username,
+        role,
+        status,
+        email,
+        founder
       }
     })
-  } catch (error) {
-    res.status(400).json({ error: error.message })
+  } catch ({ message }) {
+    res.status(400).json({ error: message })
   }
 })
 

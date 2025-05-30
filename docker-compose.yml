@@ -18,7 +18,6 @@ services:
     restart: unless-stopped  # 添加重启策略
     environment:
       - PORT=25519
-      - UPLOAD_DIR=/app/uploads
       - MONGODB_URI=mongodb://mongodb:27017/stb
       - JWT_SECRET=${JWT_SECRET:?error} # JWT_SECRET 必须是非空环境变量
       - VITE_APP_TITLE=Stb图床 # 图床标题

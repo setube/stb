@@ -18,4 +18,4 @@ export const errorHandler = (err, req, res, next) => {
   res.status(500).json({
     error: err.message || '服务器内部错误'
   })
-} 
+}

@@ -25,3 +25,63 @@ export const imageStoreType = {
   github: 'GitHub',
   get: (key) => imageStoreType[key] ?? '本地存储'
 }
+
+// 图片健康状态
+export const imageHealthStatus = {
+  Block: {
+    color: 'red',
+    text: '建议屏蔽'
+  },
+  Review: {
+    color:'orange',
+    text: '建议人工审核'
+  },
+  Pass: {
+    color:'green',
+    text: '建议通过'
+  },
+  high: {
+    color:'red',
+    text: '高风险'
+  },
+  medium: {
+    color:'orange',
+    text: '中风险'
+  },
+  low: {
+    color:'green',
+    text: '低风险'
+  },
+  none: {
+    color:'gray',
+    text: '无风险'
+  }
+}
+
+// 图片检测结果
+export const imageCheckResult = {
+  Porn: {
+    color:'red',
+    text: '色情'
+  },
+  Ad: {
+    color:'red',
+    text: '广告'
+  },
+  Abuse: {
+    color:'red',
+    text: '暴力'
+  },
+  Normal: {
+    color:'green',
+    text: '正常'
+  },
+  unsafe: {
+    color:'red',
+    text: '不安全'
+  },
+  safe: {
+    color:'green',
+    text: '安全'
+  }
+}

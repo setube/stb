@@ -1,7 +1,7 @@
 <template>
   <div class="images">
     <el-table :data="images" :scrollbar-always-on="true" fit v-loading="loading">
-      <el-table-column prop="url" label="预览" fixed>
+      <el-table-column label="预览" fixed>
         <template #default="{ row }">
           <a-image :src="userStore.config.site.url + row.thumb">
             <template #placeholder>
@@ -13,28 +13,45 @@
       <el-table-column prop="name" label="文件名" />
       <el-table-column prop="md5" label="MD5" />
       <el-table-column prop="sha1" label="SHA-1" />
-      <el-table-column prop="size" sortable label="大小">
+      <el-table-column sortable label="大小">
         <template #default="{ row }">
           {{ formatFileSize(row.size) }}
         </template>
       </el-table-column>
-      <el-table-column prop="type" label="类型">
+      <el-table-column label="类型">
         <template #default="{ row }">
           {{ imageStoreType[row.type] }}
         </template>
       </el-table-column>
-      <el-table-column prop="type" label="存储目录">
+      <template v-if="userStore.config?.ai?.enabled">
+        <el-table-column label="健康状态">
+          <template #default="{ row }">
+            <a-tag :color="imageHealthStatus[row.safe]?.color">
+              {{ imageHealthStatus[row.safe]?.text }}
+            </a-tag>
+          </template>
+        </el-table-column>
+        <el-table-column label="检测结果">
+          <template #default="{ row }">
+            <a-tag
+              :color="imageCheckResult[row.label] ? imageCheckResult[row.label]?.color : imageHealthStatus[row.safe]?.color">
+              {{ imageCheckResult[row.label] ? imageCheckResult[row.label]?.text : row.label }}
+            </a-tag>
+          </template>
+        </el-table-column>
+      </template>
+      <el-table-column label="存储目录">
         <template #default="{ row }">
           {{ row.filePath }}
         </template>
       </el-table-column>
-      <el-table-column prop="name" label="上传者">
+      <el-table-column label="上传者">
         <template #default="{ row }">
           {{ !row.user ? '游客' : row.user.username }}
         </template>
       </el-table-column>
       <el-table-column prop="ip" label="IP地址" />
-      <el-table-column prop="date" sortable label="上传时间">
+      <el-table-column sortable label="上传时间">
         <template #default="{ row }">
           {{ formatDate(row.date) }}
         </template>
@@ -52,7 +69,7 @@
     </el-table>
     <a-pagination class="pagination" v-model:current="current" v-model:page-size="pageSizeRef"
       :page-size-options="pageSizeOptions" :total="total" show-size-changer @change="fetchImages">
-    </a-pagination>
+    </a-pagination> 
   </div>
 </template>
 
@@ -61,7 +78,10 @@ import { ref, onMounted } from 'vue'
 import axios from '@/stores/axios'
 import { message, Modal } from 'ant-design-vue'
 import { useUserStore } from '@/stores/user'
-import { formatDate, imageStoreType } from '@/stores/formatDate'
+import {
+  formatDate, imageStoreType,
+  imageHealthStatus, imageCheckResult
+} from '@/stores/formatDate'
 import ClipboardJS from 'clipboard'
 import qs from 'qs'
 
@@ -140,6 +160,7 @@ onMounted(fetchImages)
 <style scoped>
 .images {
   padding: 20px;
+  margin-bottom: 100px;
 }
 
 .pagination {

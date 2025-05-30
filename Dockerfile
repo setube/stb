@@ -54,8 +54,6 @@ RUN node -e "require('fs').writeFileSync('.env', \
     'PORT=25519\n' + \
     '# 数据库连接字符串 27017是mongodb的默认端口 stb是数据库默认名称\n' + \
     'MONGODB_URI=mongodb://mongodb:27017/stb\n' + \
-    '# 默认上传目录\n' + \
-    'UPLOAD_DIR=/app/server/uploads\n' + \
     '# 图床标题\n' + \
     'VITE_APP_TITLE=Stb 图床\n' \
 )"

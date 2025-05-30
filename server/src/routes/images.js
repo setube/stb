@@ -18,28 +18,17 @@ import {
 import fs from 'fs/promises'
 import crypto from 'crypto'
 import { createReadStream } from 'fs'
+import {
+  tencentCheckImageSecurity, aliyunCheckImageSecurity,
+  nsfwjsCheckImageSecurity
+} from '../utils/security.js'
 
 const router = express.Router()
-
-async function checkAndCreateDir(dirPath) {
-  try {
-    await fs.access(dirPath)
-  } catch (error) {
-    console.log('目录不存在，正在创建:', dirPath)
-    try {
-      await fs.mkdir(dirPath, { recursive: true })
-      console.log('目录创建成功:', dirPath)
-    } catch (mkdirError) {
-      console.error('创建目录失败:', dirPath, mkdirError)
-      throw mkdirError
-    }
-  }
-}
 
 // 配置文件上传
 const storage = multer.diskStorage({
   destination: (req, file, cb) => {
-    cb(null, process.env.UPLOAD_DIR)
+    cb(null, 'uploads')
   },
   filename: (req, file, cb) => {
     cb(null, Date.now() + path.extname(file.originalname))
@@ -49,9 +38,9 @@ const storage = multer.diskStorage({
 const upload = multer({
   storage, fileFilter: async (req, file, cb) => {
     try {
-      const config = await Config.findOne()
+      const { upload } = await Config.findOne()
       const ext = path.extname(file.originalname).toLowerCase().slice(1)
-      if (!config.upload.allowedFormats.includes(ext)) {
+      if (!upload.allowedFormats.includes(ext)) {
         return cb(new Error('不支持的图片格式'))
       }
       cb(null, true)
@@ -61,8 +50,21 @@ const upload = multer({
   }
 })
 
+// 创建目录
+const checkAndCreateDir = async (dirPath) => {
+  try {
+    await fs.access(dirPath)
+  } catch (error) {
+    try {
+      await fs.mkdir(dirPath, { recursive: true })
+    } catch (mkdirError) {
+      throw mkdirError
+    }
+  }
+}
+
 // 修改计算 SHA-1 的函数
-async function calculateSHA1(filePath) {
+const calculateSHA1 = async (filePath) => {
   return new Promise((resolve, reject) => {
     const hash = crypto.createHash('sha1')
     const stream = createReadStream(filePath)
@@ -75,25 +77,22 @@ async function calculateSHA1(filePath) {
 // 获取图片列表
 router.post('/images', async (req, res) => {
   try {
+    const { page, limit } = req.body
     // 确保页码和每页数量为有效数字
-    const page = Math.max(1, parseInt(req.body.page))
-    const limit = Math.max(1, parseInt(req.body.limit))
+    const pageMath = Math.max(1, parseInt(page))
+    const limitMath = Math.max(1, parseInt(limit))
     // 计算跳过的记录数 
-    const skip = (page - 1) * limit
+    const skip = (pageMath - 1) * limitMath
     // 查询图片
     const images = await Image.find()
       .populate('user', 'username')
       .skip(skip)
-      .limit(limit)
+      .limit(limitMath)
     // 获取总数
     const total = await Image.countDocuments()
-    res.json({
-      images,
-      total
-    })
-  } catch (error) {
-    console.error('获取图片列表错误:', error)
-    res.status(500).json({ error: error.message })
+    res.json({ images, total })
+  } catch ({ message }) {
+    res.status(500).json({ error: message })
   }
 })
 
@@ -107,75 +106,151 @@ router.delete('/images/:id', auth, async (req, res) => {
     if (!image) {
       return res.status(404).json({ error: '图片不存在' })
     }
+    const { url, _id } = image
     // 删除本地文件
-    try {
-      const filePath = path.join(process.cwd(), image.url)
-      await fs.unlink(filePath)
-    } catch (error) {
-      console.error('删除文件失败:', error)
-      // 继续执行，即使文件删除失败
-    }
+    const filePath = path.join(process.cwd(), url)
+    await fs.unlink(filePath)
     // 删除数据库记录
-    await Image.deleteOne({ _id: image._id })
+    await Image.deleteOne({ _id })
     // 删除相关的上传日志
-    await UploadLog.deleteMany({ image: image._id })
+    await UploadLog.deleteMany({ image: _id })
     res.json({ message: '删除成功' })
-  } catch (error) {
-    res.status(500).json({ error: error.message })
+  } catch ({ message }) {
+    res.status(500).json({ error: message })
   }
 })
 
 // 上传图片相关函数
-async function uploadImageToStorage(file, req, isuser) {
+const uploadImageToStorage = async (file, req, isuser) => {
   try {
-    const config = await Config.findOne()
+    const { site, upload, storage, watermark, ai } = await Config.findOne()
+    const bodyIp = req.body.ip || req.ip
+    // 检查有没有填写网站URL
+    if (!site.url) {
+      throw new Error('请先配置网站URL')
+    }
     // 检查文件大小
-    if (file.size > config.upload.maxSize * 1024 * 1024) {
-      throw new Error(`文件大小不能超过 ${config.upload.maxSize}MB`)
+    if (file.size > upload.maxSize * 1024 * 1024) {
+      throw new Error(`文件大小不能超过 ${upload.maxSize}MB`)
     }
     // 获取图片信息
-    const imageInfo = await sharp(file.path).metadata()
-    // 检查图片尺寸
-    if (config.upload.minWidth && imageInfo.width < config.upload.minWidth) {
-      throw new Error(`图片宽度不能小于 ${config.upload.minWidth}px`)
+    const { format, width, height } = await sharp(file.path).metadata()
+    // 检查图片格式
+    if (!upload.allowedFormats.includes(format)) {
+      throw new Error('不支持的图片格式')
     }
-    if (config.upload.minHeight && imageInfo.height < config.upload.minHeight) {
-      throw new Error(`图片高度不能小于 ${config.upload.minHeight}px`)
+    // 检查图片尺寸
+    if (upload.minWidth && width < upload.minWidth) {
+      throw new Error(`图片宽度不能小于 ${upload.minWidth}px`)
+    }
+    if (upload.minHeight && height < upload.minHeight) {
+      throw new Error(`图片高度不能小于 ${upload.minHeight}px`)
+    }
+    let securityResult, labelResults
+    // 如果启用了内容安全检测
+    if (ai.enabled) {
+      // 先上传到临时位置
+      const tempPath = path.join('uploads', 'temp', `${Date.now()}.${path.extname(file.originalname)}`)
+      await fs.mkdir(path.dirname(tempPath), { recursive: true })
+      await fs.copyFile(file.path, tempPath)
+      switch (ai.type) {
+        case 'tencent':
+          try {
+            if (file.size >= 10 * 1024 * 1024) {
+              throw new Error('图片大小超过腾讯云图片审查服务最大图片10MB限制')
+            }
+            // 进行内容安全检测
+            const tencent = await tencentCheckImageSecurity(tempPath)
+            securityResult = tencent.safe
+            labelResults = tencent.Label
+            // 删除临时文件
+            await fs.unlink(tempPath)
+            if (ai.action === 'mark' && tencent.safe === 'Block') {
+              throw new Error('图片中包含敏感内容, 已被删除')
+            }
+          } catch (error) {
+            throw error
+          }
+          break
+        case 'aliyun':
+          try {
+            if (file.size >= 20 * 1024 * 1024) {
+              throw new Error('图片大小超过阿里云图片审查服务最大图片20MB限制')
+            }
+            // 检查图片尺寸
+            if (width >= 30000 || height >= 30000) {
+              throw new Error('图片高宽超过阿里云图片审查服务最大高宽30000px限制')
+            }
+            // 进行内容安全检测
+            const aliyun = await aliyunCheckImageSecurity(tempPath)
+            securityResult = aliyun.safe
+            labelResults = aliyun.label
+            // 删除临时文件
+            await fs.unlink(tempPath)
+            if (ai.action === 'mark' && aliyun.safe === 'high') {
+              throw new Error('图片中包含敏感内容, 已被删除')
+            }
+          } catch (error) {
+            throw error
+          }
+          break
+        case 'nsfwjs':
+          try {
+            // 获取图片格式
+            if (format === 'bpm') {
+              throw new Error('NsfwJs不支持bpm格式的图片')
+            }
+            // 进行内容安全检测
+            const nsfwjs = await nsfwjsCheckImageSecurity(tempPath)
+            securityResult = nsfwjs.safe
+            labelResults = nsfwjs.label
+            // 删除临时文件
+            await fs.unlink(tempPath)
+            if (ai.action === 'mark' && nsfwjs.safe === 'Block') {
+              throw new Error('图片中包含敏感内容, 已被删除')
+            }
+          } catch (error) {
+            throw error
+          }
+          break
+        default:
+          throw new Error('未知的安全检测类型')
+      }
     }
     // 处理图片
     let imageProcessor = sharp(file.path)
     // 生成缩略图
-    const thumbnailPath = path.join(process.env.UPLOAD_DIR, config.storage.local.path, 'thumbnails')
+    const thumbnailPath = path.join('uploads', storage.local.path, 'thumbnails')
     await checkAndCreateDir(thumbnailPath)
-    const thumbnailFilename = `thumb_${Date.now()}.${config.upload.convertFormat || imageInfo.format}`
+    const thumbnailFilename = `thumb_${Date.now()}.${upload.convertFormat || format}`
     const thumbnailFullPath = path.join(thumbnailPath, thumbnailFilename)
     // 生成缩略图（这里设置缩略图尺寸为 200x200，保持比例）
     await imageProcessor.clone().resize(200, 200, {
-      width: Math.round(imageInfo.width * 0.5),
-      height: Math.round(imageInfo.height * 0.5),
+      width: Math.round(width * 0.5),
+      height: Math.round(height * 0.5),
       fit: 'inside',
       withoutEnlargement: true
     }).toFile(thumbnailFullPath)
     // 调整尺寸
-    if (config.upload.maxWidth || config.upload.maxHeight) {
+    if (upload.maxWidth || upload.maxHeight) {
       imageProcessor = imageProcessor.resize({
-        width: config.upload.maxWidth || undefined,
-        height: config.upload.maxHeight || undefined,
+        width: upload.maxWidth || undefined,
+        height: upload.maxHeight || undefined,
         fit: 'inside'
       })
     }
     // 转换格式和质量
-    if (config.upload.convertFormat) {
-      switch (config.upload.convertFormat.toLowerCase()) {
+    if (upload.convertFormat) {
+      switch (upload.convertFormat.toLowerCase()) {
         case 'jpeg':
         case 'jpg':
           imageProcessor = imageProcessor.jpeg({
-            quality: config.upload.quality || 80
+            quality: upload.quality || 80
           })
           break
         case 'png':
           imageProcessor = imageProcessor.png({
-            quality: config.upload.quality || 80
+            quality: upload.quality || 80
           })
           break
         case 'webp':
@@ -184,14 +259,14 @@ async function uploadImageToStorage(file, req, isuser) {
           if (metadata.pages && metadata.pages > 1) {
             // 如果是多帧 GIF，使用 toFormat 方法
             imageProcessor = imageProcessor.toFormat('webp', {
-              quality: config.upload.quality || 80,
+              quality: upload.quality || 80,
               animated: true,
               effort: 6
             })
           } else {
             // 单帧图片
             imageProcessor = imageProcessor.webp({
-              quality: config.upload.quality || 80
+              quality: upload.quality || 80
             })
           }
           break
@@ -200,36 +275,35 @@ async function uploadImageToStorage(file, req, isuser) {
           break
         default:
           imageProcessor = imageProcessor.jpeg({
-            quality: config.upload.quality || 80
+            quality: upload.quality || 80
           })
       }
-    } else if (config.upload.quality) {
+    } else if (upload.quality) {
       // 如果没有指定格式转换，但指定了质量，则使用原始格式
-      const format = imageInfo.format
       switch (format) {
         case 'jpeg':
         case 'jpg':
           imageProcessor = imageProcessor.jpeg({
-            quality: config.upload.quality
+            quality: upload.quality
           })
           break
         case 'png':
           imageProcessor = imageProcessor.png({
-            quality: config.upload.quality
+            quality: upload.quality
           })
           break
         case 'webp':
           imageProcessor = imageProcessor.webp({
-            quality: config.upload.quality
+            quality: upload.quality
           })
           break
       }
     }
     // 添加水印
-    if (config.watermark.enabled) {
-      if (config.watermark.type === 'text' && config.watermark.text.content) {
+    if (watermark.enabled) {
+      if (watermark.type === 'text' && watermark.text.content) {
         // 添加文字水印
-        const { content, fontSize, color, position } = config.watermark.text
+        const { content, fontSize, color, position } = watermark.text
         // 创建文字水印
         const svgText = `
             <svg width="100%" height="100%">
@@ -273,9 +347,9 @@ async function uploadImageToStorage(file, req, isuser) {
           top: 10,
           left: 10
         }])
-      } else if (config.watermark.type === 'image' && config.watermark.image.path) {
+      } else if (watermark.type === 'image' && watermark.image.path) {
         // 添加图片水印
-        const { path: watermarkPath, opacity, position } = config.watermark.image
+        const { path: watermarkPath, opacity, position } = watermark.image
         // 读取水印图片
         const watermarkBuffer = await sharp(path.join(process.cwd(), watermarkPath))
           .resize(200) // 调整水印大小
@@ -312,9 +386,9 @@ async function uploadImageToStorage(file, req, isuser) {
       }
     }
     // 保存处理后的图片
-    const uploadPath = process.env.UPLOAD_DIR + config.storage.local.path
+    const uploadPath = 'uploads' + storage.local.path
     checkAndCreateDir(uploadPath)
-    const processedFilename = `${Date.now()}.${config.upload.convertFormat || imageInfo.format}`
+    const processedFilename = `${Date.now()}.${upload.convertFormat || format}`
     const processedPath = path.join(uploadPath, processedFilename)
     await imageProcessor.toFile(processedPath)
     // 获取处理后的文件大小
@@ -323,44 +397,44 @@ async function uploadImageToStorage(file, req, isuser) {
     // 计算处理后的图片的 SHA-1 值
     const sha1 = await calculateSHA1(processedPath)
     let url = '', filePath = ''
-    switch (config.storage.type) {
+    switch (storage.type) {
       case 'local':
         url = `/${uploadPath}${processedFilename}`
         filePath = url
         break
       case 'oss':
         // 上传到OSS
-        const ossPath = `${config.storage.oss.path}${processedFilename}`
+        const ossPath = `${storage.oss.path}${processedFilename}`
         filePath = ossPath
         // 上传到OSS后删除本地文件 
         try {
           url = await uploadToOSS(processedPath, ossPath)
-        } catch (error) {
-          throw new Error('上传到OSS失败: ' + error.message)
+        } catch ({ message }) {
+          throw new Error('上传到OSS失败: ' + message)
         }
         break
       case 'cos':
         // 上传到COS
-        const cosPath = `${config.storage.cos.filePath}/${processedFilename}`
+        const cosPath = `${storage.cos.filePath}/${processedFilename}`
         filePath = cosPath
         try {
           url = await uploadToCOS(processedPath, cosPath, processedFilename)
-        } catch (error) {
-          throw new Error('上传到COS失败: ' + error.message)
+        } catch ({ message }) {
+          throw new Error('上传到COS失败: ' + message)
         }
         break
       case 's3':
         // 上传到S3
-        filePath = `${config.storage.s3.directory}/${processedFilename}`
+        filePath = `${storage.s3.directory}/${processedFilename}`
         try {
           url = await uploadToS3(`${uploadPath}${processedFilename}`)
-        } catch (error) {
-          throw new Error('上传到S3失败: ' + error.message)
+        } catch ({ message }) {
+          throw new Error('上传到S3失败: ' + message)
         }
         break
       case 'r2':
         // 上传到R2
-        filePath = `${config.storage.r2.directory}/${processedFilename}`
+        filePath = `${storage.r2.directory}/${processedFilename}`
         try {
           url = await uploadToR2(`${uploadPath}${processedFilename}`)
         } catch (error) {
@@ -384,7 +458,7 @@ async function uploadImageToStorage(file, req, isuser) {
         break
       case 'upyun':
         // 上传到七牛
-        filePath = `${config.storage.upyun.directory}/${processedFilename}`
+        filePath = `${storage.upyun.directory}/${processedFilename}`
         try {
           const urlInfo = await uploadToUpyun(processedPath)
           if (urlInfo) {
@@ -396,7 +470,7 @@ async function uploadImageToStorage(file, req, isuser) {
         break
       case 'sftp':
         // 上传到SFTP
-        filePath = `${config.storage.sftp.directory}/${processedFilename}`
+        filePath = `${storage.sftp.directory}/${processedFilename}`
         try {
           const urlInfo = await uploadToSftp(processedPath, processedFilename)
           if (urlInfo) {
@@ -408,7 +482,7 @@ async function uploadImageToStorage(file, req, isuser) {
         break
       case 'ftp':
         // 上传到FTP
-        filePath = `${config.storage.ftp.directory}/${processedFilename}`
+        filePath = `${storage.ftp.directory}/${processedFilename}`
         try {
           const urlInfo = await uploadToFtp(processedPath, processedFilename)
           if (urlInfo) {
@@ -420,7 +494,7 @@ async function uploadImageToStorage(file, req, isuser) {
         break
       case 'webdav':
         // 上传到WEBDAV
-        filePath = `${config.storage.webdav.directory}/${processedFilename}`
+        filePath = `${storage.webdav.directory}/${processedFilename}`
         try {
           const urlInfo = await uploadToWebdav(processedPath, processedFilename)
           if (urlInfo) {
@@ -442,7 +516,7 @@ async function uploadImageToStorage(file, req, isuser) {
         }
         break
       case 'github':
-        filePath = `${config.storage.github.directory}/${processedFilename}`
+        filePath = `${storage.github.directory}/${processedFilename}`
         try {
           const urlInfo = await uploadToGithub(processedPath, processedFilename, req.user)
           if (urlInfo) {
@@ -453,14 +527,12 @@ async function uploadImageToStorage(file, req, isuser) {
         }
         break
       default:
-        gravity = 'southeast'
+        throw new Error('未知的存储类型')
     }
     // 清理本地未处理的图片源文件
     await fs.unlink(file.path)
-    // 使用前端传来的IP，如果没有则使用请求IP
-    const clientIp = req.body.ip || req.ip
     // 记录上传日志
-    const location = getIpLocation(clientIp)
+    const location = getIpLocation(bodyIp)
     // 缩略图路径
     const thumb = `/${uploadPath}thumbnails/${thumbnailFilename}`
     // 保存图片记录，添加 SHA-1 值
@@ -470,12 +542,14 @@ async function uploadImageToStorage(file, req, isuser) {
       thumb,
       md5: req.body.md5,
       sha1,
-      type: config.storage.type,
+      safe: securityResult,
+      label: labelResults,
+      type: storage.type,
       user: isuser ? req.user._id : null,
-      width: imageInfo.width,
-      height: imageInfo.height,
+      width,
+      height,
       date: Date.now(),
-      ip: clientIp,
+      ip: bodyIp,
       size: processedSize,
       filePath,
       filename: processedFilename,
@@ -485,47 +559,65 @@ async function uploadImageToStorage(file, req, isuser) {
     // 上传日志也添加 SHA-1 值
     const log = new UploadLog({
       user: isuser ? req.user._id : null,
-      ip: clientIp,
+      ip: bodyIp,
       location,
       thumb,
       image: image._id,
       originalName: file.originalname,
       size: processedSize,
-      format: imageInfo.format,
-      width: imageInfo.width,
-      height: imageInfo.height,
+      format,
+      width,
+      height,
       sha1,
       filename: processedFilename,
     })
     await log.save()
     return image
-  } catch (error) {
+  } catch ({ message }) {
     // 清理本地未处理的图片源文件
     await fs.unlink(file.path)
-    if (error.message.includes('E11000')) {
+    if (message.includes('E11000')) {
       throw new Error('图片已存在')
     }
-    throw new Error(error.message)
+    throw new Error(message)
   }
 }
 
 // 用户上传
-router.post('/upload', auth, checkIpWhitelist, checkDailyLimit, upload.single('image'), async (req, res) => {
+router.post('/upload', auth, upload.single('image'), checkIpWhitelist, checkDailyLimit, async (req, res) => {
   try {
     const image = await uploadImageToStorage(req.file, req, true)
     res.status(201).json(image)
-  } catch (error) {
-    res.status(400).json({ error: error.message })
+  } catch ({ message }) {
+    if (message.includes('图片中包含敏感内容, 已被删除')) {
+      const { ip, ai } = await Config.findOne()
+      const bodyIp = req.body.ip || req.ip
+      if (ai.autoBlack && ip.enabled && ip.blacklist.indexOf(bodyIp) === -1) {
+        ip.blacklist.push(bodyIp)
+        await Config.findOneAndUpdate({}, { $set: { ip } }, { new: true, upsert: true })
+        return res.status(400).json({ error: '当前上传IP已被拉黑' })
+      }
+    }
+    return res.status(400).json({ error: message })
   }
 })
 
 // 游客上传
-router.post('/tourist/upload', checkIpWhitelist, checkDailyLimit, upload.single('image'), async (req, res) => {
+router.post('/tourist/upload', upload.single('image'), checkIpWhitelist, checkDailyLimit, async (req, res) => {
   try {
     const image = await uploadImageToStorage(req.file, req, false)
     res.status(201).json(image)
-  } catch (error) {
-    res.status(400).json({ error: error.message })
+  } catch ({ message }) {
+    if (message.includes('图片中包含敏感内容, 已被删除')) {
+      const { ip, ai } = await Config.findOne()
+      const bodyIp = req.body.ip || req.ip
+      if (ai.autoBlack && ip.enabled && ip.blacklist.indexOf(bodyIp) === -1) {
+        ip.blacklist.push(bodyIp)
+        await Config.findOneAndUpdate({}, { $set: { ip } }, { new: true, upsert: true })
+        return res.status(400).json({ error: '当前上传IP已被拉黑' })
+      }
+    }
+    return res.status(400).json({ error: message })
   }
 })
 

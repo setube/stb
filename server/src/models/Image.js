@@ -21,6 +21,17 @@ const imageSchema = new mongoose.Schema({
     type: String,
     required: true
   },
+  // 图片健康状态
+  safe: {
+    type: String,
+    required: true,
+    default: 'Pass'
+  },
+  label: {
+    type: String,
+    required: true,
+    default: 'Normal'
+  },
   md5: {
     type: String,
     required: true,
