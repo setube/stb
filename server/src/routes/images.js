@@ -125,7 +125,7 @@ const uploadImageToStorage = async (file, req, isuser) => {
   try {
     const { site, upload, storage, watermark, ai } = await Config.findOne()
     const reqBodyIp = req.body.ip.includes('127.0.0.1') || !req.body.ip ? req.ip : req.body.ip
-    const reqIp = req.ip.includes('127.0.0.1') || !req.ip ? reqBodyIp : req.ip
+    const reqIp = req.ip.includes('::1') || req.ip.includes('127.0.0.1') || !req.ip ? reqBodyIp : req.ip
     const bodyIp = reqIp || reqBodyIp
     // 检查有没有填写网站URL
     if (!site.url) {
@@ -594,7 +594,7 @@ router.post('/upload', auth, upload.single('image'), checkIpWhitelist, checkDail
     if (message.includes('图片中包含敏感内容, 已被删除')) {
       const { ip, ai } = await Config.findOne()
       const reqBodyIp = req.body.ip.includes('127.0.0.1') || !req.body.ip ? req.ip : req.body.ip
-      const reqIp = req.ip.includes('127.0.0.1') || !req.ip ? reqBodyIp : req.ip
+      const reqIp = req.ip.includes('::1') || req.ip.includes('127.0.0.1') || !req.ip ? reqBodyIp : req.ip
       const bodyIp = reqIp || reqBodyIp
       if (ai.autoBlack && ip.enabled && ip.blacklist.indexOf(bodyIp) === -1) {
         ip.blacklist.push(bodyIp)
@@ -615,7 +615,7 @@ router.post('/tourist/upload', upload.single('image'), checkIpWhitelist, checkDa
     if (message.includes('图片中包含敏感内容, 已被删除')) {
       const { ip, ai } = await Config.findOne()
       const reqBodyIp = req.body.ip.includes('127.0.0.1') || !req.body.ip ? req.ip : req.body.ip
-      const reqIp = req.ip.includes('127.0.0.1') || !req.ip ? reqBodyIp : req.ip
+      const reqIp = req.ip.includes('::1') || req.ip.includes('127.0.0.1') || !req.ip ? reqBodyIp : req.ip
       const bodyIp = reqIp || reqBodyIp
       if (ai.autoBlack && ip.enabled && ip.blacklist.indexOf(bodyIp) === -1) {
         ip.blacklist.push(bodyIp)

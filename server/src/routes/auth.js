@@ -44,7 +44,8 @@ router.post('/info', auth, async (req, res) => {
 
 router.post('/register', async (req, res) => {
   try {
-    const { username, password, email, ip } = req.body
+    const reqIP = req.ip.includes('::1') || req.ip.includes('127.0.0.1') || !req.ip ? req.body : req.ip
+    const { username, password, email } = req.body
     const config = await Config.findOne()
     if (!config.site.register) {
       return res.status(403).json({ error: '注册已关闭' })
@@ -53,7 +54,7 @@ router.post('/register', async (req, res) => {
     const userCount = await User.countDocuments()
     // 如果是第一个用户，则设置为创始人
     const user = new User({
-      ip,
+      ip: reqIP,
       username,
       password,
       email,

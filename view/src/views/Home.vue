@@ -177,7 +177,7 @@ const uploadImage = async (file) => {
     formData.append('image', file)
     formData.append('md5', md5)
     formData.append('ip', ip?.ipv4 ? ip?.ipv4 : ip?.ipv6)
-    const isTourist = config?.site?.anonymousUpload ? '/api/tourist/upload' : '/api/upload'
+    const isTourist = config?.site?.anonymousUpload && !userStore.token ? '/api/tourist/upload' : '/api/upload'
     const { data } = await axios.post(isTourist, formData)
     const { url, type, filename, isDuplicate } = data
     images.value.unshift(data)

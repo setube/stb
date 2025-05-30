@@ -10,7 +10,7 @@ export const checkIpWhitelist = async (req, res, next) => {
     if (!enabled) return next()
     // 使用前端传来的IP，如果没有则使用请求IP
     const reqBodyIp = req.body.ip.includes('127.0.0.1') || !req.body.ip ? req.ip : req.body.ip
-    const reqIp = req.ip.includes('127.0.0.1') || !req.ip ? reqBodyIp : req.ip
+    const reqIp = req.ip.includes('::1') || req.ip.includes('127.0.0.1') || !req.ip ? reqBodyIp : req.ip
     const bodyIp = reqIp || reqBodyIp
     // 检查黑名单
     if (enabled && blacklist.includes(bodyIp)) {
