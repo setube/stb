@@ -6,7 +6,7 @@ import { UploadLog } from '../models/UploadLog.js'
 const router = express.Router()
 
 // 获取上传日志列表
-router.get('/logs', auth, checkRole(['admin']), async (req, res) => {
+router.post('/logs', auth, checkRole(['admin']), async (req, res) => {
   try {
     const { page = 1, limit = 20, startDate, endDate, username, ip } = req.query
     
@@ -50,7 +50,7 @@ router.get('/logs', auth, checkRole(['admin']), async (req, res) => {
 })
 
 // 获取日志统计信息
-router.get('/logs/stats', auth, checkRole(['admin']), async (req, res) => {
+router.post('/logs/stats', auth, checkRole(['admin']), async (req, res) => {
   try {
     const { startDate, endDate } = req.query
     
@@ -115,7 +115,7 @@ router.get('/logs/stats', auth, checkRole(['admin']), async (req, res) => {
 })
 
 // 导出日志
-router.get('/logs/export', auth, checkRole(['admin']), async (req, res) => {
+router.post('/logs/export', auth, checkRole(['admin']), async (req, res) => {
   try {
     const { startDate, endDate } = req.query
     

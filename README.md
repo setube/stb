@@ -8,6 +8,13 @@
 [安装图床](https://github.com/setube/stb/wiki/install) • [界面展示](#界面展示) • [星标趋势](#星标趋势) • [开源协议](#开源协议)
 </div>
 
+> [!TIP]\
+> 如果上传者的IP获取不准确, 请在Nginx配置文件中添加以下配置
+> ```nginx
+> proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+> proxy_set_header X-Real-IP $remote_addr;
+> ```
+
 ## 特点
 * [x] 支持设置图片质量
 * [x] 支持压缩图片大小

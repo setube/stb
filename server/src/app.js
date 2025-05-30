@@ -11,6 +11,7 @@ import logsRoutes from './routes/logs.js'
 import { errorHandler } from './middleware/errorHandler.js'
 import { Config } from './models/Config.js'
 import path from 'path'
+import requestIP from 'request-ip'
 import { fileURLToPath } from 'url'
 
 dotenv.config()
@@ -20,6 +21,8 @@ const __dirname = path.dirname(__filename)
 
 const app = express()
 
+app.set('trust proxy', false) // default is false
+app.use(requestIP.mw({ attributeName: 'clientIP' }))
 // 中间件
 app.use(cors())
 app.use(express.json())
