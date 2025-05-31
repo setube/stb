@@ -4,19 +4,23 @@ import register from '@/views/Register.vue'
 import home from '@/views/Home.vue'
 import gallery from '@/views/Gallery.vue'
 import docs from '@/views/Docs.vue'
-import not from '@/views/not.vue'
+import not from '@/views/Not.vue'
+import my from '@/views/My.vue'
 import dashboard from '@/views/admin/Dashboard.vue'
 import users from '@/views/admin/Users.vue'
 import images from '@/views/admin/Images.vue'
 import config from '@/views/admin/Config.vue'
 import log from '@/views/admin/Logs.vue'
-import my from '@/views/My.vue'
 import { useUserStore } from '@/stores/user'
 
 const routes = [
   {
     path: '/404',
     name: '404',
+    component: not
+  },
+  {
+    path: '/:pathMatch(.*)*',
     component: not
   },
   {
@@ -89,11 +93,11 @@ const router = createRouter({
 
 router.beforeEach((to, from, next) => {
   const { config, token, user } = useUserStore()
-  
+
   if (to.name === 'Docs' && !config?.site?.api) {
     return next('/404')
   }
-  
+
   if (to.name === 'Admin' && (!token || user?.role !== 'admin')) {
     return next('/login')
   }
@@ -101,7 +105,6 @@ router.beforeEach((to, from, next) => {
   if (to.name === 'My' && !token) {
     return next('/login')
   }
-
   next()
 })
 
