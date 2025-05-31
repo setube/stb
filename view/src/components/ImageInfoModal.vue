@@ -11,7 +11,7 @@
       <a-descriptions-item label="MD5">{{ imageInfo.md5 }}</a-descriptions-item>
       <a-descriptions-item label="SHA1">{{ imageInfo.sha1 }}</a-descriptions-item>
       <a-descriptions-item label="尺寸">{{ imageInfo.width }} x {{ imageInfo.height }}</a-descriptions-item>
-      <a-descriptions-item label="上传 IP" v-if="userStore.user?.username === imageInfo.user?.username || userStore.user?.founder">
+      <a-descriptions-item label="上传IP" v-if="userStore?.user && (userStore?.user?.username === imageInfo.user?.username || userStore.user?.founder)">
         {{ imageInfo.ip }} (仅自己与管理员可见)
       </a-descriptions-item>
       <a-descriptions-item label="上传时间">{{ formatDate(imageInfo.updatedAt) }}</a-descriptions-item>
