@@ -28,6 +28,11 @@ const configSchema = new mongoose.Schema({
       type: Boolean,
       default: false
     },
+    // 是否API文档页面
+    api: {
+      type: Boolean,
+      default: false
+    },
   },
   upload: {
     allowedFormats: {
@@ -73,6 +78,15 @@ const configSchema = new mongoose.Schema({
     dailyLimit: {
       type: Number,
       default: 100
+    },
+    namingRule: {
+      type: String,
+      default: '{Ymd}/{uniqid}.{ext}'  // 默认规则：年月日/唯一ID.扩展名
+    },
+    // 上传目录
+    path: {
+      type: String,
+      default: 'uploads'
     }
   },
   watermark: {

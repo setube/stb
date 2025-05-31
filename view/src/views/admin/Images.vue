@@ -58,7 +58,7 @@
       </el-table-column>
       <el-table-column label="操作" fixed="right">
         <template #default="{ row }">
-          <a-button type="link" @click="copyImages($event, row)">
+          <a-button type="link" @click="copyImages($event, row, userStore)">
             复制
           </a-button>
           <a-button type="link" danger @click="handleDelete(row._id)">
@@ -67,8 +67,7 @@
         </template>
       </el-table-column>
     </el-table>
-    <a-pagination class="pagination" v-model:current="current" v-model:page-size="pageSizeRef"
-      :page-size-options="pageSizeOptions" :total="total" show-size-changer @change="fetchImages">
+    <a-pagination class="pagination" v-model:current="current" v-model:page-size="pageSizeRef" :total="total" show-size-changer @change="fetchImages">
     </a-pagination> 
   </div>
 </template>
@@ -79,8 +78,8 @@ import axios from '@/stores/axios'
 import { message, Modal } from 'ant-design-vue'
 import { useUserStore } from '@/stores/user'
 import {
-  formatDate, imageStoreType,
-  imageHealthStatus, imageCheckResult
+  formatDate, imageStoreType, formatFileSize,
+  imageHealthStatus, imageCheckResult, copyImages
 } from '@/stores/formatDate'
 import ClipboardJS from 'clipboard'
 import qs from 'qs'
@@ -90,7 +89,6 @@ const images = ref([])
 const loading = ref(false)
 const current = ref(1)
 const pageSizeRef = ref(10)
-const pageSizeOptions = ['10', '20', '30', '40', '50']
 const total = ref(0)
 
 const fetchImages = async () => {
@@ -110,15 +108,6 @@ const fetchImages = async () => {
   }
 }
 
-// 格式化文件大小
-const formatFileSize = (bytes) => {
-  if (bytes === 0) return '0 B'
-  const k = 1024
-  const sizes = ['B', 'KB', 'MB', 'GB']
-  const i = Math.floor(Math.log(bytes) / Math.log(k))
-  return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i]
-}
-
 const handleDelete = (id) => {
   Modal.confirm({
     title: '确认删除',
@@ -132,25 +121,6 @@ const handleDelete = (id) => {
         message.error(error.response.data.error || '删除失败')
       }
     }
-  })
-}
-
-// 一键复制所有图片链接
-const copyImages = (event, image) => {
-  // 创建新的实例
-  const clipboard = new ClipboardJS(event.target, {
-    text: () => {
-      return image.type == 'local' ? userStore.config.site.url + image.url : image.url
-    }
-  })
-  clipboard.on('success', (e) => {
-    e.clearSelection()
-    message.success('链接已复制到剪贴板')
-    clipboard.destroy()
-  })
-  clipboard.on('error', (e) => {
-    message.error('复制失败, 请检查当前浏览器是否支持Clipboard.js')
-    clipboard.destroy()
   })
 }
 

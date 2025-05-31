@@ -1,3 +1,8 @@
+
+import ClipboardJS from 'clipboard'
+import { message } from 'ant-design-vue'
+
+// 时间格式转换
 export const formatDate = (timestamp) => {
   const date = new Date(timestamp)
   const year = date.getFullYear()
@@ -7,6 +12,34 @@ export const formatDate = (timestamp) => {
   const minutes = String(date.getMinutes()).padStart(2, '0')
   const seconds = String(date.getSeconds()).padStart(2, '0')
   return `${year}-${month}-${day} ${hours}:${minutes}:${seconds}`
+}
+
+// 图片大小转换
+export const formatFileSize = (bytes) => {
+  if (bytes === 0) return '0 B'
+  const k = 1024
+  const sizes = ['B', 'KB', 'MB', 'GB']
+  const i = Math.floor(Math.log(bytes) / Math.log(k))
+  return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i]
+}
+
+// 复制链接
+export const copyImages = (event, image, userStore) => {
+  // 创建新的实例
+  const clipboard = new ClipboardJS(event.target, {
+    text: () => {
+      return image.type == 'local' ? userStore.config.site.url + image.url : image.url
+    }
+  })
+  clipboard.on('success', (e) => {
+    e.clearSelection()
+    message.success('链接已复制到剪贴板')
+    clipboard.destroy()
+  })
+  clipboard.on('error', (e) => {
+    message.error('复制失败, 请检查当前浏览器是否支持Clipboard.js')
+    clipboard.destroy()
+  })
 }
 
 // 图片所属存储类型

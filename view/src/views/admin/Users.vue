@@ -41,9 +41,7 @@
         </template>
       </el-table-column>
     </el-table>
-    <a-pagination class="pagination" v-model:current="current" v-model:page-size="pageSizeRef"
-      :page-size-options="pageSizeOptions" :total="total" show-size-changer @change="fetchUsers">
-    </a-pagination>
+    <a-pagination class="pagination" v-model:current="current" v-model:page-size="pageSizeRef" :total="total" show-size-changer @change="fetchUsers" />
   </div>
 </template>
 
@@ -58,7 +56,6 @@ const users = ref([])
 const loading = ref(false)
 const current = ref(1)
 const pageSizeRef = ref(10)
-const pageSizeOptions = ['10', '20', '30', '40', '50']
 const total = ref(0)
 
 const fetchUsers = async () => {

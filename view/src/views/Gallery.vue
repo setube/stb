@@ -8,15 +8,9 @@
             <a-button class="loading-more-button" @click="fetchImages">加载更多</a-button>
           </div>
         </template>
-        <Waterfall :list="images" :animationDuration="100" :animationDelay="100" :breakpoints="breakpoints"
-          v-if="images.length">
-          <template #default="{ item }">
-            <a-image :src="userStore.config.site.url + item.thumb" placeholder>
-              <template #placeholder>
-                <a-image :src="item.type == 'local' ? userStore.config.site.url + item.url : item.url"
-                  :preview="false" />
-              </template>
-            </a-image>
+        <Waterfall :list="images" :animationDuration="100" :animationDelay="100" :breakpoints="breakpoints" v-if="images.length">
+          <template #default="{ item, index }">
+            <a-image :src="userStore.config.site.url + item.thumb" :preview="{ visible: false }" @click="setImageInfo(item, index)" />
           </template>
         </Waterfall>
         <a-result v-else-if="is404" title="图片广场空空如也" sub-title="快来上传你的第一张图片吧~">
@@ -25,6 +19,7 @@
           </template>
         </a-result>
       </a-list>
+      <ImageInfoModal v-model="modalOpen" v-model:imageInfo="imageInfo" v-model:imageKey="imageKey" :images="images" />
     </div>
   </div>
 </template>
@@ -38,6 +33,7 @@ import { useUserStore } from '@/stores/user'
 import { Waterfall } from 'vue-waterfall-plugin-next'
 import 'vue-waterfall-plugin-next/dist/style.css'
 import erro404 from '@/assets/404.svg'
+import ImageInfoModal from '@/components/ImageInfoModal.vue'
 
 const userStore = useUserStore()
 
@@ -47,6 +43,9 @@ const page = ref(1)
 const total = ref(0)
 const loading = ref(false)
 const is404 = ref(false)
+const modalOpen = ref(false)
+const imageInfo = ref({})
+const imageKey = ref(0)
 const breakpoints = {
   1920: {
     rowPerView: 5
@@ -60,6 +59,13 @@ const breakpoints = {
   500: {
     rowPerView: 2
   }
+}
+
+// 获取图片信息
+const setImageInfo = (image, index) => {
+  imageInfo.value = image
+  modalOpen.value = true
+  imageKey.value = index
 }
 
 // 获取图片列表

@@ -6,7 +6,6 @@ import { auth } from '../middleware/auth.js'
 import { Image } from '../models/Image.js'
 import { Config } from '../models/Config.js'
 import { UploadLog } from '../models/UploadLog.js'
-import { getIpLocation } from '../utils/ipLocation.js'
 import { checkDailyLimit } from '../middleware/checkDailyLimit.js'
 import { checkIpWhitelist } from '../middleware/checkIpWhitelist.js'
 import {
@@ -74,17 +73,18 @@ const calculateSHA1 = async (filePath) => {
   })
 }
 
-// 获取图片列表
+// 图片广场
 router.post('/images', async (req, res) => {
   try {
     const { page, limit } = req.body
     // 确保页码和每页数量为有效数字
     const pageMath = Math.max(1, parseInt(page))
     const limitMath = Math.max(1, parseInt(limit))
-    // 计算跳过的记录数 
+    // 计算跳过的记录数
     const skip = (pageMath - 1) * limitMath
     // 查询图片
     const images = await Image.find()
+      .sort({ date: -1 })
       .populate('user', 'username')
       .skip(skip)
       .limit(limitMath)
@@ -96,29 +96,41 @@ router.post('/images', async (req, res) => {
   }
 })
 
-// 删除图片
-router.delete('/images/:id', auth, async (req, res) => {
-  try {
-    const image = await Image.findOne({
-      _id: req.params.id,
-      user: req.user._id
-    })
-    if (!image) {
-      return res.status(404).json({ error: '图片不存在' })
-    }
-    const { url, _id } = image
-    // 删除本地文件
-    const filePath = path.join(process.cwd(), url)
-    await fs.unlink(filePath)
-    // 删除数据库记录
-    await Image.deleteOne({ _id })
-    // 删除相关的上传日志
-    await UploadLog.deleteMany({ image: _id })
-    res.json({ message: '删除成功' })
-  } catch ({ message }) {
-    res.status(500).json({ error: message })
-  }
-})
+// 添加文件命名规则处理函数
+const generateFileName = async (file, req, isuser) => {
+  const { upload } = await Config.findOne()
+  // 获取文件信息
+  const ext = path.extname(file.originalname).toLowerCase().slice(1)
+  const filename = path.basename(file.originalname, path.extname(file.originalname))
+  const time = Date.now()
+  const uniqid = time.toString(36) + Math.random().toString(36).slice(2)
+  const md5 = req.body.md5
+  const sha1 = await calculateSHA1(file.path)
+  const uuid = crypto.randomUUID()
+  const uid = isuser ? req.user._id : 'guest'
+  // 获取日期信息
+  const date = new Date()
+  const Y = date.getFullYear()
+  const y = Y.toString().slice(2)
+  const m = String(date.getMonth() + 1).padStart(2, '0')
+  const d = String(date.getDate()).padStart(2, '0')
+  const Ymd = `${Y}${m}${d}`
+  // 替换变量
+  return upload.namingRule
+    .replace(/{Y}/g, Y)
+    .replace(/{y}/g, y)
+    .replace(/{m}/g, m)
+    .replace(/{d}/g, d)
+    .replace(/{Ymd}/g, Ymd)
+    .replace(/{filename}/g, filename)
+    .replace(/{ext}/g, ext)
+    .replace(/{time}/g, time)
+    .replace(/{uniqid}/g, uniqid)
+    .replace(/{md5}/g, md5)
+    .replace(/{sha1}/g, sha1)
+    .replace(/{uuid}/g, uuid)
+    .replace(/{uid}/g, uid)
+}
 
 // 上传图片相关函数
 const uploadImageToStorage = async (file, req, isuser) => {
@@ -198,10 +210,6 @@ const uploadImageToStorage = async (file, req, isuser) => {
           break
         case 'nsfwjs':
           try {
-            // 获取图片格式
-            if (format === 'bpm') {
-              throw new Error('NsfwJs不支持bpm格式的图片')
-            }
             // 进行内容安全检测
             const nsfwjs = await nsfwjsCheckImageSecurity(tempPath)
             securityResult = nsfwjs.safe
@@ -390,8 +398,11 @@ const uploadImageToStorage = async (file, req, isuser) => {
     // 保存处理后的图片
     const uploadPath = 'uploads' + storage.local.path
     checkAndCreateDir(uploadPath)
-    const processedFilename = `${Date.now()}.${upload.convertFormat || format}`
+    // 生成文件名
+    const processedFilename = await generateFileName(file, req, isuser)
     const processedPath = path.join(uploadPath, processedFilename)
+    // 确保目录存在
+    await checkAndCreateDir(path.dirname(processedPath))
     await imageProcessor.toFile(processedPath)
     // 获取处理后的文件大小
     const processedStats = await fs.stat(processedPath)
@@ -532,9 +543,13 @@ const uploadImageToStorage = async (file, req, isuser) => {
         throw new Error('未知的存储类型')
     }
     // 清理本地未处理的图片源文件
-    await fs.unlink(file.path)
-    // 记录上传日志
-    const location = getIpLocation(bodyIp)
+    try {
+      // 等待一小段时间确保文件不再被使用
+      await new Promise(resolve => setTimeout(resolve, 100))
+      await fs.unlink(file.path)
+    } catch (unlinkError) {
+      console.error('删除临时文件失败:', unlinkError)
+    }
     // 缩略图路径
     const thumb = `/${uploadPath}thumbnails/${thumbnailFilename}`
     // 保存图片记录，添加 SHA-1 值
@@ -562,7 +577,6 @@ const uploadImageToStorage = async (file, req, isuser) => {
     const log = new UploadLog({
       user: isuser ? req.user._id : null,
       ip: bodyIp,
-      location,
       thumb,
       image: image._id,
       originalName: file.originalname,
@@ -576,8 +590,13 @@ const uploadImageToStorage = async (file, req, isuser) => {
     await log.save()
     return image
   } catch ({ message }) {
-    // 清理本地未处理的图片源文件
-    await fs.unlink(file.path)
+    try {
+      // 等待一小段时间确保文件不再被使用
+      await new Promise(resolve => setTimeout(resolve, 100))
+      await fs.unlink(file.path)
+    } catch (unlinkError) {
+      console.error('删除临时文件失败:', unlinkError)
+    }
     if (message.includes('E11000')) {
       throw new Error('图片已存在')
     }

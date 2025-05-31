@@ -23,7 +23,7 @@
       <!-- 格式切换 -->
       <a-tabs v-model:activeKey="activeTab">
         <a-tab-pane v-for="item in tabList" :key="item.key" :tab="item.tab">
-          <a-input class="ant-input" v-for="(img, idx) in uploadedImages[activeTab]" :key="idx" :value="img" readonly
+          <a-input v-for="(img, idx) in uploadedImages[activeTab]" :key="idx" :value="img" readonly
             @focus="inputFocus($event)" />
         </a-tab-pane>
       </a-tabs>
@@ -171,13 +171,13 @@ const calculateMD5 = async (file) => {
 // 通用的上传函数
 const uploadImage = async (file) => {
   try {
-    const { ip, config } = userStore
+    const { ip, config, token } = userStore
     const md5 = await calculateMD5(file)
     const formData = new FormData()
     formData.append('image', file)
     formData.append('md5', md5)
     formData.append('ip', ip?.ipv4 ? ip?.ipv4 : ip?.ipv6)
-    const isTourist = config?.site?.anonymousUpload && !userStore.token ? '/api/tourist/upload' : '/api/upload'
+    const isTourist = config?.site?.anonymousUpload && !token ? '/api/tourist/upload' : '/api/upload'
     const { data } = await axios.post(isTourist, formData)
     const { url, type, filename, isDuplicate } = data
     images.value.unshift(data)
@@ -288,7 +288,7 @@ const customRequest = async ({ file }) => {
   color: rgba(0, 0, 0, 0.45);
 }
 
-.ant-input {
+:deep(.ant-input) {
   margin-bottom: 10px;
 }
 </style>

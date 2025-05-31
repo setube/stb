@@ -3,17 +3,8 @@ import { auth } from '../middleware/auth.js'
 import { checkRole } from '../middleware/checkRole.js'
 import { User } from '../models/User.js'
 import { Image } from '../models/Image.js'
-import { Config } from '../models/Config.js'
-import { UploadLog } from '../models/UploadLog.js'
-import path from 'path'
-import fs from 'fs/promises'
+import { deleteImage } from '../utils/deleteImage.js'
 import os from 'os'
-import {
-  deleteFromOSS, deleteFromCOS, deleteFromS3,
-  deleteFromR2, deleteFromQiNiu, deleteFromUpyun,
-  deleteFromSftp, deleteFromFtp, deleteFromWebdav,
-  deleteFromTelegram, deleteFromGithub
-} from '../utils/oss.js'
 import mongoose from 'mongoose'
 import NodeCache from 'node-cache'
 
@@ -93,6 +84,7 @@ router.post('/images', auth, checkRole(['admin']), async (req, res) => {
     const skip = (pageMath - 1) * limitMath
     // 查询图片
     const images = await Image.find()
+      .sort({ date: -1 })
       .populate('user', 'username')
       .skip(skip)
       .limit(limitMath)
@@ -113,65 +105,7 @@ router.delete('/images/:id', auth, checkRole(['admin']), async (req, res) => {
     if (!imageInfo) {
       return res.status(404).json({ error: '图片不存在' })
     }
-    const { _id, type, url, filename, filePath, thumb } = imageInfo
-    // 根据存储类型删除文件
-    switch (type) {
-      case 'local':
-        await Image.findByIdAndDelete(id)
-        try {
-          const localFilePath = path.join(process.cwd(), url)
-          await fs.unlink(localFilePath)
-        } catch ({ message }) {
-          console.error('删除文件失败:', error)
-        }
-        break
-      case 'oss':
-        await deleteFromOSS(filename)
-        break
-      case 'cos':
-        const slashCount = (filePath.match(/\//g) || []).length
-        if (slashCount === 1) {
-          imageInfo.filePath = filePath.substring(1)
-        }
-        await deleteFromCOS(imageInfo.filePath)
-        break
-      case 's3':
-        await deleteFromS3(filePath)
-        break
-      case 'r2':
-        await deleteFromR2(filePath)
-        break
-      case 'qiniu':
-        await deleteFromQiNiu(filename)
-        break
-      case 'upyun':
-        await deleteFromUpyun(filePath)
-        break
-      case 'sftp':
-        await deleteFromSftp(filePath)
-        break
-      case 'ftp':
-        await deleteFromFtp(filePath)
-        break
-      case 'webdav':
-        await deleteFromWebdav(filePath)
-        break
-      case 'telegram':
-        await deleteFromTelegram(filePath)
-        break
-      case 'github':
-        await deleteFromGithub(filePath)
-        break
-      default:
-        console.error('未知的存储类型:', type)
-    }
-    // 删除本地缩略图
-    const thumbFilePath = path.join(process.cwd(), thumb)
-    await fs.unlink(thumbFilePath)
-    // 删除数据库记录
-    await Image.deleteOne({ _id })
-    // 删除相关的上传日志
-    await UploadLog.deleteMany({ image: _id })
+    await deleteImage(imageInfo, id)
     res.json({ message: '删除成功' })
   } catch ({ message }) {
     res.status(500).json({ error: message })

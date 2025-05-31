@@ -3,6 +3,8 @@ import jwt from 'jsonwebtoken'
 import { User } from '../models/User.js'
 import { auth } from '../middleware/auth.js'
 import { Config } from '../models/Config.js'
+import { Image } from '../models/Image.js'
+import { deleteImage } from '../utils/deleteImage.js'
 
 const router = express.Router()
 
@@ -37,6 +39,46 @@ router.post('/info', auth, async (req, res) => {
     user.lastLogin = Date.now()
     await user.save()
     res.json(user)
+  } catch ({ message }) {
+    res.status(500).json({ error: message })
+  }
+})
+
+// 获取我的图片列表
+router.post('/my', auth, async (req, res) => {
+  try {
+    const { page, limit } = req.body
+    // 确保页码和每页数量为有效数字
+    const pageMath = Math.max(1, parseInt(page))
+    const limitMath = Math.max(1, parseInt(limit))
+    // 计算跳过的记录数
+    const skip = (pageMath - 1) * limitMath
+    // 查询当前用户的图片
+    const images = await Image.find({ user: req.user._id })
+      .sort({ date: -1 })
+      .populate('user', 'username')
+      .skip(skip)
+      .limit(limitMath)
+    // 获取总数
+    const total = await Image.countDocuments({ user: req.user._id })
+    res.json({ images, total })
+  } catch ({ message }) {
+    res.status(500).json({ error: message })
+  }
+})
+
+// 删除图片
+router.delete('/images/:id', auth, async (req, res) => {
+  try {
+    const image = await Image.findOne({
+      _id: req.params.id,
+      user: req.user._id
+    })
+    if (!image) {
+      return res.status(404).json({ error: '图片不存在' })
+    }
+    await deleteImage(image, req.params.id)
+    res.json({ message: '删除成功' })
   } catch ({ message }) {
     res.status(500).json({ error: message })
   }

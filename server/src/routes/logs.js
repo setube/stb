@@ -2,13 +2,14 @@ import express from 'express'
 import { auth } from '../middleware/auth.js'
 import { checkRole } from '../middleware/checkRole.js'
 import { UploadLog } from '../models/UploadLog.js'
+import { User } from '../models/User.js'
 
 const router = express.Router()
 
 // 获取上传日志列表
 router.post('/logs', auth, checkRole(['admin']), async (req, res) => {
   try {
-    const { page = 1, limit = 20, startDate, endDate, username, ip } = req.query
+    const { page, limit, startDate, endDate, username, ip } = req.body
     const query = {}
     // 日期范围过滤
     if (startDate || endDate) {
@@ -16,24 +17,29 @@ router.post('/logs', auth, checkRole(['admin']), async (req, res) => {
       if (startDate) query.createdAt.$gte = new Date(startDate)
       if (endDate) query.createdAt.$lte = new Date(endDate)
     }
-    // 用户名过滤
-    if (username) {
-      query['user.username'] = new RegExp(username, 'i')
-    }
-    // IP过滤
+    // IP过滤 
     if (ip) {
       query.ip = new RegExp(ip, 'i')
     }
-    const logs = await UploadLog.find(query)
+    // 用户名过滤
+    let logs
+    if (username) {
+      const userQuery = { username: new RegExp(username, 'i') }
+      const users = await User.find(userQuery).select('_id')
+      const userIds = users.map(user => user._id)
+      query.user = { $in: userIds }
+    }
+    // 执行查询
+    logs = await UploadLog.find(query)
       .populate('user', 'username')
       .populate('image')
       .sort({ createdAt: -1 })
       .skip((page - 1) * limit)
       .limit(parseInt(limit))
-    const total = await UploadLog.countDocuments(query)
+
     res.json({
       logs,
-      total,
+      total: await UploadLog.countDocuments(query),
       page: parseInt(page),
       limit: parseInt(limit)
     })
@@ -45,7 +51,7 @@ router.post('/logs', auth, checkRole(['admin']), async (req, res) => {
 // 获取日志统计信息
 router.post('/logs/stats', auth, checkRole(['admin']), async (req, res) => {
   try {
-    const { startDate, endDate } = req.query
+    const { startDate, endDate } = req.body
     const match = {}
     if (startDate || endDate) {
       match.createdAt = {}
@@ -83,8 +89,17 @@ router.post('/logs/stats', auth, checkRole(['admin']), async (req, res) => {
     const userStats = await UploadLog.aggregate([
       { $match: match },
       {
+        $lookup: {
+          from: 'users',  // 关联 users 集合
+          localField: 'user',
+          foreignField: '_id',
+          as: 'userInfo'
+        }
+      },
+      {
         $group: {
           _id: '$user',
+          username: { $first: { $arrayElemAt: ['$userInfo.username', 0] } },
           count: { $sum: 1 },
           totalSize: { $sum: '$size' }
         }
@@ -102,50 +117,32 @@ router.post('/logs/stats', auth, checkRole(['admin']), async (req, res) => {
   }
 })
 
-// 导出日志
-router.post('/logs/export', auth, checkRole(['admin']), async (req, res) => {
+// 删除指定日志
+router.delete('/logs/:id', auth, checkRole(['admin']), async (req, res) => {
   try {
-    const { startDate, endDate } = req.query
-    const query = {}
-    if (startDate || endDate) {
-      query.createdAt = {}
-      if (startDate) query.createdAt.$gte = new Date(startDate)
-      if (endDate) query.createdAt.$lte = new Date(endDate)
+    const { id } = req.params
+    const log = await UploadLog.findById(id)
+    if (!log) {
+      return res.status(404).json({ error: '日志不存在' })
     }
-    const logs = await UploadLog.find(query)
-      .populate('user', 'username')
-      .populate('image')
-      .sort({ createdAt: -1 })
-    // 生成CSV数据
-    const csvData = logs.map(log => ({
-      '上传时间': log.createdAt,
-      '用户名': log.user.username,
-      'IP地址': log.ip,
-      '国家': log.location.country,
-      '区域': log.location.region,
-      '省份': log.location.province,
-      '城市': log.location.city,
-      '运营商': log.location.isp,
-      '文件名': log.originalName,
-      '文件大小': `${(log.size / 1024 / 1024).toFixed(2)}MB`,
-      '图片尺寸': `${log.width}x${log.height}`,
-      '图片格式': log.format
-    }))
-    // 设置响应头
-    res.setHeader('Content-Type', 'text/csv')
-    res.setHeader('Content-Disposition', 'attachment; filename=upload-logs.csv')
-    // 发送CSV数据
-    res.send(convertToCSV(csvData))
-  } catch (error) {
-    res.status(500).json({ error: error.message })
+    // 删除日志
+    await UploadLog.findByIdAndDelete(id)
+    res.json({ message: '日志删除成功' })
+  } catch ({ message }) {
+    res.status(500).json({ error: message })
   }
 })
 
-// CSV转换函数
-function convertToCSV(data) {
-  const headers = Object.keys(data[0])
-  const rows = data.map(obj => headers.map(header => obj[header]))
-  return [headers, ...rows].map(row => row.join(',')).join('\n')
-}
+// 清空所有日志
+router.delete('/logs', auth, checkRole(['admin']), async (req, res) => {
+  try {
+    // 删除所有日志
+    await UploadLog.deleteMany({})
+
+    res.json({ message: '所有日志已清空' })
+  } catch ({ message }) {
+    res.status(500).json({ error: message })
+  }
+})
 
 export default router 

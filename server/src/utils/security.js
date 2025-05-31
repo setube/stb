@@ -147,6 +147,9 @@ export const nsfwjsCheckImageSecurity = async (filePath) => {
     })
     const { ok, status, statusText } = response
     if (!ok) {
+      if (status === 500) {
+        throw new Error('NsfwJs可能不支持该格式的图片')
+      }
       throw new Error(`API请求失败: ${status} ${statusText}`)
     }
     const { hentai, porn, sexy } = await response.json()

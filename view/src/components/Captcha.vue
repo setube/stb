@@ -19,7 +19,7 @@
   </div>
 </template>
 <script setup>
-import { ref, defineEmits, defineProps, defineOptions } from 'vue'
+import { ref } from 'vue'
 import {
   CheckCircleOutlined, DoubleRightOutlined,
   UnlockOutlined, LockOutlined
@@ -30,6 +30,7 @@ defineOptions({
 })
 
 const emit = defineEmits(['update:value'])
+
 defineProps({
   value: {
     type: Boolean,

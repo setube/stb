@@ -12,23 +12,39 @@
         </div>
       </div>
     </div>
-    <a-config-provider :locale="locale">
+    <a-config-provider :locale="zhCN">
       <!-- 遮罩 -->
       <div class="mask" :class="{ 'mask-active': isMenuActive }" @click="isMenuActive = false"></div>
       <!-- 菜单 -->
       <div class="menu" :class="{ 'menu-active': isMenuActive }">
-        <div class="logo">{{ userStore.config?.site?.title }}</div>
+        <div class="logo">
+          <router-link to="/">
+            {{ userStore.config?.site?.title }}
+          </router-link>
+        </div>
         <a-menu v-model:selectedKeys="selectedKeys" :open-keys="['admin']" theme="dark" mode="inline">
           <a-menu-item key="home">
             <router-link to="/">
               <HomeOutlined />
-              首页
+              图床首页
+            </router-link>
+          </a-menu-item>
+          <a-menu-item key="my" v-if="userStore.token">
+            <router-link to="/my">
+              <SmileOutlined />
+              我的图片
             </router-link>
           </a-menu-item>
           <a-menu-item key="gallery">
             <router-link to="/gallery">
               <FireOutlined />
               图片广场
+            </router-link>
+          </a-menu-item>
+          <a-menu-item key="docs" v-if="userStore.config?.site?.api">
+            <router-link to="/docs">
+              <QuestionCircleOutlined />
+              接口文档
             </router-link>
           </a-menu-item>
           <a-sub-menu key="admin" v-if="userStore.user?.founder">
@@ -41,6 +57,11 @@
             <a-menu-item key="dashboard">
               <router-link to="/admin/dashboard">
                 仪表盘
+              </router-link>
+            </a-menu-item>
+            <a-menu-item key="logs">
+              <router-link to="/admin/logs">
+                日志管理
               </router-link>
             </a-menu-item>
             <a-menu-item key="users">
@@ -96,7 +117,9 @@ import {
   FireOutlined,
   PoweroffOutlined,
   MenuOutlined,
-  UserOutlined
+  UserOutlined,
+  QuestionCircleOutlined,
+  SmileOutlined
 } from '@ant-design/icons-vue'
 
 const route = useRoute()
@@ -104,7 +127,6 @@ const router = useRouter()
 const userStore = useUserStore()
 const selectedKeys = ref(['home'])
 const isMenuActive = ref(false)
-const locale = ref(zhCN)
 const userIp = ref({
   ipv4: '',
   ipv6: ''
@@ -159,8 +181,7 @@ watch(() => route.path, async (newPath) => {
 onMounted(async () => {
   fetchConfig()
   routerWatch(location.pathname)
-  const { config, token } = userStore
-  if (!config?.site?.anonymousUpload && token) {
+  if (userStore.token) {
     try {
       await fetchUserInfo()
     } catch (error) {
@@ -294,8 +315,16 @@ onMounted(async () => {
   }
 }
 
-.ant-layout {
-  min-height: 100vh;
+:deep(.ant-image-img) {
+  border-radius: 8px;
+}
+
+:deep(.ant-image-mask) {
+  border-radius: 8px;
+}
+
+:deep(.ant-image-mask) {
+  transition: 0.1s ease;
 }
 </style>
 
@@ -346,13 +375,8 @@ body {
   background-color: #0000004d;
 }
 
-
-.ant-image-img,
-.ant-image-mask {
-  border-radius: 8px;
-}
-
-.ant-image-mask {
-  transition: 0.1s ease;
+a {
+  color: inherit;
+  text-decoration: none;
 }
 </style>
