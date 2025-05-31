@@ -22,7 +22,7 @@
     <el-table :data="logs" :scrollbar-always-on="true" fit v-loading="loading">
       <el-table-column label="用户名" fixed>
         <template #default="{ row }">
-          {{ row.user.username }}
+          {{ row?.user?.username || '游客' }}
         </template>
       </el-table-column>
       <el-table-column prop="ip" label="IP地址" />
