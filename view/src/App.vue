@@ -2,14 +2,35 @@
   <div class="app">
     <div class="app-header">
       <div class="app-header-left">
-        <div class="app-header-title">
-          {{ userStore.config?.site?.title }}
-        </div>
-      </div>
-      <div class="app-header-right">
         <div class="hamburger" @click="isMenuActive = !isMenuActive">
           <MenuOutlined />
         </div>
+      </div>
+      <div class="app-header-right">
+        <template v-if="userStore.token">
+          <a-dropdown :arrow="{ pointAtCenter: true }">
+            <a class="user-dropdown" @click.prevent>
+              <a-avatar :size="32" :src="userStore.config.site.url + userStore.user?.avatar">
+                <template #icon>
+                  <UserOutlined />
+                </template>
+              </a-avatar>
+            </a>
+            <template #overlay>
+              <a-menu>
+                <a-menu-item key="settings" @click="router.push('/settings')">
+                  <SettingOutlined />
+                  个人设置
+                </a-menu-item>
+                <a-menu-divider />
+                <a-menu-item key="logout" @click="handleLogout">
+                  <LogoutOutlined />
+                  退出登录
+                </a-menu-item>
+              </a-menu>
+            </template>
+          </a-dropdown>
+        </template>
       </div>
     </div>
     <a-config-provider :locale="zhCN">
@@ -119,7 +140,8 @@ import {
   MenuOutlined,
   UserOutlined,
   QuestionCircleOutlined,
-  SmileOutlined
+  SmileOutlined,
+  LogoutOutlined
 } from '@ant-design/icons-vue'
 
 const route = useRoute()
@@ -160,7 +182,7 @@ const handleLogout = () => {
 
 const routerWatch = (url) => {
   const segments = url.split('/').filter(Boolean)
-  if (segments[0] === 'register') return selectedKeys.value = ['login']
+  if (['register', 'reset-password'].includes(segments[0])) return selectedKeys.value = ['login']
   selectedKeys.value = segments.length > 1 ? [segments[1]] : [segments[0] || 'home']
 }
 
@@ -211,6 +233,9 @@ onMounted(async () => {
 
 .app-header-right {
   float: right;
+  display: flex;
+  align-items: center;
+  gap: 16px;
 }
 
 .hamburger {
@@ -218,14 +243,12 @@ onMounted(async () => {
   display: none;
   position: fixed;
   top: 16px;
-  right: 16px;
+  left: 16px;
   z-index: 1001;
   font-size: 20px;
   cursor: pointer;
 }
 
-
-.app-header-title,
 .logo {
   height: 32px;
   margin: 16px;
@@ -268,6 +291,15 @@ onMounted(async () => {
   border-radius: 0;
 }
 
+.user-dropdown {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+  padding: 0 12px;
+  height: 60px;
+}
+
 /* 移动端 */
 @media (max-width: 768px) {
   .menu {
@@ -285,23 +317,21 @@ onMounted(async () => {
     left: 0;
     width: 100%;
     height: 100%;
-    background-color: rgba(0, 0, 0, 0.5);
+    background-color: rgba(0, 0, 0, 0.45);
     z-index: 0;
-    transition: opacity 0.3s ease;
     opacity: 0;
+    pointer-events: none;
+    transition: 0.3s;
   }
 
   .mask-active {
     opacity: 1;
     z-index: 100;
+    pointer-events: auto;
   }
 
   .menu-active {
     transform: translateX(0);
-  }
-
-  .logo {
-    display: none;
   }
 
   .hamburger {
@@ -312,6 +342,10 @@ onMounted(async () => {
     margin-left: 0 !important;
     padding: 0;
     margin-top: 60px;
+  }
+
+  .user-dropdown {
+    padding: 0 8px;
   }
 }
 
@@ -325,6 +359,10 @@ onMounted(async () => {
 
 :deep(.ant-image-mask) {
   transition: 0.1s ease;
+}
+
+:deep(.ant-input-prefix) {
+  color: rgba(0, 0, 0, 0.25);
 }
 </style>
 
@@ -378,5 +416,14 @@ body {
 a {
   color: inherit;
   text-decoration: none;
+}
+
+img {
+  max-width: 100%;
+  object-fit: cover;
+}
+
+.ant-dropdown {
+  width: 110px;
 }
 </style>

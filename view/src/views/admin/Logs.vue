@@ -19,36 +19,38 @@
         </a-form-item>
       </a-form>
     </div>
-    <el-table :data="logs" :scrollbar-always-on="true" fit v-loading="loading">
-      <el-table-column label="用户名" fixed>
-        <template #default="{ row }">
-          {{ row?.user?.username || '游客' }}
-        </template>
-      </el-table-column>
-      <el-table-column prop="ip" label="IP地址" />
-      <el-table-column prop="createdAt" label="上传时间">
-        <template #default="{ row }">
-          {{ formatDate(row.createdAt) }}
-        </template>
-      </el-table-column>
-      <el-table-column prop="originalName" label="文件名" />
-      <el-table-column label="文件大小">
-        <template #default="{ row }">
-          {{ formatFileSize(row.size) }}
-        </template>
-      </el-table-column>
-      <el-table-column label="图片尺寸">
-        <template #default="{ row }">
-          {{ row.width }}x{{ row.height }}
-        </template>
-      </el-table-column>
-      <el-table-column prop="format" label="图片格式" />
-      <el-table-column label="操作" fixed="right">
-        <template #default="{ row }">
-          <a-button type="link" danger @click="handleDelete(row._id)">删除</a-button>
-        </template>
-      </el-table-column>
-    </el-table>
+    <a-spin :spinning="loading">
+      <el-table :data="logs" :scrollbar-always-on="true" fit>
+        <el-table-column label="用户名" fixed>
+          <template #default="{ row }">
+            {{ row?.user?.username || '游客' }}
+          </template>
+        </el-table-column>
+        <el-table-column prop="ip" label="IP地址" />
+        <el-table-column prop="createdAt" label="上传时间">
+          <template #default="{ row }">
+            {{ formatDate(row.createdAt) }}
+          </template>
+        </el-table-column>
+        <el-table-column prop="originalName" label="文件名" />
+        <el-table-column label="文件大小">
+          <template #default="{ row }">
+            {{ formatFileSize(row.size) }}
+          </template>
+        </el-table-column>
+        <el-table-column label="图片尺寸">
+          <template #default="{ row }">
+            {{ row.width }}x{{ row.height }}
+          </template>
+        </el-table-column>
+        <el-table-column prop="format" label="图片格式" />
+        <el-table-column label="操作" fixed="right">
+          <template #default="{ row }">
+            <a-button type="link" danger @click="handleDelete(row._id)">删除</a-button>
+          </template>
+        </el-table-column>
+      </el-table>
+    </a-spin>
     <a-pagination v-model:current="current" v-model:page-size="pageSize" :total="total" show-size-changer @change="fetchLogs" />
   </div>
   <div class="stats-card">

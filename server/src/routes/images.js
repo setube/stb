@@ -2,6 +2,7 @@ import express from 'express'
 import multer from 'multer'
 import path from 'path'
 import sharp from 'sharp'
+import { User } from '../models/User.js'
 import { auth } from '../middleware/auth.js'
 import { Image } from '../models/Image.js'
 import { Config } from '../models/Config.js'
@@ -18,7 +19,8 @@ import fs from 'fs/promises'
 import crypto from 'crypto'
 import { createReadStream } from 'fs'
 import {
-  tencentCheckImageSecurity, aliyunCheckImageSecurity,
+  tencentCheckImageSecurity,
+  aliyunCheckImageSecurity,
   nsfwjsCheckImageSecurity
 } from '../utils/security.js'
 
@@ -49,6 +51,23 @@ const upload = multer({
   }
 })
 
+// 计算MD5
+const calculateMD5 = async (filePath) => {
+  return new Promise((resolve, reject) => {
+    const hash = crypto.createHash('md5')
+    const stream = createReadStream(filePath)
+    stream.on('data', (chunk) => {
+      hash.update(chunk)
+    })
+    stream.on('end', () => {
+      resolve(hash.digest('hex'))
+    })
+    stream.on('error', (err) => {
+      reject(err)
+    })
+  })
+}
+
 // 创建目录
 const checkAndCreateDir = async (dirPath) => {
   try {
@@ -77,20 +96,28 @@ const calculateSHA1 = async (filePath) => {
 router.post('/images', async (req, res) => {
   try {
     const { page, limit } = req.body
+    const token = req.header('Authorization')?.replace('Bearer ', '')
     // 确保页码和每页数量为有效数字
     const pageMath = Math.max(1, parseInt(page))
     const limitMath = Math.max(1, parseInt(limit))
     // 计算跳过的记录数
     const skip = (pageMath - 1) * limitMath
-    // 查询图片
-    const images = await Image.find()
+    // 创建基础查询
+    let query = Image.find()
+      .select(!token ? 'url thumb type' : '')
       .sort({ date: -1 })
-      .populate('user', 'username')
       .skip(skip)
       .limit(limitMath)
+    // 只在有 token 时执行 populate
+    if (token) {
+      query = query.populate('user', 'username')
+    }
     // 获取总数
     const total = await Image.countDocuments()
-    res.json({ images, total })
+    res.json({
+      images: await query,
+      total
+    })
   } catch ({ message }) {
     res.status(500).json({ error: message })
   }
@@ -123,7 +150,7 @@ const generateFileName = async (file, req, isuser) => {
     .replace(/{d}/g, d)
     .replace(/{Ymd}/g, Ymd)
     .replace(/{filename}/g, filename)
-    .replace(/{ext}/g, ext)
+    .replace(/{ext}/g, upload.convertFormat || ext)
     .replace(/{time}/g, time)
     .replace(/{uniqid}/g, uniqid)
     .replace(/{md5}/g, md5)
@@ -134,6 +161,7 @@ const generateFileName = async (file, req, isuser) => {
 
 // 上传图片相关函数
 const uploadImageToStorage = async (file, req, isuser) => {
+  const md5 = await calculateMD5(file.path)
   try {
     const { site, upload, storage, watermark, ai } = await Config.findOne()
     const reqBodyIp = req.body.ip.includes('127.0.0.1') || !req.body.ip ? req.ip : req.body.ip
@@ -159,6 +187,14 @@ const uploadImageToStorage = async (file, req, isuser) => {
     }
     if (upload.minHeight && height < upload.minHeight) {
       throw new Error(`图片高度不能小于 ${upload.minHeight}px`)
+    }
+    // 查找已存在的图片
+    const existingImage = await Image.findOne({ md5 })
+    if (existingImage) {
+      // 删除上传的图片
+      await fs.unlink(file.path)
+      // 返回已上传图片的信息
+      return existingImage.toObject()
     }
     let securityResult, labelResults
     // 如果启用了内容安全检测
@@ -557,7 +593,7 @@ const uploadImageToStorage = async (file, req, isuser) => {
       name: file.originalname,
       url,
       thumb,
-      md5: req.body.md5,
+      md5,
       sha1,
       safe: securityResult,
       label: labelResults,
@@ -577,11 +613,11 @@ const uploadImageToStorage = async (file, req, isuser) => {
     const log = new UploadLog({
       user: isuser ? req.user._id : null,
       ip: bodyIp,
-      thumb,
       image: image._id,
       originalName: file.originalname,
       size: processedSize,
       format,
+      md5,
       width,
       height,
       sha1,
@@ -596,9 +632,6 @@ const uploadImageToStorage = async (file, req, isuser) => {
       await fs.unlink(file.path)
     } catch (unlinkError) {
       console.error('删除临时文件失败:', unlinkError)
-    }
-    if (message.includes('E11000')) {
-      throw new Error('图片已存在')
     }
     throw new Error(message)
   }
@@ -643,6 +676,66 @@ router.post('/tourist/upload', upload.single('image'), checkIpWhitelist, checkDa
       }
     }
     return res.status(400).json({ error: message })
+  }
+})
+
+// 上传用户头像
+router.post('/upload-avatar', auth, upload.single('image'), async (req, res) => {
+  const { file, user } = req
+  try {
+    const { site, upload } = await Config.findOne()
+    // 检查有没有填写网站URL
+    if (!site.url) {
+      throw new Error('请先配置网站URL')
+    }
+    if (!file) {
+      return res.status(400).json({ error: '请选择要上传的图片' })
+    }
+    if (file.size > upload.maxSize * 1024 * 1024) {
+      throw new Error(`文件大小不能超过 ${upload.maxSize}MB`)
+    }
+    // 获取图片信息
+    const { format, width, height } = await sharp(file.path).metadata()
+    // 检查图片格式
+    if (!upload.allowedFormats.includes(format)) {
+      throw new Error('不支持的图片格式')
+    }
+    // 检查图片尺寸
+    if (upload.minWidth && width < upload.minWidth) {
+      throw new Error(`图片宽度不能小于 ${upload.minWidth}px`)
+    }
+    if (upload.minHeight && height < upload.minHeight) {
+      throw new Error(`图片高度不能小于 ${upload.minHeight}px`)
+    }
+    // 处理头像图片
+    const imageProcessor = sharp(file.path)
+      .resize(100, 100, {
+        fit: 'cover',
+        position: 'center'
+      }).webp({ quality: 80 })
+    // 生成文件名
+    const filename = `avatar_${user._id}_${Date.now()}.webp`
+    const uploadPath = 'uploads/avatars'
+    await checkAndCreateDir(uploadPath)
+    const filePath = path.join(uploadPath, filename)
+    // 保存处理后的图片
+    await imageProcessor.toFile(filePath)
+    const url = `/${uploadPath}/${filename}`
+    // 更新用户头像
+    const userinfo = await User.findById(user._id)
+    userinfo.avatar = url
+    await userinfo.save()
+    if (user.avatar) {
+      const name = user.avatar.replace(`${uploadPath}/`, '')
+      // 删除旧的头像
+      await fs.unlink(path.join(uploadPath, name))
+    }
+    // 清理临时文件
+    await fs.unlink(file.path)
+    res.json({ message: user.avatar ? '头像上传成功, 旧头像已删除' : '头像上传成功', avatar: url })
+  } catch ({ message }) {
+    await fs.unlink(file.path)
+    res.status(400).json({ error: message })
   }
 })
 

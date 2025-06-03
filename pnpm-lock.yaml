@@ -67,6 +67,9 @@ importers:
       node-telegram-bot-api:
         specifier: ^0.66.0
         version: 0.66.0(request@2.88.2)
+      nodemailer:
+        specifier: ^7.0.3
+        version: 7.0.3
       qiniu:
         specifier: ^7.14.0
         version: 7.14.0
@@ -85,9 +88,6 @@ importers:
       ts-ip2region:
         specifier: ^0.1.1
         version: 0.1.1
-      tslib:
-        specifier: ^2.8.1
-        version: 2.8.1
       upyun:
         specifier: ^3.4.6
         version: 3.4.6
@@ -137,9 +137,6 @@ importers:
       qs:
         specifier: ^6.14.0
         version: 6.14.0
-      spark-md5:
-        specifier: ^3.0.2
-        version: 3.0.2
       terser:
         specifier: ^5.39.2
         version: 5.39.2
@@ -2659,6 +2656,10 @@ packages:
     resolution: {integrity: sha512-s4Hrg5q+VPl4/tJVG++pImxF6eb8tNJNj4KnDqAOKL6zGU34lo9RXmyAN158njwGN+v8hdNf8s9fWIYW9hPb5A==}
     engines: {node: '>=0.12'}
 
+  nodemailer@7.0.3:
+    resolution: {integrity: sha512-Ajq6Sz1x7cIK3pN6KesGTah+1gnwMnx5gKl3piQlQQE/PwyJ4Mbc8is2psWYxK3RJTVeqsDaCv8ZzXLCDHMTZw==}
+    engines: {node: '>=6.0.0'}
+
   nodemon@2.0.22:
     resolution: {integrity: sha512-B8YqaKMmyuCO7BowF1Z1/mkPqLk6cs/l63Ojtd6otKjMx47Dq1utxfRxcavH1I7VSaL8n5BUaoutadnsX3AAVQ==}
     engines: {node: '>=8.10.0'}
@@ -3117,9 +3118,6 @@ packages:
   source-map@0.6.1:
     resolution: {integrity: sha512-UjgapumWlbMhkBgzT7Ykc5YXUT46F0iKu8SGXq0bcwP5dz/h0Plj6enJqjz1Zbq2l5WaqYnrVbwWOWMyF3F47g==}
     engines: {node: '>=0.10.0'}
-
-  spark-md5@3.0.2:
-    resolution: {integrity: sha512-wcFzz9cDfbuqe0FZzfi2or1sgyIrsDwmPwfZC4hiNidPdPINjeUwNfv5kldczoEAcjl9Y1L3SM7Uz2PUEQzxQw==}
 
   sparse-bitfield@3.0.3:
     resolution: {integrity: sha512-kvzhi7vqKTfkh0PZU+2D2PIllw2ymqJKujUcyPMd9Y75Nv4nPbGJZXNhxsgdQab2BmlDct1YnfQCguEvHr7VsQ==}
@@ -6810,6 +6808,8 @@ snapshots:
       - request
       - supports-color
 
+  nodemailer@7.0.3: {}
+
   nodemon@2.0.22:
     dependencies:
       chokidar: 3.6.0
@@ -7370,8 +7370,6 @@ snapshots:
       source-map: 0.6.1
 
   source-map@0.6.1: {}
-
-  spark-md5@3.0.2: {}
 
   sparse-bitfield@3.0.3:
     dependencies:

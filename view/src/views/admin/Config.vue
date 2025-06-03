@@ -13,18 +13,51 @@
             <a-form-item label="是否开启验证码">
               <a-switch v-model:checked="formState.site.captcha" checked-children="启用" un-checked-children="禁用" />
             </a-form-item>
-            <a-form-item label="是否开启注册">
-              <a-switch v-model:checked="formState.site.register" checked-children="启用" un-checked-children="禁用" />
-            </a-form-item>
             <a-form-item label="是否开启API接口文档页面">
               <a-switch v-model:checked="formState.site.api" checked-children="启用" un-checked-children="禁用" />
             </a-form-item>
-            <!--游客上传 -->
             <a-form-item label="是否游客上传">
               <a-switch v-model:checked="formState.site.anonymousUpload" checked-children="启用" un-checked-children="禁用" />
             </a-form-item>
           </a-collapse-panel>
-          <a-collapse-panel key="2" header="水印设置">
+          <a-collapse-panel key="2" header="注册设置">
+            <a-form-item label="是否开启注册">
+              <a-switch v-model:checked="formState.site.register" checked-children="启用" un-checked-children="禁用" />
+            </a-form-item>
+            <template v-if="formState.site.register">
+              <a-form-item label="是否开启邮箱验证">
+                <a-switch v-model:checked="formState.smtp.enabled" checked-children="启用" un-checked-children="禁用" />
+              </a-form-item>
+              <template v-if="formState.smtp.enabled">
+                <a-form-item required label="发件人邮箱地址">
+                  <a-input v-model:value="formState.smtp.from" placeholder="输入发件人邮箱地址" />
+                </a-form-item>
+                <a-form-item required label="发件人名称">
+                  <a-input v-model:value="formState.smtp.fromName" placeholder="输入发件人名称" />
+                </a-form-item>
+                <a-form-item required label="SMTP 服务器地址">
+                  <a-input v-model:value="formState.smtp.host" placeholder="输入 SMTP 服务器地址，例如：smtp.qiye.aliyun.com" />
+                </a-form-item>
+                <a-form-item required label="SMTP 服务器端口">
+                  <a-input v-model:value="formState.smtp.port" placeholder="输入 SMTP 服务器端口，例如：465" />
+                </a-form-item>
+                <a-form-item required label="SMTP 加密方式">
+                  <a-select v-model:value="formState.smtp.secure">
+                    <a-select-option value="none">无</a-select-option>
+                    <a-select-option value="ssl">SSL</a-select-option>
+                    <a-select-option value="tls">TLS</a-select-option>
+                  </a-select>
+                </a-form-item>
+                <a-form-item required label="SMTP 用户名">
+                  <a-input v-model:value="formState.smtp.username" placeholder="输入 SMTP 用户名" />
+                </a-form-item>
+                <a-form-item required label="SMTP 密码">
+                  <a-input-password v-model:value="formState.smtp.password" placeholder="输入 SMTP 密码" />
+                </a-form-item>
+              </template>
+            </template>
+          </a-collapse-panel>
+          <a-collapse-panel key="3" header="水印设置">
             <a-form-item>
               <a-switch v-model:checked="formState.watermark.enabled" checked-children="启用" un-checked-children="禁用" />
             </a-form-item>
@@ -76,7 +109,7 @@
               </a-form-item>
             </template>
           </a-collapse-panel>
-          <a-collapse-panel key="3" header="存储设置">
+          <a-collapse-panel key="4" header="存储设置">
             <a-form-item label="存储类型">
               <a-select v-model:value="formState.storage.type">
                 <a-select-option v-for="(item, index) in imageStoreArray" :value="item.value" :key="index">{{ item.label
@@ -375,7 +408,7 @@
               </a-form-item>
             </template>
           </a-collapse-panel>
-          <a-collapse-panel key="4" header="鉴黄设置">
+          <a-collapse-panel key="5" header="鉴黄设置">
             <a-form-item label="鉴黄开关">
               <a-switch v-model:checked="formState.ai.enabled" checked-children="启用" un-checked-children="禁用" />
               <p>设置上传是否需要应用第三方审查，违规的图片会被标记为不健康的图片，或直接被删除。</p>
@@ -444,7 +477,7 @@
               </template>
             </template>
           </a-collapse-panel>
-          <a-collapse-panel key="5" header="上传设置">
+          <a-collapse-panel key="6" header="上传设置">
             <a-form-item label="允许的图片格式">
               <a-select v-model:value="formState.upload.allowedFormats" mode="multiple" placeholder="选择允许的图片格式">
                 <a-select-option value="jpg">JPG</a-select-option>
@@ -516,7 +549,7 @@
               </a-collapse>
             </a-form-item>
           </a-collapse-panel>
-          <a-collapse-panel key="6" header="IP设置">
+          <a-collapse-panel key="7" header="IP设置">
             <a-form-item label="黑名单开关">
               <a-switch v-model:checked="formState.ip.enabled" checked-children="启用" un-checked-children="禁用" />
             </a-form-item>

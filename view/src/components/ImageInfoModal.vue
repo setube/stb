@@ -1,7 +1,9 @@
 <template>
-  <a-modal :open="modelValue" @update:open="handleOpenChange" class="gallery-modal" :maskClosable="false" :closable="false" title=" ">
-    <a-image class="modal-image" :src="imageInfo.type === 'local' ? userStore.config.site.url + imageInfo.url : imageInfo.url" :preview="false" />
-    <a-descriptions bordered :column="1" size="middle">
+  <a-modal :open="modelValue" @update:open="handleOpenChange" :class="['gallery-modal', { isUser: userStore.token }]" :maskClosable="false" :closable="false" title=" ">
+    <div class="modal-image-container">
+      <a-image class="modal-image" placeholder :src="imageInfo.type === 'local' ? userStore.config.site.url + imageInfo.url : imageInfo.url" :preview="false" />
+    </div>
+    <a-descriptions bordered :column="1" size="middle" v-if="userStore.token">
       <a-descriptions-item label="上传用户">{{ imageInfo?.user?.username || '游客' }}</a-descriptions-item>
       <a-descriptions-item label="图片名称">{{ imageInfo.filename }}</a-descriptions-item>
       <a-descriptions-item label="原始名称">{{ imageInfo.name }}</a-descriptions-item>
@@ -93,6 +95,33 @@ const nextImage = () => {
 <style>
 .gallery-modal {
   position: relative;
+}
+
+.gallery-modal .ant-modal-content {
+  background-color: transparent;
+  box-shadow: none;
+}
+
+.gallery-modal.isUser .ant-modal-content {
+  background-color: #fff;
+  box-shadow: 0 6px 16px 0 rgba(0, 0, 0, 0.08), 0 3px 6px -4px rgba(0, 0, 0, 0.12), 0 9px 28px 8px rgba(0, 0, 0, 0.05);
+}
+
+.gallery-modal .modal-image-container {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.gallery-modal .ant-modal-content .ant-btn-primary {
+  background-color: transparent;
+  border: 1px solid #fff;
+  box-shadow: none;
+}
+
+.gallery-modal.isUser .ant-modal-content .ant-btn-primary {
+  background-color: #1677ff;
+  border: 1px solid #fff;
 }
 
 .gallery-modal .modal-image {

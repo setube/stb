@@ -73,6 +73,26 @@ router.patch('/users/:id/role', auth, checkRole(['admin']), async (req, res) => 
   }
 })
 
+// 删除任意用户
+router.delete('/users/:id', auth, checkRole(['admin']), async (req, res) => {
+  try {
+    const { id } = req.params
+    // 查询当前用户信息
+    const userInfo = await User.findById(id)
+    if (!userInfo) {
+      return res.status(404).json({ error: '用户不存在' })
+    }
+    if (userInfo.founder) {
+      return res.status(403).json({ error: '无法删除创始人账号' })
+    }
+    // 删除账号
+    await User.deleteOne({ _id: id })
+    res.json({ message: '删除成功' })
+  } catch ({ message }) {
+    res.status(500).json({ error: message })
+  }
+})
+
 // 获取所有图片
 router.post('/images', auth, checkRole(['admin']), async (req, res) => {
   try {

@@ -13,8 +13,7 @@ const imageSchema = new mongoose.Schema({
   },
   // 缩略图链接
   thumb: {
-    type: String,
-    required: true
+    type: String
   },
   // 原图链接
   url: {

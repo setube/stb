@@ -1,74 +1,75 @@
 <template>
   <div class="images">
-    <el-table :data="images" :scrollbar-always-on="true" fit v-loading="loading">
-      <el-table-column label="预览" fixed>
-        <template #default="{ row }">
-          <a-image :src="userStore.config.site.url + row.thumb">
-            <template #placeholder>
-              <a-image :src="row.type == 'local' ? userStore.config.site.url + row.url : row.url" :preview="false" />
+    <a-spin :spinning="loading">
+      <el-table :data="images" :scrollbar-always-on="true" fit>
+        <el-table-column label="预览" fixed>
+          <template #default="{ row }">
+            <a-image :src="userStore.config.site.url + row.thumb">
+              <template #placeholder>
+                <a-image :src="row.type == 'local' ? userStore.config.site.url + row.url : row.url" :preview="false" />
+              </template>
+            </a-image>
+          </template>
+        </el-table-column>
+        <el-table-column prop="name" label="文件名" />
+        <el-table-column prop="md5" label="MD5" />
+        <el-table-column prop="sha1" label="SHA-1" />
+        <el-table-column sortable label="大小">
+          <template #default="{ row }">
+            {{ formatFileSize(row.size) }}
+          </template>
+        </el-table-column>
+        <el-table-column label="类型">
+          <template #default="{ row }">
+            {{ imageStoreType[row.type] }}
+          </template>
+        </el-table-column>
+        <template v-if="userStore.config?.ai?.enabled">
+          <el-table-column label="健康状态">
+            <template #default="{ row }">
+              <a-tag :color="imageHealthStatus[row.safe]?.color">
+                {{ imageHealthStatus[row.safe]?.text }}
+              </a-tag>
             </template>
-          </a-image>
+          </el-table-column>
+          <el-table-column label="检测结果">
+            <template #default="{ row }">
+              <a-tag :color="imageCheckResult[row.label] ? imageCheckResult[row.label]?.color : imageHealthStatus[row.safe]?.color">
+                {{ imageCheckResult[row.label] ? imageCheckResult[row.label]?.text : row.label }}
+              </a-tag>
+            </template>
+          </el-table-column>
         </template>
-      </el-table-column>
-      <el-table-column prop="name" label="文件名" />
-      <el-table-column prop="md5" label="MD5" />
-      <el-table-column prop="sha1" label="SHA-1" />
-      <el-table-column sortable label="大小">
-        <template #default="{ row }">
-          {{ formatFileSize(row.size) }}
-        </template>
-      </el-table-column>
-      <el-table-column label="类型">
-        <template #default="{ row }">
-          {{ imageStoreType[row.type] }}
-        </template>
-      </el-table-column>
-      <template v-if="userStore.config?.ai?.enabled">
-        <el-table-column label="健康状态">
+        <el-table-column label="存储目录">
           <template #default="{ row }">
-            <a-tag :color="imageHealthStatus[row.safe]?.color">
-              {{ imageHealthStatus[row.safe]?.text }}
-            </a-tag>
+            {{ row.filePath }}
           </template>
         </el-table-column>
-        <el-table-column label="检测结果">
+        <el-table-column label="上传者">
           <template #default="{ row }">
-            <a-tag
-              :color="imageCheckResult[row.label] ? imageCheckResult[row.label]?.color : imageHealthStatus[row.safe]?.color">
-              {{ imageCheckResult[row.label] ? imageCheckResult[row.label]?.text : row.label }}
-            </a-tag>
+            {{ !row.user ? '游客' : row.user.username }}
           </template>
         </el-table-column>
-      </template>
-      <el-table-column label="存储目录">
-        <template #default="{ row }">
-          {{ row.filePath }}
-        </template>
-      </el-table-column>
-      <el-table-column label="上传者">
-        <template #default="{ row }">
-          {{ !row.user ? '游客' : row.user.username }}
-        </template>
-      </el-table-column>
-      <el-table-column prop="ip" label="IP地址" />
-      <el-table-column sortable label="上传时间">
-        <template #default="{ row }">
-          {{ formatDate(row.date) }}
-        </template>
-      </el-table-column>
-      <el-table-column label="操作" fixed="right">
-        <template #default="{ row }">
-          <a-button type="link" @click="copyImages($event, row, userStore)">
-            复制
-          </a-button>
-          <a-button type="link" danger @click="handleDelete(row._id)">
-            删除
-          </a-button>
-        </template>
-      </el-table-column>
-    </el-table>
+        <el-table-column prop="ip" label="IP地址" />
+        <el-table-column sortable label="上传时间">
+          <template #default="{ row }">
+            {{ formatDate(row.date) }}
+          </template>
+        </el-table-column>
+        <el-table-column label="操作" fixed="right">
+          <template #default="{ row }">
+            <a-button type="link" @click="copyImages($event, row, userStore)">
+              复制
+            </a-button>
+            <a-button type="link" danger @click="handleDelete(row._id)">
+              删除
+            </a-button>
+          </template>
+        </el-table-column>
+      </el-table>
+    </a-spin>
     <a-pagination class="pagination" v-model:current="current" v-model:page-size="pageSizeRef" :total="total" show-size-changer @change="fetchImages">
-    </a-pagination> 
+    </a-pagination>
   </div>
 </template>
 
@@ -112,7 +113,7 @@ const handleDelete = (id) => {
   Modal.confirm({
     title: '确认删除',
     content: '确定要删除这张图片吗？',
-    async onOk() {
+    async onOk () {
       try {
         await axios.delete(`/api/admin/images/${id}`)
         message.success('删除成功')

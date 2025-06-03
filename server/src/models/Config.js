@@ -621,6 +621,49 @@ const configSchema = new mongoose.Schema({
         default: 60
       }
     }
+  },
+  smtp: {
+    // 发件人邮箱地址
+    from: {
+      type: String,
+      default: ''
+    },
+    // 发件人名称
+    fromName: {
+      type: String,
+      default: ''
+    },
+    // SMTP 服务器地址
+    host: {
+      type: String,
+      default: ''
+    },
+    // SMTP 服务器端口
+    port: {
+      type: Number,
+      default: 465
+    },
+    // SMTP 加密方式 (none, ssl, tls)
+    secure: {
+      type: String,
+      enum: ['none', 'ssl', 'tls'],
+      default: 'ssl'
+    },
+    // SMTP 用户名
+    username: {
+      type: String,
+      default: ''
+    },
+    // SMTP 密码
+    password: {
+      type: String,
+      default: ''
+    },
+    // 是否启用
+    enabled: {
+      type: Boolean,
+      default: false
+    }
   }
 }, { timestamps: true })
 

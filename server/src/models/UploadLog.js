@@ -28,6 +28,10 @@ const uploadLogSchema = new mongoose.Schema({
   format: String,
   width: Number,
   height: Number,
+  md5: {
+    type: String,
+    required: true
+  },
   sha1: {
     type: String,
     required: true

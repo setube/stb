@@ -59,9 +59,11 @@ export const deleteImage = async (imageInfo, id) => {
       default:
         throw new Error(`未知的存储类型: ${type}`)
     }
-    // 删除本地缩略图
-    const thumbFilePath = path.join(process.cwd(), thumb)
-    await fs.unlink(thumbFilePath)
+    if (thumb) {
+      // 删除本地缩略图
+      const thumbFilePath = path.join(process.cwd(), thumb)
+      await fs.unlink(thumbFilePath)
+    }
     // 删除数据库记录
     await Image.deleteOne({ _id })
     // 删除相关的上传日志

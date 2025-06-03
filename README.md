@@ -55,8 +55,10 @@
  ![Stb图床 - 用户管理](./docs/7.jpg)
  ![Stb图床 - 图片管理](./docs/8.jpg)
  ![Stb图床 - 系统管理](./docs/9.jpg)
- ![Stb图床 - 登录界面](./docs/10.jpg)
- ![Stb图床 - 注册界面](./docs/11.jpg)
+ ![Stb图床 - 个人设置界面](./docs/10.jpg)
+ ![Stb图床 - 登录界面](./docs/11.jpg)
+ ![Stb图床 - 注册界面](./docs/12.jpg)
+ ![Stb图床 - 找回密码界面](./docs/13.jpg)
 
 ## 星标趋势
 

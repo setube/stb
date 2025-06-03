@@ -11,6 +11,8 @@ import users from '@/views/admin/Users.vue'
 import images from '@/views/admin/Images.vue'
 import config from '@/views/admin/Config.vue'
 import log from '@/views/admin/Logs.vue'
+import resetpassword from '@/views/ResetPassword.vue'
+import settings from '@/views/Settings.vue'
 import { useUserStore } from '@/stores/user'
 
 const routes = [
@@ -54,6 +56,16 @@ const routes = [
     component: my
   },
   {
+    path: '/reset-password',
+    name: 'ResetPassword',
+    component: resetpassword
+  },
+  {
+    path: '/settings',
+    name: 'Settings',
+    component: settings
+  },
+  {
     path: '/admin',
     redirect: '/admin/dashboard',
     children: [
@@ -83,7 +95,7 @@ const routes = [
         component: log
       }
     ]
-  }
+  },
 ]
 
 const router = createRouter({
@@ -95,6 +107,14 @@ router.beforeEach((to, from, next) => {
   const { config, token, user } = useUserStore()
 
   if (to.name === 'Docs' && !config?.site?.api) {
+    return next('/404')
+  }
+
+  if (to.name === 'Register' && !config?.site?.register) {
+    return next('/404')
+  }
+
+  if (to.name === 'Register' && !config?.site?.register) {
     return next('/404')
   }
 
