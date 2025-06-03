@@ -114,7 +114,7 @@ router.beforeEach((to, from, next) => {
     return next('/404')
   }
 
-  if (to.name === 'Register' && !config?.site?.register) {
+  if (to.name === 'Gallery' && !config?.site?.gallery) {
     return next('/404')
   }
 

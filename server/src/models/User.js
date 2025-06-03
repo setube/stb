@@ -67,6 +67,23 @@ const userSchema = new mongoose.Schema({
   verificationCode: {
     code: String,
     expires: Date
+  },
+  oauth: {
+    github: {
+      id: String,
+      username: String,
+      accessToken: String
+    },
+    google: {
+      id: String,
+      email: String,
+      accessToken: String
+    },
+    linuxdo: {
+      id: String,
+      email: String,
+      accessToken: String
+    }
   }
 }, { timestamps: true })
 

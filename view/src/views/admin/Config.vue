@@ -2,7 +2,7 @@
   <div class="config-container">
     <a-spin :spinning="loading">
       <a-form :model="formState" layout="vertical" @finish="handleSubmit">
-        <a-collapse v-model:activeKey="activeKey" accordion :bordered="false" style="background: rgb(255, 255, 255)">
+        <a-collapse v-model:activeKey="activeKey" accordion :bordered="false" style="background: #f0f2f5">
           <a-collapse-panel key="1" header="站点设置">
             <a-form-item required label="网站标题">
               <a-input v-model:value="formState.site.title" />
@@ -15,6 +15,9 @@
             </a-form-item>
             <a-form-item label="是否开启API接口文档页面">
               <a-switch v-model:checked="formState.site.api" checked-children="启用" un-checked-children="禁用" />
+            </a-form-item>
+            <a-form-item label="是否开启图片广场页面">
+              <a-switch v-model:checked="formState.site.gallery" checked-children="启用" un-checked-children="禁用" />
             </a-form-item>
             <a-form-item label="是否游客上传">
               <a-switch v-model:checked="formState.site.anonymousUpload" checked-children="启用" un-checked-children="禁用" />
@@ -525,7 +528,10 @@
                 <a-select-option value="webp">WEBP</a-select-option>
               </a-select>
             </a-form-item>
-            <a-form-item label="图片质量">
+            <a-form-item label="图片压缩">
+              <a-switch v-model:checked="formState.upload.qualityOpen" checked-children="启用" un-checked-children="禁用" />
+            </a-form-item>
+            <a-form-item label="图片质量" v-if="formState.upload.qualityOpen">
               <a-slider v-model:value="formState.upload.quality" :min="1" :max="100" :marks="{
                 1: '1%',
                 25: '25%',
@@ -556,6 +562,55 @@
             <a-form-item label="IP黑名单">
               <a-textarea v-model:value="ipBlacklistText" :rows="4" placeholder="每行一个IP地址" @change="handleIpBlacklistChange" />
             </a-form-item>
+          </a-collapse-panel>
+          <a-collapse-panel key="8" header="社会化登录">
+            <a-form-item label="启用社会化登录">
+              <a-switch v-model:checked="formState.oauth.enabled" checked-children="启用" un-checked-children="禁用" />
+            </a-form-item>
+            <template v-if="formState.oauth.enabled">
+              <a-form-item label="GitHub登录开关">
+                <a-switch v-model:checked="formState.oauth.github.enabled" checked-children="启用" un-checked-children="禁用" />
+              </a-form-item>
+              <template v-if="formState.oauth.github.enabled">
+                <a-form-item required label="Client ID">
+                  <a-input v-model:value="formState.oauth.github.clientId" placeholder="输入 GitHub Client ID" />
+                </a-form-item>
+                <a-form-item required label="Client Secret">
+                  <a-input-password v-model:value="formState.oauth.github.clientSecret" placeholder="输入 GitHub Client Secret" />
+                </a-form-item>
+                <a-form-item label="回调地址">
+                  <a-input v-model:value="formState.oauth.github.callbackUrl" placeholder="输入回调地址" />
+                </a-form-item>
+              </template>
+              <a-form-item label="Google登录开关">
+                <a-switch v-model:checked="formState.oauth.google.enabled" checked-children="启用" un-checked-children="禁用" />
+              </a-form-item>
+              <template v-if="formState.oauth.google.enabled">
+                <a-form-item required label="Client ID">
+                  <a-input v-model:value="formState.oauth.google.clientId" placeholder="输入 Google Client ID" />
+                </a-form-item>
+                <a-form-item required label="Client Secret">
+                  <a-input-password v-model:value="formState.oauth.google.clientSecret" placeholder="输入 Google Client Secret" />
+                </a-form-item>
+                <a-form-item label="回调地址">
+                  <a-input v-model:value="formState.oauth.google.callbackUrl" placeholder="输入回调地址" />
+                </a-form-item>
+              </template>
+              <a-form-item label="Linux DO登录开关">
+                <a-switch v-model:checked="formState.oauth.linuxdo.enabled" checked-children="启用" un-checked-children="禁用" />
+              </a-form-item>
+              <template v-if="formState.oauth.linuxdo.enabled">
+                <a-form-item required label="Client ID">
+                  <a-input v-model:value="formState.oauth.linuxdo.clientId" placeholder="输入 Linux DO Client ID" />
+                </a-form-item>
+                <a-form-item required label="Client Secret">
+                  <a-input-password v-model:value="formState.oauth.linuxdo.clientSecret" placeholder="输入 Linux DO Client Secret" />
+                </a-form-item>
+                <a-form-item label="回调地址">
+                  <a-input v-model:value="formState.oauth.linuxdo.callbackUrl" placeholder="输入回调地址" />
+                </a-form-item>
+              </template>
+            </template>
           </a-collapse-panel>
         </a-collapse>
         <a-form-item>
@@ -591,7 +646,8 @@ const formState = ref({
   storage: {},
   watermark: {},
   ip: {},
-  ai: {}
+  ai: {},
+  oauth: {}
 })
 
 const namingRuleColumns = [
@@ -657,12 +713,24 @@ const handleSubmit = async () => {
   submitting.value = true
   try {
     const { data } = await axios.put('/api/admin/config', formState.value)
-    const { site, upload, ai } = formState.value
+    const { site, upload, ai, oauth } = formState.value
     userStore.config = JSON.parse(JSON.stringify({
       site,
       upload,
       ai: {
         enabled: ai.enabled
+      },
+      oauth: {
+        enabled: oauth.enabled,
+        github: {
+          enabled: oauth.github.enabled
+        },
+        google: {
+          enabled: oauth.google.enabled
+        },
+        linuxdo: {
+          enabled: oauth.linuxdo.enabled
+        }
       }
     }))
     message.success(data.message)
@@ -700,11 +768,16 @@ p {
   margin-top: 10px;
 }
 
-:deep(.ant-collapse-item) {
-  background: rgb(247, 247, 247);
+.ant-collapse-item {
+  background: #f0f2f5;
   border-radius: 4px;
   margin-bottom: 24px;
   border: 0px;
   overflow: hidden;
+}
+
+:deep(.ant-collapse-header),
+:deep(.ant-collapse-content-box) {
+  background: rgb(255, 255, 255);
 }
 </style>

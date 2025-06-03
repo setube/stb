@@ -33,6 +33,11 @@ const configSchema = new mongoose.Schema({
       type: Boolean,
       default: false
     },
+    // 是否开启图片广场
+    gallery: {
+      type: Boolean,
+      default: true
+    }
   },
   upload: {
     allowedFormats: {
@@ -68,6 +73,10 @@ const configSchema = new mongoose.Schema({
       type: String,
       enum: ['', 'jpeg', 'jpg', 'png', 'webp', 'gif'],
       default: ''
+    },
+    qualityOpen: {
+      type: Boolean,
+      default: false
     },
     quality: {
       type: Number,
@@ -663,6 +672,67 @@ const configSchema = new mongoose.Schema({
     enabled: {
       type: Boolean,
       default: false
+    }
+  },
+  // 社会化配置
+  oauth: {
+    enabled: {
+      type: Boolean,
+      default: false
+    },
+    github: {
+      enabled: {
+        type: Boolean,
+        default: false
+      },
+      clientId: {
+        type: String,
+        default: ''
+      },
+      clientSecret: {
+        type: String,
+        default: ''
+      },
+      callbackUrl: {
+        type: String,
+        default: '/oauth/github/callback'
+      }
+    },
+    google: {
+      enabled: {
+        type: Boolean,
+        default: false
+      },
+      clientId: {
+        type: String,
+        default: ''
+      },
+      clientSecret: {
+        type: String,
+        default: ''
+      },
+      callbackUrl: {
+        type: String,
+        default: '/oauth/google/callback'
+      }
+    },
+    linuxdo: {
+      enabled: {
+        type: Boolean,
+        default: false
+      },
+      clientId: {
+        type: String,
+        default: ''
+      },
+      clientSecret: {
+        type: String,
+        default: ''
+      },
+      callbackUrl: {
+        type: String,
+        default: '/oauth/linuxdo/callback'
+      }
     }
   }
 }, { timestamps: true })

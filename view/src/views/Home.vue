@@ -63,7 +63,6 @@
           </div>
         </div>
       </div>
-    </a-card>
     <div v-if="uploadedImages[activeTab].length > 0" class="result-panel">
       <!-- 复制按钮 -->
       <a-button class="copyAll" type="primary" @click="copyImages">一键复制</a-button>
@@ -85,6 +84,7 @@
         </a-tab-pane>
       </a-tabs>
     </div>
+    </a-card>
   </div>
 </template>
 
@@ -440,11 +440,9 @@ const uploadSingleFile = async (file) => {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 8px 12px;
+  padding: 8px 0;
   margin-bottom: 8px;
-  background: #fafafa;
   border-radius: 4px;
-  border: 1px solid #f0f0f0;
 }
 
 .link-content {

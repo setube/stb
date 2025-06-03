@@ -34,12 +34,23 @@
             找回密码
           </a-button>
         </a-form-item>
-        <!-- 
-        <a-divider>或</a-divider>
-        <a-button v-if="userStore.config?.site?.register" type="link" block @click="router.push('/register')">
-          注册新账号
-        </a-button>
-        -->
+        <template v-if="userStore?.config?.oauth?.enabled">
+          <a-divider v-if="userStore?.config?.oauth?.github?.enabled || userStore?.config?.oauth?.google?.enabled || userStore?.config?.oauth?.linuxdo?.enabled">或</a-divider>
+          <a-button @click="handleBind('github')" v-if="userStore?.config?.oauth?.github?.enabled">
+            <GithubOutlined />
+            GitHub
+          </a-button>
+          <a-button @click="handleBind('google')" v-if="userStore?.config?.oauth?.google?.enabled">
+            <GoogleOutlined />
+            Google
+          </a-button>
+          <a-button @click="handleBind('linuxdo')" v-if="userStore?.config?.oauth?.linuxdo?.enabled">
+            <span class="anticon">
+              <img class="linuxdo" :src="LinuxdoOutlined" />
+            </span>
+            Linux Do
+          </a-button>
+        </template>
       </a-form>
     </a-card>
   </div>
@@ -52,7 +63,14 @@ import { useUserStore } from '@/stores/user'
 import { message } from 'ant-design-vue'
 import Captcha from '@/components/Captcha.vue'
 import axios from '@/stores/axios'
-import { UserOutlined, LockOutlined } from '@ant-design/icons-vue'
+import {
+  UserOutlined,
+  LockOutlined,
+  GithubOutlined,
+  GoogleOutlined
+} from '@ant-design/icons-vue'
+import qs from 'qs'
+import LinuxdoOutlined from '@/assets/linuxdo.svg'
 
 const router = useRouter()
 const userStore = useUserStore()
@@ -72,6 +90,19 @@ const handleSubmit = async () => {
   } catch ({ response }) {
     message.error(response?.data?.error || '登录失败')
   }
+}
+
+const handleBind = (type) => {
+  const { oauth, site } = userStore?.config
+  if (!oauth.enabled) {
+    message.error('社会化登录功能未启用')
+    return
+  }
+  if (!oauth[type]?.enabled) {
+    message.error(`${type}登录功能未启用`)
+    return
+  }
+  location.href = `${site.url}/oauth/${type}?redirectUrl=${encodeURIComponent(location.href)}`
 }
 </script>
 
@@ -102,9 +133,17 @@ const handleSubmit = async () => {
   margin-left: 10px;
 }
 
+.linuxdo {
+  width: 14px;
+}
+
 @media screen and (max-width: 768px) {
   .login-box {
-    width: 350px;
+    width: 370px;
+  }
+
+  .ant-btn {
+    margin-left: 5px;
   }
 }
 </style>

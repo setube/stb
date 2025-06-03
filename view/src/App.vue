@@ -56,7 +56,7 @@
               我的图片
             </router-link>
           </a-menu-item>
-          <a-menu-item key="gallery">
+          <a-menu-item key="gallery" v-if="userStore.config?.site?.gallery">
             <router-link to="/gallery">
               <FireOutlined />
               图片广场
@@ -186,6 +186,24 @@ const routerWatch = (url) => {
   selectedKeys.value = segments.length > 1 ? [segments[1]] : [segments[0] || 'home']
 }
 
+// 处理 OAuth 登录回调
+const handleOAuthCallback = () => {
+  const params = new URLSearchParams(location.search)
+  const token = params.get('token')
+  const isBind = params.get('isBind')
+  if (token) {
+    // 存储用户信息
+    userStore.token = token
+    // 清除 URL 中的参数
+    history.replaceState({}, document.title, location.pathname)
+    if (isBind === 'true') {
+      router.push('/settings')
+    } else {
+      router.push('/')
+    }
+  }
+}
+
 watch(() => route.path, async (newPath) => {
   // 获取真实IP
   await getIpAddress((ip) => {
@@ -203,6 +221,7 @@ watch(() => route.path, async (newPath) => {
 onMounted(async () => {
   fetchConfig()
   routerWatch(location.pathname)
+  handleOAuthCallback()
   if (userStore.token) {
     try {
       await fetchUserInfo()
@@ -387,6 +406,7 @@ body {
   font-feature-settings: "liga" on;
   -webkit-font-smoothing: subpixel-antialiased;
   font-style: normal;
+  background-color: #f0f2f5;
 }
 
 ::-webkit-scrollbar {
@@ -425,5 +445,9 @@ img {
 
 .ant-dropdown {
   width: 110px;
+}
+
+.el-table--fit {
+  border-radius: 5px;
 }
 </style>

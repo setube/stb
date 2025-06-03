@@ -70,7 +70,7 @@
 </template>
 
 <script setup>
-import { ref, reactive } from 'vue'
+import { ref, reactive, onMounted } from 'vue'
 import { message } from 'ant-design-vue'
 import { UserOutlined, MailOutlined, LockOutlined, SafetyOutlined } from '@ant-design/icons-vue'
 import { useRouter } from 'vue-router'
@@ -143,6 +143,15 @@ const handleSubmit = async () => {
     loading.value = false
   }
 }
+
+onMounted(() => {
+  const params = new URLSearchParams(location.search)
+  if (params.get('oauth')) {
+    // 清除 URL 中的参数
+    history.replaceState({}, document.title, location.pathname)
+    message.error('请注册后再使用本功能')
+  }
+})
 </script>
 
 <style scoped>

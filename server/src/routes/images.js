@@ -95,6 +95,11 @@ const calculateSHA1 = async (filePath) => {
 // 图片广场
 router.post('/images', async (req, res) => {
   try {
+    const { site } = await Config.findOne()
+    if (!site.gallery) {
+      res.status(500).json({ error: '图片广场功能未开启' })
+      return
+    }
     const { page, limit } = req.body
     const token = req.header('Authorization')?.replace('Bearer ', '')
     // 确保页码和每页数量为有效数字
@@ -218,7 +223,7 @@ const uploadImageToStorage = async (file, req, isuser) => {
             if (ai.action === 'mark' && tencent.safe === 'Block') {
               throw new Error('图片中包含敏感内容, 已被删除')
             }
-          } catch (error) {
+  } catch (error) {
             throw error
           }
           break
@@ -227,7 +232,7 @@ const uploadImageToStorage = async (file, req, isuser) => {
             if (file.size >= 20 * 1024 * 1024) {
               throw new Error('图片大小超过阿里云图片审查服务最大图片20MB限制')
             }
-            // 检查图片尺寸
+      // 检查图片尺寸
             if (width >= 30000 || height >= 30000) {
               throw new Error('图片高宽超过阿里云图片审查服务最大高宽30000px限制')
             }
@@ -262,96 +267,88 @@ const uploadImageToStorage = async (file, req, isuser) => {
         default:
           throw new Error('未知的安全检测类型')
       }
-    }
-    // 处理图片
-    let imageProcessor = sharp(file.path)
+      }
+      // 处理图片
+      let imageProcessor = sharp(file.path)
     // 生成缩略图
     const thumbnailPath = path.join('uploads', storage.local.path, 'thumbnails')
     await checkAndCreateDir(thumbnailPath)
     const thumbnailFilename = `thumb_${Date.now()}.${upload.convertFormat || format}`
     const thumbnailFullPath = path.join(thumbnailPath, thumbnailFilename)
     // 生成缩略图（这里设置缩略图尺寸为 200x200，保持比例）
-    await imageProcessor.clone().resize(200, 200, {
+    await imageProcessor.clone().resize({
       width: Math.round(width * 0.5),
       height: Math.round(height * 0.5),
       fit: 'inside',
       withoutEnlargement: true
     }).toFile(thumbnailFullPath)
-    // 调整尺寸
+      // 调整尺寸
     if (upload.maxWidth || upload.maxHeight) {
-      imageProcessor = imageProcessor.resize({
+        imageProcessor = imageProcessor.resize({
         width: upload.maxWidth || undefined,
         height: upload.maxHeight || undefined,
-        fit: 'inside'
-      })
-    }
-    // 转换格式和质量
+          fit: 'inside'
+        })
+      }
+    // 转换格式
     if (upload.convertFormat) {
       switch (upload.convertFormat.toLowerCase()) {
-        case 'jpeg':
-        case 'jpg':
-          imageProcessor = imageProcessor.jpeg({
-            quality: upload.quality || 80
-          })
-          break
-        case 'png':
-          imageProcessor = imageProcessor.png({
-            quality: upload.quality || 80
-          })
-          break
-        case 'webp':
+          case 'jpeg':
+          case 'jpg':
+          imageProcessor = imageProcessor.jpeg()
+            break
+          case 'png':
+          imageProcessor = imageProcessor.png()
+            break
+          case 'webp':
           // 检查是否为 GIF 动画
           const metadata = await imageProcessor.metadata()
           if (metadata.pages && metadata.pages > 1) {
             // 如果是多帧 GIF，使用 toFormat 方法
             imageProcessor = imageProcessor.toFormat('webp', {
-              quality: upload.quality || 80,
               animated: true,
               effort: 6
             })
           } else {
             // 单帧图片
-            imageProcessor = imageProcessor.webp({
-              quality: upload.quality || 80
-            })
+            imageProcessor = imageProcessor.webp()
           }
-          break
-        case 'gif':
-          imageProcessor = imageProcessor.gif()
-          break
-        default:
-          imageProcessor = imageProcessor.jpeg({
-            quality: upload.quality || 80
-          })
+            break
+          case 'gif':
+            imageProcessor = imageProcessor.gif()
+            break
+          default:
+          imageProcessor = imageProcessor.jpeg()
       }
-    } else if (upload.quality) {
-      // 如果没有指定格式转换，但指定了质量，则使用原始格式
-      switch (format) {
-        case 'jpeg':
-        case 'jpg':
-          imageProcessor = imageProcessor.jpeg({
+        }
+    if (upload.qualityOpen) {
+        // 如果没有指定格式转换，但指定了质量，则使用原始格式
+        switch (format) {
+          case 'jpeg':
+          case 'jpg':
+            imageProcessor = imageProcessor.jpeg({
             quality: upload.quality
-          })
-          break
-        case 'png':
-          imageProcessor = imageProcessor.png({
+            })
+            break
+          case 'png':
+            imageProcessor = imageProcessor.png({
             quality: upload.quality
-          })
-          break
-        case 'webp':
-          imageProcessor = imageProcessor.webp({
+            })
+            break
+          case 'webp':
+            imageProcessor = imageProcessor.webp({
             quality: upload.quality
-          })
-          break
+            })
+            break
+        }
       }
-    }
-    // 添加水印
+      // 添加水印
     if (watermark.enabled) {
       if (watermark.type === 'text' && watermark.text.content) {
-        // 添加文字水印
+          // 添加文字水印
         const { content, fontSize, color, position } = watermark.text
-        // 创建文字水印
-        const svgText = `
+          // 创建文字水印
+          const svgText = `
             <svg width="100%" height="100%">
               <style>
                 .watermark {
@@ -365,73 +362,73 @@ const uploadImageToStorage = async (file, req, isuser) => {
               </text>
             </svg>
           `
-        // 根据位置计算偏移
-        let gravity
-        switch (position) {
-          case 'top-left':
-            gravity = 'northwest'
-            break
-          case 'top-right':
-            gravity = 'northeast'
-            break
-          case 'bottom-left':
-            gravity = 'southwest'
-            break
-          case 'bottom-right':
-            gravity = 'southeast'
-            break
-          case 'center':
-            gravity = 'center'
-            break
-          default:
-            gravity = 'southeast'
-        }
-        // 添加文字水印
-        imageProcessor = imageProcessor.composite([{
-          input: Buffer.from(svgText),
-          gravity,
-          top: 10,
-          left: 10
-        }])
+          // 根据位置计算偏移
+          let gravity
+          switch (position) {
+            case 'top-left':
+              gravity = 'northwest'
+              break
+            case 'top-right':
+              gravity = 'northeast'
+              break
+            case 'bottom-left':
+              gravity = 'southwest'
+              break
+            case 'bottom-right':
+              gravity = 'southeast'
+              break
+            case 'center':
+              gravity = 'center'
+              break
+            default:
+              gravity = 'southeast'
+          }
+          // 添加文字水印
+          imageProcessor = imageProcessor.composite([{
+            input: Buffer.from(svgText),
+            gravity,
+            top: 10,
+            left: 10
+          }])
       } else if (watermark.type === 'image' && watermark.image.path) {
-        // 添加图片水印
+          // 添加图片水印
         const { path: watermarkPath, opacity, position } = watermark.image
-        // 读取水印图片
-        const watermarkBuffer = await sharp(path.join(process.cwd(), watermarkPath))
-          .resize(200) // 调整水印大小
-          .toBuffer()
-        // 根据位置计算偏移
-        let gravity
-        switch (position) {
-          case 'top-left':
-            gravity = 'northwest'
-            break
-          case 'top-right':
-            gravity = 'northeast'
-            break
-          case 'bottom-left':
-            gravity = 'southwest'
-            break
-          case 'bottom-right':
-            gravity = 'southeast'
-            break
-          case 'center':
-            gravity = 'center'
-            break
-          default:
-            gravity = 'southeast'
+          // 读取水印图片
+          const watermarkBuffer = await sharp(path.join(process.cwd(), watermarkPath))
+            .resize(200) // 调整水印大小
+            .toBuffer()
+          // 根据位置计算偏移
+          let gravity
+          switch (position) {
+            case 'top-left':
+              gravity = 'northwest'
+              break
+            case 'top-right':
+              gravity = 'northeast'
+              break
+            case 'bottom-left':
+              gravity = 'southwest'
+              break
+            case 'bottom-right':
+              gravity = 'southeast'
+              break
+            case 'center':
+              gravity = 'center'
+              break
+            default:
+              gravity = 'southeast'
+          }
+          // 添加图片水印
+          imageProcessor = imageProcessor.composite([{
+            input: watermarkBuffer,
+            gravity,
+            top: 10,
+            left: 10,
+            blend: 'over'
+          }])
         }
-        // 添加图片水印
-        imageProcessor = imageProcessor.composite([{
-          input: watermarkBuffer,
-          gravity,
-          top: 10,
-          left: 10,
-          blend: 'over'
-        }])
       }
-    }
-    // 保存处理后的图片
+      // 保存处理后的图片
     const uploadPath = 'uploads' + storage.local.path
     checkAndCreateDir(uploadPath)
     // 生成文件名
@@ -439,7 +436,7 @@ const uploadImageToStorage = async (file, req, isuser) => {
     const processedPath = path.join(uploadPath, processedFilename)
     // 确保目录存在
     await checkAndCreateDir(path.dirname(processedPath))
-    await imageProcessor.toFile(processedPath)
+      await imageProcessor.toFile(processedPath)
     // 获取处理后的文件大小
     const processedStats = await fs.stat(processedPath)
     const processedSize = processedStats.size
@@ -582,15 +579,15 @@ const uploadImageToStorage = async (file, req, isuser) => {
     try {
       // 等待一小段时间确保文件不再被使用
       await new Promise(resolve => setTimeout(resolve, 100))
-      await fs.unlink(file.path)
+        await fs.unlink(file.path)
     } catch (unlinkError) {
       console.error('删除临时文件失败:', unlinkError)
     }
     // 缩略图路径
     const thumb = `/${uploadPath}thumbnails/${thumbnailFilename}`
     // 保存图片记录，添加 SHA-1 值
-    const image = new Image({
-      name: file.originalname,
+      const image = new Image({
+        name: file.originalname,
       url,
       thumb,
       md5,
@@ -601,20 +598,20 @@ const uploadImageToStorage = async (file, req, isuser) => {
       user: isuser ? req.user._id : null,
       width,
       height,
-      date: Date.now(),
+        date: Date.now(),
       ip: bodyIp,
       size: processedSize,
       filePath,
       filename: processedFilename,
     })
     // 保存图片信息
-    await image.save()
+      await image.save()
     // 上传日志也添加 SHA-1 值
-    const log = new UploadLog({
+      const log = new UploadLog({
       user: isuser ? req.user._id : null,
       ip: bodyIp,
-      image: image._id,
-      originalName: file.originalname,
+        image: image._id,
+        originalName: file.originalname,
       size: processedSize,
       format,
       md5,
@@ -622,15 +619,15 @@ const uploadImageToStorage = async (file, req, isuser) => {
       height,
       sha1,
       filename: processedFilename,
-    })
-    await log.save()
+      })
+      await log.save()
     return image
   } catch ({ message }) {
     try {
       // 等待一小段时间确保文件不再被使用
       await new Promise(resolve => setTimeout(resolve, 100))
       await fs.unlink(file.path)
-    } catch (unlinkError) {
+        } catch (unlinkError) {
       console.error('删除临时文件失败:', unlinkError)
     }
     throw new Error(message)

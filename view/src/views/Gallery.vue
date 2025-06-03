@@ -105,4 +105,8 @@ onMounted(fetchImages)
 .loading-more-button {
   width: 100%;
 }
+
+.waterfall-list {
+  background-color: transparent;
+}
 </style>

@@ -16,7 +16,7 @@ router.post('/config', async (req, res) => {
     if (!config) {
       return res.status(404).json({ error: config })
     }
-    const { upload, site, ai, smtp } = config
+    const { upload, site, ai, smtp, oauth } = config
     res.json({
       upload,
       site,
@@ -25,6 +25,18 @@ router.post('/config', async (req, res) => {
       },
       smtp: {
         enabled: smtp.enabled
+      },
+      oauth: {
+        enabled: oauth.enabled,
+        github: {
+          enabled: oauth.github.enabled
+        },
+        google: {
+          enabled: oauth.google.enabled
+        },
+        linuxdo: {
+          enabled: oauth.linuxdo.enabled
+        }
       }
     })
   } catch ({ message }) {
@@ -39,7 +51,7 @@ router.post('/info', auth, async (req, res) => {
     if (!user) {
       return res.status(404).json({ error: '用户不存在' })
     }
-    const { _id, username, role, status, email, founder, avatar } = user
+    const { _id, username, role, status, email, founder, avatar, oauth } = user
     // 更新最后登录时间
     user.lastLogin = Date.now()
     await user.save()
@@ -50,7 +62,8 @@ router.post('/info', auth, async (req, res) => {
       status,
       email,
       founder,
-      avatar
+      avatar,
+      oauth
     })
   } catch ({ message }) {
     res.status(500).json({ error: message })
@@ -217,7 +230,7 @@ router.post('/login', async (req, res) => {
     if (!user || !(await user.comparePassword(password))) {
       throw new Error('用户名或密码错误')
     }
-    const { _id, role, status, email, founder, avatar } = user
+    const { _id, role, status, email, founder, avatar, oauth } = user
     if (status === 'disabled') {
       throw new Error('账号已被禁用')
     }
@@ -234,7 +247,8 @@ router.post('/login', async (req, res) => {
         status,
         email,
         founder,
-        avatar
+        avatar,
+        oauth
       }
     })
   } catch ({ message }) {
@@ -246,9 +260,13 @@ router.post('/login', async (req, res) => {
 router.post('/send-code', async (req, res) => {
   try {
     const { email, type } = req.body
-    const config = await Config.findOne()
+    const { site, smtp } = await Config.findOne()
+    // 检查是否开启注册
+    if (!site.register) {
+      return res.status(403).json({ error: '注册已关闭' })
+    }
     // 检查是否开启邮箱验证
-    if (!config.smtp.enabled) {
+    if (!smtp.enabled) {
       return res.status(400).json({ error: '未开启邮箱验证功能' })
     }
     const user = await User.findOne({ email })

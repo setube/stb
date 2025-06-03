@@ -4,6 +4,7 @@ import mongoose from 'mongoose'
 import dotenv from 'dotenv'
 import bodyParser from 'body-parser'
 import authRoutes from './routes/auth.js'
+import oauthRoutes from './routes/oauth.js'
 import imageRoutes from './routes/images.js'
 import adminRoutes from './routes/admin.js'
 import configRoutes from './routes/config.js'
@@ -33,6 +34,7 @@ app.use('/uploads', express.static('uploads'))
 // 路由
 app.use('/api/auth', authRoutes)
 app.use('/api', imageRoutes)
+app.use('/oauth', oauthRoutes)
 app.use('/api/admin', adminRoutes)
 app.use('/api/admin', configRoutes)
 app.use('/api/admin', logsRoutes)

@@ -5,7 +5,7 @@
         <!-- 基本信息 -->
         <a-tab-pane key="basic" tab="基本信息">
           <a-form :model="basicForm" layout="vertical">
-            <a-form-item label="头像">
+            <a-form-item label="">
               <div class="avatar-upload">
                 <a-avatar :size="100" :src="userStore.config.site.url + basicForm.avatar || userStore.config.site.url + userStore.user?.avatar">
                   <template #icon>
@@ -104,6 +104,29 @@
             </a-form-item>
           </a-form>
         </a-tab-pane>
+        <a-tab-pane key="bind" tab="账号绑定" v-if="userStore.config?.oauth?.enabled">
+          <div class="social-accounts">
+            <h3 class="section-title">社交账号绑定</h3>
+            <div class="accounts-grid">
+              <template v-for="(item, index) in ['GitHub', 'Google', 'Linux DO']" :key="index">
+                <div class="account-card" v-if="userStore.config?.oauth?.[processString(item)]?.enabled">
+                  <div class="account-icon" />
+                  <div class="account-info">
+                    <h4>{{ item }}</h4>
+                    <template v-if="userStore.user?.oauth?.[processString(item)]?.id">
+                      <p class="account-name" v-if="item === 'GitHub'">{{ userStore.user.oauth[processString(item)].username }}</p>
+                      <p class="account-name" v-else>{{ userStore.user.oauth[processString(item)].email }}</p>
+                      <button class="unbind-btn" @click="handleUnbind(processString(item))">解绑账号</button>
+                    </template>
+                    <template v-else>
+                      <button class="bind-btn" @click="handleBind(processString(item))">绑定账号</button>
+                    </template>
+                  </div>
+                </div>
+              </template>
+            </div>
+          </div>
+        </a-tab-pane>
       </a-tabs>
     </a-card>
   </div>
@@ -150,6 +173,9 @@ onMounted(() => {
   basicForm.email = userStore.user?.email
   basicForm.avatar = userStore.user?.avatar
 })
+
+// 大写转小写并移除空格
+const processString = (text) => text.toLowerCase().replace(/\s+/g, '')
 
 // 验证确认密码
 const validateConfirmPassword = async (rule, value) => {
@@ -249,13 +275,43 @@ const handleEmailSubmit = async () => {
     loading.value = false
   }
 }
+
+const handleBind = async (type) => {
+  const { oauth } = userStore?.config
+  if (!oauth.enabled) {
+    message.error('社会化登录功能未启用')
+    return
+  }
+  try {
+    const { data } = await axios.post('/oauth/bind', qs.stringify({
+      type,
+      userId: userStore.user._id,
+      redirectUrl: location.href
+    }))
+    location.href = data.authUrl
+  } catch ({ response }) {
+    message.error(response?.data?.error || '解绑失败')
+  }
+}
+
+const handleUnbind = async (type) => {
+  try {
+    await axios.post('/oauth/unbind', qs.stringify({
+      type,
+      userId: userStore.user._id
+    }))
+    message.success('解绑成功')
+    // 刷新当前页面
+    location.reload()
+  } catch ({ response }) {
+    message.error(response?.data?.error || '解绑失败')
+  }
+}
 </script>
 
 <style scoped>
 .settings {
   padding: 24px;
-  background: #f0f2f5;
-  min-height: calc(100vh - 64px);
 }
 
 .avatar-upload {
@@ -267,5 +323,132 @@ const handleEmailSubmit = async () => {
 
 :deep(.ant-upload) {
   width: auto !important;
+}
+
+.social-accounts {
+  padding: 24px;
+  background: #fff;
+  border-radius: 12px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+}
+
+.section-title {
+  font-size: 1.25rem;
+  color: #1a1a1a;
+  margin-bottom: 24px;
+  font-weight: 600;
+}
+
+.accounts-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 20px;
+}
+
+.account-card {
+  display: flex;
+  align-items: center;
+  padding: 20px;
+  background: #f8f9fa;
+  border-radius: 8px;
+  transition: all 0.3s ease;
+}
+
+.account-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+}
+
+.account-icon {
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-right: 16px;
+  font-size: 24px;
+}
+
+.account-icon i {
+  color: #fff;
+}
+
+/* 为不同平台设置不同的背景色 */
+.account-card:nth-child(1) .account-icon {
+  background: #24292e;
+  /* GitHub */
+}
+
+.account-card:nth-child(2) .account-icon {
+  background: #4285f4;
+  /* Google */
+}
+
+.account-card:nth-child(3) .account-icon {
+  background: #fcc624;
+  /* Linux DO */
+}
+
+.account-info {
+  flex: 1;
+}
+
+.account-info h4 {
+  margin: 0 0 8px;
+  font-size: 1rem;
+  color: #1a1a1a;
+}
+
+.account-name {
+  margin: 0 0 12px;
+  color: #666;
+  font-size: 0.9rem;
+}
+
+.bind-btn,
+.unbind-btn {
+  padding: 6px 16px;
+  border-radius: 6px;
+  font-size: 0.9rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  border: none;
+}
+
+.bind-btn {
+  background: #1890ff;
+  color: #fff;
+}
+
+.bind-btn:hover {
+  background: #40a9ff;
+}
+
+.unbind-btn {
+  background: transparent;
+  color: #ff4d4f;
+  border: 1px solid #ff4d4f;
+}
+
+.unbind-btn:hover {
+  background: #fff1f0;
+}
+
+/* 响应式设计 */
+@media (max-width: 768px) {
+  .accounts-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .account-card {
+    padding: 16px;
+  }
+
+  .account-icon {
+    width: 40px;
+    height: 40px;
+    font-size: 20px;
+  }
 }
 </style>

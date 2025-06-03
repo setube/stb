@@ -316,35 +316,36 @@ const handleClearAll = async () => {
   display: flex;
   flex-wrap: wrap;
   justify-content: center;
+  padding: 0 10px;
 }
 
-:deep(.ant-card) {
+.ant-card {
   width: calc(33.333% - 15px);
   margin-right: 15px;
 }
 
-:deep(.ant-pagination) {
+.ant-pagination {
   margin-top: 20px;
   display: flex;
   justify-content: flex-end;
 }
 
-:deep(.ant-card:last-child) {
+.ant-card:last-child {
   margin-right: 0;
 }
 
 @media (max-width: 768px) {
-  :deep(.ant-card) {
+  .ant-card {
     width: 100%;
     margin-top: 10px;
     margin-right: 0;
   }
 
-  :deep(.ant-form) {
+  .ant-form {
     justify-content: center;
   }
 
-  :deep(.ant-form-item) {
+  .ant-form-item {
     width: 100%;
   }
 
