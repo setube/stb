@@ -22,11 +22,14 @@
             <a-form-item label="是否游客上传">
               <a-switch v-model:checked="formState.site.anonymousUpload" checked-children="启用" un-checked-children="禁用" />
             </a-form-item>
-          </a-collapse-panel>
-          <a-collapse-panel key="2" header="注册设置">
             <a-form-item label="是否开启注册">
               <a-switch v-model:checked="formState.site.register" checked-children="启用" un-checked-children="禁用" />
             </a-form-item>
+            <a-form-item label="是否开启邀请码注册" v-if="formState.site.register">
+              <a-switch v-model:checked="formState.site.inviteCodeRequired" checked-children="启用" un-checked-children="禁用" />
+            </a-form-item>
+          </a-collapse-panel>
+          <a-collapse-panel key="2" header="SMTP设置">
             <template v-if="formState.site.register">
               <a-form-item label="是否开启邮箱验证">
                 <a-switch v-model:checked="formState.smtp.enabled" checked-children="启用" un-checked-children="禁用" />

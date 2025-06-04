@@ -347,6 +347,7 @@ const uploadSingleFile = async (file) => {
 
 .ant-upload-hint {
   color: rgba(0, 0, 0, 0.45);
+  margin-bottom: 10px;
 }
 
 .custom-upload-item {

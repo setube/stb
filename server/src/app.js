@@ -14,6 +14,7 @@ import { Config } from './models/Config.js'
 import path from 'path'
 import requestIP from 'request-ip'
 import { fileURLToPath } from 'url'
+import publicRoutes from './routes/public.js'
 
 dotenv.config()
 
@@ -38,6 +39,7 @@ app.use('/oauth', oauthRoutes)
 app.use('/api/admin', adminRoutes)
 app.use('/api/admin', configRoutes)
 app.use('/api/admin', logsRoutes)
+app.use('/api/public', publicRoutes)
 
 // 静态文件服务
 app.use(express.static(path.join(__dirname, '../public')))
@@ -61,9 +63,9 @@ const connectDB = async () => {
         serverSelectionTimeoutMS: 5000, // 超时时间
         socketTimeoutMS: 45000, // Socket 超时时间
       })
+      console.log('MongoDB数据库连接成功')
       // 初始化配置
       await Config.initialize()
-      console.log('MongoDB数据库连接成功')
       return
     } catch (error) {
       retries++

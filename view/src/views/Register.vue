@@ -2,24 +2,21 @@
   <div class="register">
     <a-card class="register-card" title="注册">
       <a-form :model="form" @finish="handleSubmit">
-        <a-form-item name="username" :rules="[{ required: true, message: '请输入用户名' }]">
+        <a-form-item name="username" :rules="rules.username">
           <a-input v-model:value="form.username" placeholder="请输入用户名">
             <template #prefix>
               <UserOutlined />
             </template>
           </a-input>
         </a-form-item>
-        <a-form-item name="email" :rules="[
-          { required: true, message: '请输入邮箱' },
-          { type: 'email', message: '请输入有效的邮箱地址' }
-        ]">
+        <a-form-item name="email" :rules="rules.email">
           <a-input v-model:value="form.email" placeholder="请输入邮箱">
             <template #prefix>
               <MailOutlined />
             </template>
           </a-input>
         </a-form-item>
-        <a-form-item v-if="userStore?.config?.smtp?.enabled" name="code" :rules="[{ required: true, message: '请输入验证码' }]">
+        <a-form-item v-if="userStore?.config?.smtp?.enabled" name="code" :rules="rules.code">
           <a-input-group compact>
             <a-input v-model:value="form.code" placeholder="请输入验证码" style="width: calc(100% - 120px)">
               <template #prefix>
@@ -31,31 +28,29 @@
             </a-button>
           </a-input-group>
         </a-form-item>
-        <a-form-item name="password" :rules="[
-          { required: true, message: '请输入密码' },
-          { min: 6, message: '密码长度不能小于6位' }
-        ]">
+        <a-form-item name="password" :rules="rules.password">
           <a-input-password v-model:value="form.password" placeholder="请输入密码">
             <template #prefix>
               <LockOutlined />
             </template>
           </a-input-password>
         </a-form-item>
-        <a-form-item name="confirmPassword" :rules="[
-          { required: true, message: '请确认密码' },
-          { validator: validateConfirmPassword }
-        ]">
+        <a-form-item name="confirmPassword" :rules="rules.confirmPassword">
           <a-input-password v-model:value="form.confirmPassword" placeholder="请确认密码">
             <template #prefix>
               <LockOutlined />
             </template>
           </a-input-password>
         </a-form-item>
+        <a-form-item name="inviteCode" :rules="rules.inviteCode" v-if="userStore?.config?.site?.inviteCodeRequired">
+          <a-input v-model:value="form.inviteCode" placeholder="请输入邀请码">
+            <template #prefix>
+              <LockOutlined />
+            </template>
+          </a-input>
+        </a-form-item>
         <a-form-item>
-          <a-button type="primary" html-type="submit" :loading="loading" :disabled="!form.email || !form.confirmPassword || !form.password || !form.username || !form.code" block v-if="userStore?.config?.smtp?.enabled">
-            注册
-          </a-button>
-          <a-button type="primary" html-type="submit" :loading="loading" :disabled="!form.email || !form.confirmPassword || !form.password || !form.username" block v-else>
+          <a-button type="primary" html-type="submit" :loading="loading" :disabled="isSubmitDisabled" block>
             注册
           </a-button>
         </a-form-item>
@@ -70,7 +65,7 @@
 </template>
 
 <script setup>
-import { ref, reactive, onMounted } from 'vue'
+import { ref, reactive, onMounted, computed } from 'vue'
 import { message } from 'ant-design-vue'
 import { UserOutlined, MailOutlined, LockOutlined, SafetyOutlined } from '@ant-design/icons-vue'
 import { useRouter } from 'vue-router'
@@ -91,11 +86,47 @@ const form = reactive({
   confirmPassword: ''
 })
 
+const isSubmitDisabled = computed(() => {
+  let disabled = !form.username || !form.email || !form.password || !form.confirmPassword
+  if (userStore?.config?.smtp?.enabled) {
+    disabled = disabled || !form.code
+  }
+  if (userStore?.config?.site?.inviteCodeRequired) {
+    disabled = disabled || !form.inviteCode
+  }
+  return disabled
+})
+
 // 验证确认密码
 const validateConfirmPassword = async (rule, value) => {
   if (value !== form.password) {
     throw new Error('两次输入的密码不一致')
   }
+}
+
+const rules = {
+  username: [
+    { required: true, message: '请输入用户名', trigger: 'blur' },
+    { min: 3, max: 20, message: '用户名长度应在3-20个字符之间', trigger: 'blur' }
+  ],
+  email: [
+    { required: true, message: '请输入邮箱', trigger: 'blur' },
+    { type: 'email', message: '请输入有效的邮箱地址', trigger: 'blur' }
+  ],
+  code: [
+    { required: true, message: '请输入验证码', trigger: 'blur' }
+  ],
+  password: [
+    { required: true, message: '请输入密码', trigger: 'blur' },
+    { min: 6, message: '密码长度不能小于6位', trigger: 'blur' }
+  ],
+  confirmPassword: [
+    { required: true, message: '请确认密码', trigger: 'blur' },
+    { validator: validateConfirmPassword, trigger: 'blur' }
+  ],
+  inviteCode: [
+    { required: true, message: '请输入邀请码', trigger: 'blur' }
+  ]
 }
 
 // 发送验证码
@@ -131,7 +162,8 @@ const handleSubmit = async () => {
       password: form.password,
       email: form.email,
       code: form.code,
-      ip: userStore.ip
+      ip: userStore.ip,
+      inviteCode: form.inviteCode
     })
     userStore.token = data.token
     userStore.user = data.user

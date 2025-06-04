@@ -6,6 +6,9 @@ import { Config } from '../models/Config.js'
 import { Image } from '../models/Image.js'
 import { deleteImage } from '../utils/deleteImage.js'
 import { sendVerificationCode } from '../utils/mailer.js'
+import { InviteCode } from '../models/InviteCode.js'
+import { VerificationCode } from '../models/VerificationCode.js'
+import { Album } from '../models/Album.js'
 
 const router = express.Router()
 
@@ -73,22 +76,38 @@ router.post('/info', auth, async (req, res) => {
 // 获取我的图片列表
 router.post('/my', auth, async (req, res) => {
   try {
-    const { page, limit } = req.body
-    // 确保页码和每页数量为有效数字
+    const { page, limit, albumId } = req.body
+    const userId = req.user._id
+
     const pageMath = Math.max(1, parseInt(page))
     const limitMath = Math.max(1, parseInt(limit))
-    // 计算跳过的记录数
     const skip = (pageMath - 1) * limitMath
-    // 查询当前用户的图片
-    const images = await Image.find({ user: req.user._id })
+
+    const query = { user: userId }
+
+    if (albumId === 'standalone') {
+      // 查询不属于任何相册的图片
+      query.album = null
+    } else if (albumId) {
+      // 查询属于特定相册的图片
+      query.album = albumId
+    } else {
+      // 默认查询所有图片，包括相册内的和独立的 (或者只查独立的？根据前端需求调整)
+      // 目前保持查所有，前端可以再做分组
+      // 如果只想查独立的，可以将 albumId 默认设为 'standalone' 或 null 在前端控制
+    }
+
+    const images = await Image.find(query)
       .sort({ date: -1 })
       .populate('user', 'username')
       .skip(skip)
       .limit(limitMath)
-    // 获取总数
-    const total = await Image.countDocuments({ user: req.user._id })
+
+    const total = await Image.countDocuments(query)
+
     res.json({ images, total })
   } catch ({ message }) {
+    console.error('获取我的图片列表失败:', message)
     res.status(500).json({ error: message })
   }
 })
@@ -107,79 +126,6 @@ router.delete('/images/:id', auth, async (req, res) => {
     res.json({ message: '删除成功' })
   } catch ({ message }) {
     res.status(500).json({ error: message })
-  }
-})
-
-// 注册账号
-router.post('/register', async (req, res) => {
-  try {
-    const reqIP = req.ip.includes('::1') || req.ip.includes('127.0.0.1') || !req.ip ? req.body : req.ip
-    const { username, password, email, code } = req.body
-    const config = await Config.findOne()
-    // 检查是否开启注册
-    if (!config.site.register) {
-      return res.status(403).json({ error: '注册已关闭' })
-    }
-    // 检查用户名是否已存在
-    const existingUsername = await User.findOne({ username })
-    if (existingUsername) {
-      return res.status(400).json({ error: '用户名已存在' })
-    }
-    // 检查邮箱是否已存在
-    const existingEmail = await User.findOne({ email, role: 'user' })
-    if (existingEmail) {
-      return res.status(400).json({ error: '邮箱已被注册' })
-    }
-    // 检查是否开启邮箱验证
-    if (config.smtp.enabled) {
-      // 验证码必填
-      if (!code) {
-        return res.status(400).json({ error: '请输入验证码' })
-      }
-      // 查找临时用户并验证验证码
-      const tempUser = await User.findOne({ email, role: 'temp' })
-      if (!tempUser) {
-        return res.status(400).json({ error: '请先获取验证码' })
-      }
-      // 验证验证码
-      if (!tempUser.verifyCode(code)) {
-        return res.status(400).json({ error: '验证码错误或已过期' })
-      }
-      // 验证通过后删除临时用户
-      await User.deleteOne({ _id: tempUser._id })
-    }
-    // 密码长度验证
-    if (password.length < 6) {
-      return res.status(403).json({ error: '密码长度不能小于6位' })
-    }
-    // 查询当前用户列表数量
-    const userCount = await User.countDocuments()
-    // 创建新用户
-    const user = new User({
-      ip: reqIP,
-      username,
-      password,
-      email,
-      role: !userCount ? 'admin' : 'user',
-      founder: !userCount ? true : false,
-      lastLogin: Date.now(),
-    })
-    await user.save()
-    const { _id, role, status, founder } = user
-    const token = jwt.sign({ userId: _id, role }, process.env.JWT_SECRET)
-    res.status(201).json({
-      token,
-      user: {
-        _id,
-        username,
-        role,
-        status,
-        email,
-        founder
-      }
-    })
-  } catch ({ message }) {
-    res.status(400).json({ error: message })
   }
 })
 
@@ -202,23 +148,121 @@ router.post('/register/send-code', async (req, res) => {
       return res.status(400).json({ error: '用户名已存在' })
     }
     // 检查邮箱是否已注册
-    const existingUser = await User.findOne({ email, role: 'user' })
+    const existingUser = await User.findOne({ email })
     if (existingUser) {
       return res.status(400).json({ error: '该邮箱已注册' })
     }
-    // 创建临时用户用于存储验证码
-    let user = await User.findOne({ email, role: 'temp' })
-    if (!user) {
-      user = new User({ email, role: 'temp' })
+    // 存储验证码
+    let verificationCodeRecord = await VerificationCode.findOne({ email, type: 'register' })
+    if (!verificationCodeRecord) {
+      verificationCodeRecord = new VerificationCode({ email, type: 'register' })
     }
-    // 生成验证码
-    const code = user.generateVerificationCode()
-    await user.save()
-    // 发送验证码
+    // 生成验证码并设置过期时间为 5 分钟
+    const code = verificationCodeRecord.generateCode()
+    verificationCodeRecord.setExpires(5 * 60 * 1000)
+    await verificationCodeRecord.save()
+    // 发送验证码邮件
     await sendVerificationCode(email, code, 'register')
     res.json({ message: '验证码已发送' })
   } catch ({ message }) {
+    console.error('发送注册验证码失败:', message)
     res.status(500).json({ error: message })
+  }
+})
+
+// 注册接口
+router.post('/register', async (req, res) => {
+  try {
+    const { username, password, email, code, inviteCode, ip } = req.body
+    const { site, smtp } = await Config.findOne()
+    // 检查是否开启注册
+    if (!site.register) {
+      return res.status(403).json({ error: '注册已关闭' })
+    }
+    // 检查是否开启邀请码注册
+    if (site.inviteCodeRequired) {
+      if (!inviteCode) {
+        return res.status(400).json({ error: '需要提供邀请码才能注册' })
+      }
+      const codeRecord = await InviteCode.findOne({ code: inviteCode })
+      if (!codeRecord || codeRecord.status === 'used') {
+        return res.status(400).json({ error: '无效的邀请码或邀请码已被使用' })
+      }
+    }
+    // 检查用户名是否已存在
+    const existingUsername = await User.findOne({ username })
+    if (existingUsername) {
+      return res.status(400).json({ error: '用户名已存在' })
+    }
+    // 检查邮箱是否已注册
+    const existingEmail = await User.findOne({ email })
+    if (existingEmail) {
+      return res.status(400).json({ error: '邮箱已被注册' })
+    }
+    // 检查是否开启邮箱验证，并验证验证码
+    if (smtp.enabled) {
+      if (!code) {
+        return res.status(400).json({ error: '请输入验证码' })
+      }
+      // 查找验证码记录并验证
+      const verificationCodeRecord = await VerificationCode.findOne({ email, type: 'register' })
+      if (!verificationCodeRecord || verificationCodeRecord.code !== code || verificationCodeRecord.expires < new Date()) {
+        // 验证失败或过期后删除该记录
+        if (verificationCodeRecord) {
+          await VerificationCode.deleteOne({ _id: verificationCodeRecord._id })
+        }
+        return res.status(400).json({ error: '验证码错误或已过期' })
+      }
+      // 验证成功后删除记录
+      await VerificationCode.deleteOne({ _id: verificationCodeRecord._id })
+    }
+    // 密码长度验证
+    if (!password || password.length < 6) {
+      return res.status(400).json({ error: '密码长度不能小于6位' })
+    }
+    // 查询当前用户列表数量，确定是否为创始人
+    const userCount = await User.countDocuments()
+    // 创建新用户
+    const user = new User({
+      ip: {
+        ipv4: ip?.ipv4,
+        ipv6: ip?.ipv6
+      },
+      username,
+      password,
+      email,
+      role: !userCount ? 'admin' : 'user',
+      founder: !userCount ? true : false,
+      lastLogin: Date.now(),
+      status: 'active'
+    })
+    await user.save()
+    // 如果使用了邀请码，更新邀请码状态
+    if (site.inviteCodeRequired && inviteCode) {
+      const codeRecord = await InviteCode.findOne({ code: inviteCode })
+      if (codeRecord) {
+        codeRecord.status = 'used'
+        codeRecord.usedBy = user._id
+        codeRecord.usedAt = new Date()
+        await codeRecord.save()
+      }
+    }
+    res.status(201).json({
+      message: '注册成功',
+      token: jwt.sign({ userId: user._id, role: user.role }, process.env.JWT_SECRET),
+      user: {
+        _id: user._id,
+        username: user.username,
+        role: user.role,
+        status: user.status,
+        email: user.email,
+        founder: user.founder,
+        avatar: user.avatar, // 确保返回 avatar 字段
+        oauth: user.oauth // 确保返回 oauth 字段
+      }
+    })
+  } catch ({ message }) {
+    res.status(400).json({ error: message })
   }
 })
 
@@ -260,11 +304,7 @@ router.post('/login', async (req, res) => {
 router.post('/send-code', async (req, res) => {
   try {
     const { email, type } = req.body
-    const { site, smtp } = await Config.findOne()
-    // 检查是否开启注册
-    if (!site.register) {
-      return res.status(403).json({ error: '注册已关闭' })
-    }
+    const { smtp } = await Config.findOne()
     // 检查是否开启邮箱验证
     if (!smtp.enabled) {
       return res.status(400).json({ error: '未开启邮箱验证功能' })
@@ -273,9 +313,15 @@ router.post('/send-code', async (req, res) => {
     if (!user) {
       return res.status(404).json({ error: '用户不存在' })
     }
-    // 生成验证码
-    const code = user.generateVerificationCode()
-    await user.save()
+    // 存储验证码
+    let verificationCodeRecord = await VerificationCode.findOne({ email, type })
+    if (!verificationCodeRecord) {
+      verificationCodeRecord = new VerificationCode({ email, type })
+    }
+    // 生成验证码并设置过期时间为 5 分钟
+    const code = verificationCodeRecord.generateCode()
+    verificationCodeRecord.setExpires(5 * 60 * 1000)
+    await verificationCodeRecord.save()
     // 发送验证码邮件
     await sendVerificationCode(email, code, type)
     res.json({ message: '验证码已发送' })
@@ -288,16 +334,27 @@ router.post('/send-code', async (req, res) => {
 router.post('/verify-code', async (req, res) => {
   try {
     const { email, code } = req.body
-    if (!email || !code) {
-      return res.status(400).json({ error: '邮箱或验证码为空' })
+    if (!email) {
+      return res.status(400).json({ error: '邮箱为空' })
+    }
+    if (!code) {
+      return res.status(400).json({ error: '请输入验证码' })
     }
     const user = await User.findOne({ email })
     if (!user) {
       return res.status(404).json({ error: '用户不存在' })
     }
-    if (!user.verifyCode(code)) {
-      return res.status(400).json({ error: '验证码无效或已过期' })
+    // 查找验证码记录并验证
+    const verificationCodeRecord = await VerificationCode.findOne({ email })
+    if (!verificationCodeRecord || verificationCodeRecord.code !== code || verificationCodeRecord.expires < new Date()) {
+      // 验证失败或过期后删除该记录
+      if (verificationCodeRecord) {
+        await VerificationCode.deleteOne({ _id: verificationCodeRecord._id })
+      }
+      return res.status(400).json({ error: '验证码错误或已过期' })
     }
+    // 验证成功后删除记录
+    await VerificationCode.deleteOne({ _id: verificationCodeRecord._id })
     // 生成临时令牌
     const token = jwt.sign(
       { userId: user._id, type: 'reset' },
@@ -372,8 +429,15 @@ router.post('/user/send-code', auth, async (req, res) => {
     if (!user) {
       return res.status(404).json({ error: '用户不存在' })
     }
-    // 生成验证码
-    const code = user.generateVerificationCode()
+    // 存储验证码
+    let verificationCodeRecord = await VerificationCode.findOne({ email, type })
+    if (!verificationCodeRecord) {
+      verificationCodeRecord = new VerificationCode({ email, type })
+    }
+    // 生成验证码并设置过期时间为 5 分钟
+    const code = verificationCodeRecord.generateCode()
+    verificationCodeRecord.setExpires(5 * 60 * 1000)
+    await verificationCodeRecord.save()
     await user.save()
     // 发送验证码邮件
     await sendVerificationCode(email, code, type)
@@ -394,12 +458,179 @@ router.post('/user/verify-code', auth, async (req, res) => {
     if (!user) {
       return res.status(404).json({ error: '用户不存在' })
     }
-    if (!user.verifyCode(code)) {
-      return res.status(400).json({ error: '验证码无效或已过期' })
+    // 查找验证码记录并验证
+    const verificationCodeRecord = await VerificationCode.findOne({ email })
+    if (!verificationCodeRecord || verificationCodeRecord.code !== code || verificationCodeRecord.expires < new Date()) {
+      // 验证失败或过期后删除该记录
+      if (verificationCodeRecord) {
+        await VerificationCode.deleteOne({ _id: verificationCodeRecord._id })
+      }
+      return res.status(400).json({ error: '验证码错误或已过期' })
     }
+    // 验证成功后删除记录
+    await VerificationCode.deleteOne({ _id: verificationCodeRecord._id })
     user.email = email
     await user.save()
     res.json({ message: '邮箱修改成功' })
+  } catch ({ message }) {
+    res.status(500).json({ error: message })
+  }
+})
+
+// 创建相册
+router.post('/albums', auth, async (req, res) => {
+  try {
+    const { name, permission, tags, coverImage } = req.body
+    const userId = req.user._id
+
+    if (!name) {
+      return res.status(400).json({ error: '相册名称为必填项' })
+    }
+    const album = new Album({
+      name,
+      user: userId,
+      permission: permission || 'public',
+      tags: tags || [],
+      coverImage: coverImage || null
+    })
+    await album.save()
+    res.status(201).json({ message: '相册创建成功', album })
+  } catch ({ message }) {
+    console.error('创建相册失败:', message)
+    res.status(500).json({ error: message })
+  }
+})
+
+// 获取我的相册列表
+router.post('/albums/my', auth, async (req, res) => {
+  try {
+    const { page, limit } = req.body // 可以添加分页参数
+    const userId = req.user._id
+
+    // 获取用户相册列表，并可以 populate coverImage
+    const albums = await Album.find({ user: userId })
+      .sort({ createdAt: -1 })
+      .populate('coverImage', 'thumb url') // 填充封面图片信息
+    // .skip(...) // 如果需要分页
+    // .limit(...) // 如果需要分页
+
+    // 可以同时获取独立图片的数量
+    const standaloneCount = await Image.countDocuments({ user: userId, album: null })
+    res.json({ albums, standaloneCount })
+  } catch ({ message }) {
+    console.error('获取我的相册列表失败:', message)
+    res.status(500).json({ error: message })
+  }
+})
+
+// 获取单个相册详情
+router.get('/albums/:id', auth, async (req, res) => {
+  try {
+    const { id } = req.params
+    const userId = req.user._id
+    const album = await Album.findOne({ _id: id, user: userId })
+      .populate('coverImage', 'thumb url')
+    if (!album) {
+      return res.status(404).json({ error: '相册不存在或无权访问' })
+    }
+    res.json({ album })
+  } catch ({ message }) {
+    res.status(500).json({ error: message })
+  }
+})
+
+
+// 更新相册
+router.patch('/albums/:id', auth, async (req, res) => {
+  try {
+    const { id } = req.params
+    const userId = req.user._id
+    const updates = req.body
+    const album = await Album.findOne({ _id: id, user: userId })
+    if (!album) {
+      return res.status(404).json({ error: '相册不存在或无权修改' })
+    }
+    // 允许更新的字段
+    const allowedUpdates = ['name', 'permission', 'coverImage']
+    const actualUpdates = {}
+    Object.keys(updates).forEach(key => {
+      if (allowedUpdates.includes(key)) {
+        actualUpdates[key] = updates[key]
+      }
+    })
+    if (Object.keys(actualUpdates).length === 0) {
+      return res.status(400).json({ error: '没有要更新的字段' })
+    }
+    Object.assign(album, actualUpdates)
+    await album.save()
+    const updatedAlbum = await Album.findById(album._id).populate('coverImage', 'thumb url')
+    res.json({ message: '相册更新成功', album: updatedAlbum })
+  } catch ({ message }) {
+    res.status(500).json({ error: message })
+  }
+})
+
+// 删除相册
+router.delete('/albums/:id', auth, async (req, res) => {
+  try {
+    const { id } = req.params
+    const userId = req.user._id
+    const album = await Album.findOne({ _id: id, user: userId })
+    if (!album) {
+      return res.status(404).json({ error: '相册不存在或无权删除' })
+    }
+    await Image.updateMany({ album: id }, { $set: { album: null } })
+    await album.deleteOne()
+    res.json({ message: '相册删除成功' })
+  } catch ({ message }) {
+    res.status(500).json({ error: message })
+  }
+})
+
+
+// 将图片添加到相册 或 从相册移除
+router.patch('/images/:id/album', auth, async (req, res) => {
+  try {
+    const { id } = req.params
+    const { albumId } = req.body
+    const userId = req.user._id
+    const image = await Image.findOne({ _id: id, user: userId })
+    if (!image) {
+      return res.status(404).json({ error: '图片不存在或无权操作' })
+    }
+    if (albumId) {
+      // 将图片添加到相册，检查相册是否存在且属于当前用户
+      const album = await Album.findOne({ _id: albumId, user: userId })
+      if (!album) {
+        return res.status(404).json({ error: '相册不存在或无权操作' })
+      }
+      image.album = albumId
+    } else {
+      image.album = null
+    }
+    await image.save()
+    res.json({ message: albumId ? '图片已添加到相册' : '图片已移出相册' })
+  } catch ({ message }) {
+    res.status(500).json({ error: message })
+  }
+})
+
+// 修改图片标签
+router.patch('/images/:id/tags', auth, async (req, res) => {
+  try {
+    const { id } = req.params
+    const { tags } = req.body
+    const image = await Image.findOne({ _id: id, user: req.user._id })
+    if (!image) {
+      return res.status(404).json({ error: '图片不存在或无权操作' })
+    }
+    // 验证 tags 是否是数组
+    if (!Array.isArray(tags)) {
+      return res.status(400).json({ error: '标签数据格式不正确' })
+    }
+    image.tags = tags
+    await image.save()
+    res.json({ message: '图片标签更新成功', tags: image.tags })
   } catch ({ message }) {
     res.status(500).json({ error: message })
   }

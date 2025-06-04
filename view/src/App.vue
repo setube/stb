@@ -18,6 +18,10 @@
             </a>
             <template #overlay>
               <a-menu>
+                <a-menu-item key="user" @click="router.push(`/user/${userStore.user._id}`)">
+                  <UserOutlined />
+                  个人主页
+                </a-menu-item>
                 <a-menu-item key="settings" @click="router.push('/settings')">
                   <SettingOutlined />
                   个人设置
@@ -44,30 +48,14 @@
           </router-link>
         </div>
         <a-menu v-model:selectedKeys="selectedKeys" :open-keys="['admin']" theme="dark" mode="inline">
-          <a-menu-item key="home">
-            <router-link to="/">
-              <HomeOutlined />
-              图床首页
-            </router-link>
-          </a-menu-item>
-          <a-menu-item key="my" v-if="userStore.token">
-            <router-link to="/my">
-              <SmileOutlined />
-              我的图片
-            </router-link>
-          </a-menu-item>
-          <a-menu-item key="gallery" v-if="userStore.config?.site?.gallery">
-            <router-link to="/gallery">
-              <FireOutlined />
-              图片广场
-            </router-link>
-          </a-menu-item>
-          <a-menu-item key="docs" v-if="userStore.config?.site?.api">
-            <router-link to="/docs">
-              <QuestionCircleOutlined />
-              接口文档
-            </router-link>
-          </a-menu-item>
+          <template v-for="item in menus">
+            <a-menu-item v-if="item.show" :key="item.name">
+              <router-link :to="item.url">
+                <component v-bind:is="item.icon" />
+                {{ item.title }}
+              </router-link>
+            </a-menu-item>
+          </template>
           <a-sub-menu key="admin" v-if="userStore.user?.founder">
             <template #title>
               <span>
@@ -75,29 +63,9 @@
                 后台管理
               </span>
             </template>
-            <a-menu-item key="dashboard">
-              <router-link to="/admin/dashboard">
-                仪表盘
-              </router-link>
-            </a-menu-item>
-            <a-menu-item key="logs">
-              <router-link to="/admin/logs">
-                日志管理
-              </router-link>
-            </a-menu-item>
-            <a-menu-item key="users">
-              <router-link to="/admin/users">
-                用户管理
-              </router-link>
-            </a-menu-item>
-            <a-menu-item key="images">
-              <router-link to="/admin/images">
-                图片管理
-              </router-link>
-            </a-menu-item>
-            <a-menu-item key="config">
-              <router-link to="/admin/config">
-                系统配置
+            <a-menu-item v-for="item in adminMenus" :key="item.name">
+              <router-link :to="`/admin/${item.name}`">
+                {{ item.title }}
               </router-link>
             </a-menu-item>
           </a-sub-menu>
@@ -125,7 +93,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted, watch } from 'vue'
+import { ref, onMounted, watch, computed } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { useUserStore } from '@/stores/user'
 import { getIpAddress } from '@/stores/getIp'
@@ -153,6 +121,32 @@ const userIp = ref({
   ipv4: '',
   ipv6: ''
 })
+
+// 定义菜单项
+const menuItems = [
+  { name: 'home', title: '图床首页', url: '/', icon: HomeOutlined },
+  { name: 'my', title: '我的图片', url: '/my', icon: SmileOutlined },
+  { name: 'gallery', title: '图片广场', url: '/gallery', icon: FireOutlined },
+  { name: 'docs', title: '接口文档', url: '/docs', icon: QuestionCircleOutlined }
+]
+
+// 计算属性返回过滤后的菜单
+const menus = computed(() => {
+  return menuItems.map(item => ({
+    ...item,
+    show: userStore.menuVisibility[item.name]
+  }))
+})
+
+const adminMenus = [
+  { name: 'dashboard', title: '仪表盘' },
+  { name: 'logs', title: '日志管理' },
+  { name: 'users', title: '用户管理' },
+  { name: 'images', title: '图片管理' },
+  { name: 'albums', title: '相册管理' },
+  { name: 'invitecodes', title: '邀请码管理' },
+  { name: 'config', title: '系统配置' }
+]
 
 // 获取配置
 const fetchConfig = async () => {
@@ -401,7 +395,9 @@ body {
   overflow-x: hidden;
   color: #222;
   line-height: 1.4;
-  font-family: -apple-system, BlinkMacSystemFont, Helvetica Neue, PingFang SC, Microsoft YaHei, Source Han Sans SC, Noto Sans CJK SC, WenQuanYi Micro Hei, sans-serif;
+  font-family: -apple-system, BlinkMacSystemFont, Helvetica Neue, PingFang SC,
+    Microsoft YaHei, Source Han Sans SC, Noto Sans CJK SC, WenQuanYi Micro Hei,
+    sans-serif;
   text-rendering: optimizeLegibility;
   font-feature-settings: "liga" on;
   -webkit-font-smoothing: subpixel-antialiased;
@@ -415,22 +411,27 @@ body {
 }
 
 ::-webkit-scrollbar:horizontal {
-  height: 6px
+  height: 6px;
 }
 
 ::-webkit-scrollbar-track {
-  border-radius: 10px
+  border-radius: 10px;
 }
 
 ::-webkit-scrollbar-thumb {
   background-color: #0003;
   border-radius: 10px;
-  transition: all .2s ease-in-out
+  transition: all 0.2s ease-in-out;
 }
 
 ::-webkit-scrollbar-thumb:hover {
   cursor: pointer;
   background-color: #0000004d;
+}
+
+p {
+  margin: 0;
+  padding: 0;
 }
 
 a {
@@ -449,5 +450,9 @@ img {
 
 .el-table--fit {
   border-radius: 5px;
+}
+
+.ant-input-affix-wrapper {
+  height: 32px;
 }
 </style>

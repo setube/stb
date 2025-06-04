@@ -78,6 +78,28 @@ const imageSchema = new mongoose.Schema({
     type: String,
     required: false
   },
+  // 关联的相册 (如果图片属于某个相册)
+  album: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Album',
+    default: null
+  },
+  // 图片标签
+  tags: [{
+    type: String,
+    trim: true,
+    maxlength: 50
+  }],
+  // 添加备注字段
+  remarks: {
+    type: String
+  }
 }, { timestamps: true })
+
+// 优化搜索
+imageSchema.index({ name: 'text', md5: 'text', sha1: 'text', remarks: 'text', tags: 'text' })
+imageSchema.index({ user: 1, date: -1 })
+imageSchema.index({ album: 1, date: -1 })
+imageSchema.index({ tags: 1 })
 
 export const Image = mongoose.model('Image', imageSchema) 

@@ -23,6 +23,11 @@ const configSchema = new mongoose.Schema({
       type: Boolean,
       default: true
     },
+    // 是否开启邀请码注册
+    inviteCodeRequired: {
+      type: Boolean,
+      default: false
+    },
     // 是否开启游客上传
     anonymousUpload: {
       type: Boolean,

@@ -1,6 +1,8 @@
 <template>
   <div class="gallery-container">
-    <!-- 图片展示区域 -->
+    <div style="margin-bottom: 20px; text-align: center;">
+      <a-select v-model:value="searchTags" mode="tags" style="width: 300px;" placeholder="按标签搜索" @change="handleTagSearch" />
+    </div>
     <div class="gallery-content">
       <a-list :loading="loading" item-layout="horizontal" :data-source="images">
         <template #loadMore>
@@ -11,9 +13,19 @@
         <Waterfall :list="images" :animationDuration="100" :animationDelay="100" :breakpoints="breakpoints" v-if="images.length">
           <template #default="{ item, index }">
             <a-image :src="userStore.config.site.url + item.thumb" :preview="{ visible: false }" @click="setImageInfo(item, index)" />
+            <div class="image-item-tags">
+              <a-tag v-for="tag in item.tags" :key="tag" size="small" @click="clickTag(tag)">
+                {{ tag }}
+              </a-tag>
+            </div>
           </template>
         </Waterfall>
-        <a-result v-else-if="is404" title="图片广场空空如也" sub-title="快来上传你的第一张图片吧~">
+        <a-result v-else-if="is404 && !loading" title="图片广场空空如也" sub-title="快来上传你的第一张图片吧~">
+          <template #icon>
+            <img :src="erro404" class="ant-result-icon ant-result-image" />
+          </template>
+        </a-result>
+        <a-result v-else-if="images.length === 0 && !loading && searchTags.length > 0" title="没有找到匹配的图片" sub-title="请尝试其他标签">
           <template #icon>
             <img :src="erro404" class="ant-result-icon ant-result-image" />
           </template>
@@ -61,6 +73,9 @@ const breakpoints = {
   }
 }
 
+// 标签搜索状态
+const searchTags = ref([])
+
 // 获取图片信息
 const setImageInfo = (image, index) => {
   imageInfo.value = image
@@ -70,24 +85,57 @@ const setImageInfo = (image, index) => {
 
 // 获取图片列表
 const fetchImages = async () => {
+  if (!loading.value && images.value.length >= total.value && total.value > 0) {
+    return
+  }
   loading.value = true
+  is404.value = false // 重置状态
   try {
     const { data } = await axios.post('/api/images', qs.stringify({
-      page: page.value++,
-      limit: 10,
+      page: page.value,
+      limit: 20,
+      tags: searchTags.value
     }))
     total.value = data.total
-    images.value.push(...data.images)
-    loading.value = false
-    if (!images.value.length) is404.value = true
-    if (images.value.length >= data.total || !data.images.length) loading.value = false
+    if (page.value === 1) {
+      images.value = data.images
+    } else {
+      images.value.push(...data.images)
+    }
+    page.value++ // 准备下一页
+    // 判断是否为空
+    if (images.value.length === 0 && total.value === 0 && searchTags.value.length === 0) {
+      is404.value = true
+    } else {
+      is404.value = false
+    }
   } catch (error) {
+    console.error('获取图片列表失败:', error)
+    message.error('获取图片列表失败')
+    is404.value = true
+  } finally {
     loading.value = false
-    message.error('获取图片列表失败:', error)
   }
 }
 
-onMounted(fetchImages)
+const clickTag = (tag) => {
+  searchTags.value.push(...[tag])
+  handleTagSearch()
+}
+
+// 处理标签搜索
+const handleTagSearch = () => {
+  page.value = 1 // 搜索时重置页码到第一页
+  total.value = 0 // 重置总数
+  images.value = [] // 清空当前图片列表
+  fetchImages() // 重新获取图片列表
+}
+
+onMounted(() => {
+  // 初始加载时，先设置page为1，然后调用fetchImages
+  page.value = 1
+  fetchImages()
+})
 </script>
 
 <style scoped>
@@ -108,5 +156,12 @@ onMounted(fetchImages)
 
 .waterfall-list {
   background-color: transparent;
+}
+
+/* 添加图片下方标签样式 */
+.image-item-tags {
+  margin-top: 5px;
+  text-align: center;
+  /* 或 left */
 }
 </style>

@@ -69,7 +69,6 @@ import {
   GithubOutlined,
   GoogleOutlined
 } from '@ant-design/icons-vue'
-import qs from 'qs'
 import LinuxdoOutlined from '@/assets/linuxdo.svg'
 
 const router = useRouter()

@@ -4,7 +4,16 @@
       <a-image class="modal-image" placeholder :src="imageInfo.type === 'local' ? userStore.config.site.url + imageInfo.url : imageInfo.url" :preview="false" />
     </div>
     <a-descriptions bordered :column="1" size="middle" v-if="userStore.token">
-      <a-descriptions-item label="上传用户">{{ imageInfo?.user?.username || '游客' }}</a-descriptions-item>
+      <a-descriptions-item label="上传用户">
+        <span class="username" @click="goUserPage(imageInfo, 'user')">
+          {{ imageInfo?.user?.username || '游客' }}
+        </span>
+      </a-descriptions-item>
+      <a-descriptions-item label="所属相册">
+        <span class="username" @click="goUserPage(imageInfo, 'album')">
+          {{ imageInfo?.album?.name || '独立图片' }}
+        </span>
+      </a-descriptions-item>
       <a-descriptions-item label="图片名称">{{ imageInfo.filename }}</a-descriptions-item>
       <a-descriptions-item label="原始名称">{{ imageInfo.name }}</a-descriptions-item>
       <a-descriptions-item label="图片大小">{{ formatFileSize(imageInfo.size) }}</a-descriptions-item>
@@ -37,9 +46,11 @@
 
 <script setup>
 import { useUserStore } from '@/stores/user'
+import { useRouter } from 'vue-router'
 import { LeftOutlined, RightOutlined } from '@ant-design/icons-vue'
 import { formatDate, formatFileSize, copyImages } from '@/stores/formatDate'
 
+const router = useRouter()
 const props = defineProps({
   modelValue: {
     type: Boolean,
@@ -87,6 +98,13 @@ const nextImage = () => {
     emit('update:imageInfo', props.images[props.imageKey + 1])
     emit('update:imageKey', props.imageKey + 1)
   }
+}
+
+// 跳转到用户主页和相册信息页
+const goUserPage = (imageInfo, type) => {
+  if (type === 'user' && !imageInfo.user) return
+  if (type === 'album' && !imageInfo.album) return
+  router.push(type === 'user' ? `/user/${imageInfo.user._id}` : `/user/${imageInfo.user._id}/album/${imageInfo.album._id}`)
 }
 </script>
 
@@ -156,6 +174,11 @@ const nextImage = () => {
 
 .gallery-modal .ant-image-preview-switch-left {
   left: -50px;
+}
+
+.gallery-modal .username:hover {
+  color: #69b1ff;
+  cursor: pointer;
 }
 
 @media (max-width: 768px) {

@@ -2,16 +2,11 @@
   <div class="settings">
     <a-card title="个人设置" :bordered="false">
       <a-tabs v-model:activeKey="activeKey">
-        <!-- 基本信息 -->
         <a-tab-pane key="basic" tab="基本信息">
           <a-form :model="basicForm" layout="vertical">
             <a-form-item label="">
               <div class="avatar-upload">
-                <a-avatar :size="100" :src="userStore.config.site.url + basicForm.avatar || userStore.config.site.url + userStore.user?.avatar">
-                  <template #icon>
-                    <UserOutlined />
-                  </template>
-                </a-avatar>
+                <a-avatar :size="100" :src="userStore.config.site.url + userStore.user?.avatar" :icon="UserOutlined" />
                 <a-upload name="avatar" :show-upload-list="false" :before-upload="beforeAvatarUpload" :customRequest="handleAvatarChange">
                   <a-button type="link">
                     {{ userStore.user?.avatar ? '更换头像' : '上传头像' }}

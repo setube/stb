@@ -30,6 +30,7 @@
     "node-cache": "^5.1.2",
     "node-telegram-bot-api": "^0.66.0",
     "nodemailer": "^7.0.3",
+    "papaparse": "^5.5.3",
     "passport": "^0.7.0",
     "passport-github2": "^0.1.12",
     "qiniu": "^7.14.0",
