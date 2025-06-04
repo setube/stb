@@ -6,7 +6,8 @@
         您单次最多可以上传{{ userStore.config?.upload?.concurrentUploads }}张图片, 最大文件大小：{{ userStore.config?.upload?.maxSize }}MB
       </p>
       <!-- 上传区域 -->
-      <a-upload-dragger :beforeUpload="beforeUpload" :accept="formats" multiple :maxCount="userStore.config?.upload?.concurrentUploads" :showUploadList="false">
+      <a-upload-dragger :beforeUpload="beforeUpload" :accept="formats" multiple
+        :maxCount="userStore.config?.upload?.concurrentUploads" :showUploadList="false">
         <p class="ant-upload-drag-icon">
           <CloudUploadOutlined />
         </p>
@@ -20,10 +21,12 @@
         <div class="file-list-header">
           <span>文件列表 ({{ fileList.length }})</span>
           <div class="file-list-actions">
-            <a-button type="primary" @click="startUpload" :loading="uploading" :disabled="!fileList.some(f => f.status === 'waiting')">
+            <a-button type="primary" @click="startUpload" :loading="uploading"
+              :disabled="!fileList.some(f => f.status === 'waiting')">
               批量上传
             </a-button>
-            <a-button @click="clearList" :disabled="!fileList.some(f => f.status === 'waiting' || f.status === 'uploading')">
+            <a-button @click="clearList"
+              :disabled="!fileList.some(f => f.status === 'waiting' || f.status === 'uploading')">
               清空列表
             </a-button>
           </div>
@@ -63,27 +66,27 @@
           </div>
         </div>
       </div>
-    <div v-if="uploadedImages[activeTab].length > 0" class="result-panel">
-      <!-- 复制按钮 -->
-      <a-button class="copyAll" type="primary" @click="copyImages">一键复制</a-button>
-      <!-- 格式切换 -->
-      <a-tabs v-model:activeKey="activeTab">
-        <a-tab-pane v-for="item in tabList" :key="item.key" :tab="item.tab" class="link-items">
-          <div v-for="(img, idx) in uploadedImages[activeTab]" :key="idx" class="link-item">
-            <div class="link-content" @click="copySingleLink('.link-content', img)">
-              {{ img }}
+      <div v-if="uploadedImages[activeTab].length > 0" class="result-panel">
+        <!-- 复制按钮 -->
+        <a-button class="copyAll" type="primary" @click="copyImages">一键复制</a-button>
+        <!-- 格式切换 -->
+        <a-tabs v-model:activeKey="activeTab">
+          <a-tab-pane v-for="item in tabList" :key="item.key" :tab="item.tab" class="link-items">
+            <div v-for="(img, idx) in uploadedImages[activeTab]" :key="idx" class="link-item">
+              <div class="link-content" @click="copySingleLink('.link-content', img)">
+                {{ img }}
+              </div>
+              <a-tooltip title="复制">
+                <a-button type="link" class="link" @click="copySingleLink('.link', img)">
+                  <template #icon>
+                    <CopyOutlined />
+                  </template>
+                </a-button>
+              </a-tooltip>
             </div>
-            <a-tooltip title="复制">
-              <a-button type="link" class="link" @click="copySingleLink('.link', img)">
-                <template #icon>
-                  <CopyOutlined />
-                </template>
-              </a-button>
-            </a-tooltip>
-          </div>
-        </a-tab-pane>
-      </a-tabs>
-    </div>
+          </a-tab-pane>
+        </a-tabs>
+      </div>
     </a-card>
   </div>
 </template>
@@ -229,7 +232,7 @@ const uploadImage = async (file, onProgress) => {
     onUploadSuccess(filename, type == 'local' ? config?.site?.url + url : url)
     return data
   } catch (error) {
-    throw error
+    throw new Error(error?.response?.data?.error || error)
   }
 }
 

@@ -21,7 +21,6 @@ lerna-debug.log*
 # 构建输出
 dist
 dist-ssr
-server/public
 *.local
 
 # 编辑器目录
