@@ -61,9 +61,9 @@ const connectDB = async () => {
         serverSelectionTimeoutMS: 5000, // 超时时间
         socketTimeoutMS: 45000, // Socket 超时时间
       })
-      console.log('MongoDB数据库连接成功')
       // 初始化配置
       await Config.initialize()
+      console.log('MongoDB数据库连接成功')
       return
     } catch (error) {
       retries++
