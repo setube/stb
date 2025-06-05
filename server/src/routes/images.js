@@ -10,19 +10,23 @@ import { UploadLog } from '../models/UploadLog.js'
 import { checkDailyLimit } from '../middleware/checkDailyLimit.js'
 import { checkIpWhitelist } from '../middleware/checkIpWhitelist.js'
 import {
-  uploadToOSS, uploadToCOS, uploadToS3,
-  uploadToR2, getUploadToken, uploadToQiNiu,
-  uploadToUpyun, uploadToSftp, uploadToFtp,
-  uploadToWebdav, uploadToTelegram, uploadToGithub
+  uploadToOSS,
+  uploadToCOS,
+  uploadToS3,
+  uploadToR2,
+  getUploadToken,
+  uploadToQiNiu,
+  uploadToUpyun,
+  uploadToSftp,
+  uploadToFtp,
+  uploadToWebdav,
+  uploadToTelegram,
+  uploadToGithub
 } from '../utils/oss.js'
 import fs from 'fs/promises'
 import crypto from 'crypto'
 import { createReadStream } from 'fs'
-import {
-  tencentCheckImageSecurity,
-  aliyunCheckImageSecurity,
-  nsfwjsCheckImageSecurity
-} from '../utils/security.js'
+import { tencentCheckImageSecurity, aliyunCheckImageSecurity, nsfwjsCheckImageSecurity } from '../utils/security.js'
 import { Album } from '../models/Album.js'
 
 const router = express.Router()
@@ -38,7 +42,8 @@ const storage = multer.diskStorage({
 })
 
 const upload = multer({
-  storage, fileFilter: async (req, file, cb) => {
+  storage,
+  fileFilter: async (req, file, cb) => {
     try {
       const { upload } = await Config.findOne()
       const ext = path.extname(file.originalname).toLowerCase().slice(1)
@@ -53,24 +58,24 @@ const upload = multer({
 })
 
 // 计算MD5
-const calculateMD5 = async (filePath) => {
+const calculateMD5 = async filePath => {
   return new Promise((resolve, reject) => {
     const hash = crypto.createHash('md5')
     const stream = createReadStream(filePath)
-    stream.on('data', (chunk) => {
+    stream.on('data', chunk => {
       hash.update(chunk)
     })
     stream.on('end', () => {
       resolve(hash.digest('hex'))
     })
-    stream.on('error', (err) => {
+    stream.on('error', err => {
       reject(err)
     })
   })
 }
 
 // 创建目录
-const checkAndCreateDir = async (dirPath) => {
+const checkAndCreateDir = async dirPath => {
   try {
     await fs.access(dirPath)
   } catch (error) {
@@ -83,7 +88,7 @@ const checkAndCreateDir = async (dirPath) => {
 }
 
 // 修改计算 SHA-1 的函数
-const calculateSHA1 = async (filePath) => {
+const calculateSHA1 = async filePath => {
   return new Promise((resolve, reject) => {
     const hash = crypto.createHash('sha1')
     const stream = createReadStream(filePath)
@@ -120,14 +125,21 @@ router.post('/images', async (req, res) => {
     }
     Object.assign(query, albumVisibilityCondition)
     if (tags && tags.length > 0) {
-      let tagsArray = Array.isArray(tags) ? tags : tags.split(',').map(tag => tag.trim()).filter(tag => tag.length > 0)
+      let tagsArray = Array.isArray(tags)
+        ? tags
+        : tags
+            .split(',')
+            .map(tag => tag.trim())
+            .filter(tag => tag.length > 0)
       if (tagsArray.length > 0) {
         const tagSearchCondition = { tags: { $in: tagsArray } }
         const currentQueryConditions = []
         currentQueryConditions.push(albumVisibilityCondition)
         currentQueryConditions.push(tagSearchCondition)
         // 清空顶层 query 并构建 $and 查询
-        for (const key in query) { delete query[key] }
+        for (const key in query) {
+          delete query[key]
+        }
         query.$and = currentQueryConditions
       }
     }
@@ -191,10 +203,9 @@ const generateFileName = async (file, req, isuser) => {
 const uploadImageToStorage = async (file, req, isuser) => {
   const md5 = await calculateMD5(file.path)
   try {
+    const { body, clientIp } = req
     const { site, upload, storage, watermark, ai } = await Config.findOne()
-    const reqBodyIp = req.body.ip.includes('127.0.0.1') || !req.body.ip ? req.ip : req.body.ip
-    const reqIp = req.ip.includes('::1') || req.ip.includes('127.0.0.1') || !req.ip ? reqBodyIp : req.ip
-    const bodyIp = reqIp || reqBodyIp
+    const bodyIp = clientIp.ipv4 || clientIp.ipv6 || body.ip
     // 检查有没有填写网站URL
     if (!site.url) {
       throw new Error('请先配置网站URL')
@@ -299,12 +310,15 @@ const uploadImageToStorage = async (file, req, isuser) => {
     const thumbnailFilename = `thumb_${Date.now()}.${upload.convertFormat || format}`
     const thumbnailFullPath = path.join(thumbnailPath, thumbnailFilename)
     // 生成缩略图（这里设置缩略图尺寸为 200x200，保持比例）
-    await imageProcessor.clone().resize({
-      width: Math.round(width * 0.5),
-      height: Math.round(height * 0.5),
-      fit: 'inside',
-      withoutEnlargement: true
-    }).toFile(thumbnailFullPath)
+    await imageProcessor
+      .clone()
+      .resize({
+        width: Math.round(width * 0.5),
+        height: Math.round(height * 0.5),
+        fit: 'inside',
+        withoutEnlargement: true
+      })
+      .toFile(thumbnailFullPath)
     // 调整尺寸
     if (upload.maxWidth || upload.maxHeight) {
       imageProcessor = imageProcessor.resize({
@@ -407,12 +421,14 @@ const uploadImageToStorage = async (file, req, isuser) => {
             gravity = 'southeast'
         }
         // 添加文字水印
-        imageProcessor = imageProcessor.composite([{
-          input: Buffer.from(svgText),
-          gravity,
-          top: 10,
-          left: 10
-        }])
+        imageProcessor = imageProcessor.composite([
+          {
+            input: Buffer.from(svgText),
+            gravity,
+            top: 10,
+            left: 10
+          }
+        ])
       } else if (watermark.type === 'image' && watermark.image.path) {
         // 添加图片水印
         const { path: watermarkPath, opacity, position } = watermark.image
@@ -442,13 +458,15 @@ const uploadImageToStorage = async (file, req, isuser) => {
             gravity = 'southeast'
         }
         // 添加图片水印
-        imageProcessor = imageProcessor.composite([{
-          input: watermarkBuffer,
-          gravity,
-          top: 10,
-          left: 10,
-          blend: 'over'
-        }])
+        imageProcessor = imageProcessor.composite([
+          {
+            input: watermarkBuffer,
+            gravity,
+            top: 10,
+            left: 10,
+            blend: 'over'
+          }
+        ])
       }
     }
     // 保存处理后的图片
@@ -465,7 +483,8 @@ const uploadImageToStorage = async (file, req, isuser) => {
     const processedSize = processedStats.size
     // 计算处理后的图片的 SHA-1 值
     const sha1 = await calculateSHA1(processedPath)
-    let url = '', filePath = ''
+    let url = '',
+      filePath = ''
     switch (storage.type) {
       case 'local':
         url = `/${uploadPath}${processedFilename}`
@@ -475,7 +494,7 @@ const uploadImageToStorage = async (file, req, isuser) => {
         // 上传到OSS
         const ossPath = `${storage.oss.path}${processedFilename}`
         filePath = ossPath
-        // 上传到OSS后删除本地文件 
+        // 上传到OSS后删除本地文件
         try {
           url = await uploadToOSS(processedPath, ossPath)
         } catch ({ message }) {
@@ -625,7 +644,7 @@ const uploadImageToStorage = async (file, req, isuser) => {
       ip: bodyIp,
       size: processedSize,
       filePath,
-      filename: processedFilename,
+      filename: processedFilename
     })
     // 保存图片信息
     await image.save()
@@ -641,7 +660,7 @@ const uploadImageToStorage = async (file, req, isuser) => {
       width,
       height,
       sha1,
-      filename: processedFilename,
+      filename: processedFilename
     })
     await log.save()
     return image
@@ -665,9 +684,8 @@ router.post('/upload', auth, upload.single('image'), checkIpWhitelist, checkDail
   } catch ({ message }) {
     if (message.includes('图片中包含敏感内容, 已被删除')) {
       const { ip, ai } = await Config.findOne()
-      const reqBodyIp = req.body.ip.includes('127.0.0.1') || !req.body.ip ? req.ip : req.body.ip
-      const reqIp = req.ip.includes('::1') || req.ip.includes('127.0.0.1') || !req.ip ? reqBodyIp : req.ip
-      const bodyIp = reqIp || reqBodyIp
+      const { body, clientIp } = req
+      const bodyIp = clientIp.ipv4 || clientIp.ipv6 || body.ip
       if (ai.autoBlack && ip.enabled && ip.blacklist.indexOf(bodyIp) === -1) {
         ip.blacklist.push(bodyIp)
         await Config.findOneAndUpdate({}, { $set: { ip } }, { new: true, upsert: true })
@@ -686,9 +704,8 @@ router.post('/tourist/upload', upload.single('image'), checkIpWhitelist, checkDa
   } catch ({ message }) {
     if (message.includes('图片中包含敏感内容, 已被删除')) {
       const { ip, ai } = await Config.findOne()
-      const reqBodyIp = req.body.ip.includes('127.0.0.1') || !req.body.ip ? req.ip : req.body.ip
-      const reqIp = req.ip.includes('::1') || req.ip.includes('127.0.0.1') || !req.ip ? reqBodyIp : req.ip
-      const bodyIp = reqIp || reqBodyIp
+      const { body, clientIp } = req
+      const bodyIp = clientIp.ipv4 || clientIp.ipv6 || body.ip
       if (ai.autoBlack && ip.enabled && ip.blacklist.indexOf(bodyIp) === -1) {
         ip.blacklist.push(bodyIp)
         await Config.findOneAndUpdate({}, { $set: { ip } }, { new: true, upsert: true })
@@ -732,7 +749,8 @@ router.post('/upload-avatar', auth, upload.single('image'), async (req, res) => 
       .resize(100, 100, {
         fit: 'cover',
         position: 'center'
-      }).webp({ quality: 80 })
+      })
+      .webp({ quality: 80 })
     // 生成文件名
     const filename = `avatar_${user._id}_${Date.now()}.webp`
     const uploadPath = 'uploads/avatars'

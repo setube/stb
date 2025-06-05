@@ -19,6 +19,7 @@ import { Octokit } from '@octokit/rest'
 import fs from 'fs'
 import { createReadStream } from 'fs'
 import { Config } from '../models/Config.js'
+import path from 'path'
 
 // 上传文件到COS
 export const uploadToCOS = async (filePath, cosPath) => {
@@ -33,21 +34,40 @@ export const uploadToCOS = async (filePath, cosPath) => {
       SecretId: secretId,
       SecretKey: secretKey
     })
+    // 获取文件扩展名
+    const ext = path.extname(filePath).toLowerCase()
+    // 根据扩展名设置 Content-Type
+    const ContentType =
+      {
+        '.jpg': 'image/jpeg',
+        '.jpeg': 'image/jpeg',
+        '.png': 'image/png',
+        '.gif': 'image/gif',
+        '.webp': 'image/webp',
+        '.svg': 'image/svg+xml'
+      }[ext] || 'application/octet-stream'
     return new Promise((resolve, reject) => {
-      cos.putObject({
-        Bucket: bucket,
-        Region: region,
-        Key: cosPath, // 使用完整的存储路径
-        Body: createReadStream(filePath)
-      }, (err, data) => {
-        if (err) {
-          reject(err)
-          return
+      cos.putObject(
+        {
+          Bucket: bucket,
+          Region: region,
+          Key: cosPath, // 使用完整的存储路径
+          Body: createReadStream(filePath),
+          ContentType,
+          Headers: {
+            'Content-Disposition': 'inline'
+          }
+        },
+        (err, data) => {
+          if (err) {
+            reject(err)
+            return
+          }
+          // 构建访问URL
+          const url = `https://${bucket}.cos.${region}.myqcloud.com${cosPath}`
+          resolve(url)
         }
-        // 构建访问URL
-        const url = `https://${bucket}.cos.${region}.myqcloud.com${cosPath}`
-        resolve(url)
-      })
+      )
     })
   } catch ({ message }) {
     throw new Error(message)
@@ -55,7 +75,7 @@ export const uploadToCOS = async (filePath, cosPath) => {
 }
 
 // 从COS删除文件
-export const deleteFromCOS = async (cosPath) => {
+export const deleteFromCOS = async cosPath => {
   try {
     const { storage } = await Config.findOne()
     const { secretId, secretKey, bucket, region } = storage.cos
@@ -64,17 +84,20 @@ export const deleteFromCOS = async (cosPath) => {
       SecretKey: secretKey
     })
     return new Promise((resolve, reject) => {
-      cos.deleteObject({
-        Bucket: bucket,
-        Region: region,
-        Key: cosPath // 使用完整的存储路径
-      }, (err, data) => {
-        if (err) {
-          reject(err)
-          return
+      cos.deleteObject(
+        {
+          Bucket: bucket,
+          Region: region,
+          Key: cosPath // 使用完整的存储路径
+        },
+        (err, data) => {
+          if (err) {
+            reject(err)
+            return
+          }
+          resolve(data)
         }
-        resolve(data)
-      })
+      )
     })
   } catch ({ message }) {
     throw new Error(message)
@@ -85,10 +108,7 @@ export const deleteFromCOS = async (cosPath) => {
 export const uploadToOSS = async (filePath, ossPath) => {
   try {
     const { storage } = await Config.findOne()
-    const {
-      accessKeyId, accessKeySecret, bucket,
-      region, endpoint, internal, isCname
-    } = storage.oss
+    const { accessKeyId, accessKeySecret, bucket, region, endpoint, internal, isCname } = storage.oss
     const client = new OSS({
       accessKeyId, // 阿里云账号的AccessKey ID
       accessKeySecret, // 阿里云账号的AccessKey Secret
@@ -107,13 +127,10 @@ export const uploadToOSS = async (filePath, ossPath) => {
 }
 
 // 从OSS删除文件
-export const deleteFromOSS = async (ossPath) => {
+export const deleteFromOSS = async ossPath => {
   try {
     const { storage } = await Config.findOne()
-    const {
-      accessKeyId, accessKeySecret, bucket,
-      region, endpoint, internal, isCname
-    } = storage.oss
+    const { accessKeyId, accessKeySecret, bucket, region, endpoint, internal, isCname } = storage.oss
     const client = new OSS({
       accessKeyId, // 阿里云账号的AccessKey ID
       accessKeySecret, // 阿里云账号的AccessKey Secret
@@ -131,23 +148,34 @@ export const deleteFromOSS = async (ossPath) => {
 }
 
 // 上传到 S3
-export const uploadToS3 = async (filePath) => {
+export const uploadToS3 = async filePath => {
   try {
     const { storage } = await Config.findOne()
-    const {
-      region, accessKeyId, bucket,
-      secretAccessKey, endpoint
-    } = storage.s3
+    const { region, accessKeyId, bucket, secretAccessKey, endpoint } = storage.s3
     const s3Client = new S3Client({
       region,
       credentials: { accessKeyId, secretAccessKey },
       ...(endpoint && { endpoint })
     })
     const key = filePath
+    // 获取文件扩展名
+    const ext = path.extname(filePath).toLowerCase()
+    // 根据扩展名设置 Content-Type
+    const contentType =
+      {
+        '.jpg': 'image/jpeg',
+        '.jpeg': 'image/jpeg',
+        '.png': 'image/png',
+        '.gif': 'image/gif',
+        '.webp': 'image/webp',
+        '.svg': 'image/svg+xml'
+      }[ext] || 'application/octet-stream'
+
     const command = new PutObjectCommand({
       Bucket: bucket,
       Key: key,
-      Body: createReadStream(filePath)
+      Body: createReadStream(filePath),
+      ContentType: contentType // 添加 Content-Type
     })
     await s3Client.send(command)
     // 构建访问URL
@@ -166,13 +194,10 @@ export const uploadToS3 = async (filePath) => {
 }
 
 // 从 S3 删除
-export const deleteFromS3 = async (filename) => {
+export const deleteFromS3 = async filename => {
   try {
     const { storage } = await Config.findOne()
-    const {
-      region, accessKeyId, bucket,
-      secretAccessKey, endpoint
-    } = storage.s3
+    const { region, accessKeyId, bucket, secretAccessKey, endpoint } = storage.s3
     const s3Client = new S3Client({
       region,
       credentials: {
@@ -192,7 +217,7 @@ export const deleteFromS3 = async (filename) => {
 }
 
 // 上传到 R2
-export const uploadToR2 = async (filePath) => {
+export const uploadToR2 = async filePath => {
   try {
     const { storage } = await Config.findOne()
     const { accountId, accessKeyId, secretAccessKey, bucket, publicUrl } = storage.r2
@@ -205,10 +230,24 @@ export const uploadToR2 = async (filePath) => {
       }
     })
     const key = filePath
+    // 获取文件扩展名
+    const ext = path.extname(filePath).toLowerCase()
+    // 根据扩展名设置 Content-Type
+    const contentType =
+      {
+        '.jpg': 'image/jpeg',
+        '.jpeg': 'image/jpeg',
+        '.png': 'image/png',
+        '.gif': 'image/gif',
+        '.webp': 'image/webp',
+        '.svg': 'image/svg+xml'
+      }[ext] || 'application/octet-stream'
+
     const command = new PutObjectCommand({
       Bucket: bucket,
       Key: key,
-      Body: createReadStream(filePath)
+      Body: createReadStream(filePath),
+      ContentType: contentType // 添加 Content-Type
     })
     await s3Client.send(command)
     // 使用配置的公共URL
@@ -219,7 +258,7 @@ export const uploadToR2 = async (filePath) => {
 }
 
 // 从 R2 删除
-export const deleteFromR2 = async (filePath) => {
+export const deleteFromR2 = async filePath => {
   try {
     const { storage } = await Config.findOne()
     const { accountId, accessKeyId, secretAccessKey, bucket, publicUrl } = storage.r2
@@ -276,7 +315,7 @@ export const uploadToQiNiu = async (token, filePath, key) => {
 }
 
 // 从七牛云删除文件
-export const deleteFromQiNiu = async (key) => {
+export const deleteFromQiNiu = async key => {
   const { storage } = await Config.findOne()
   const { accessKey, secretKey, bucket } = storage.qiniu
   const qiniuConfig = new qiniu.conf.Config()
@@ -295,7 +334,7 @@ export const deleteFromQiNiu = async (key) => {
 }
 
 // 上传到又拍云
-export const uploadToUpyun = async (filePath) => {
+export const uploadToUpyun = async filePath => {
   try {
     const { storage } = await Config.findOne()
     const { service, operator, password, directory, domain } = storage.upyun
@@ -315,7 +354,7 @@ export const uploadToUpyun = async (filePath) => {
 }
 
 // 从又拍云删除
-export const deleteFromUpyun = async (filename) => {
+export const deleteFromUpyun = async filename => {
   try {
     const { storage } = await Config.findOne()
     const { service, operator, password } = storage.upyun
@@ -335,9 +374,17 @@ export const uploadToSftp = async (filePath, key) => {
   try {
     const { storage } = await Config.findOne()
     const {
-      host, port, username, useSSH, privateKey,
-      passphrase, directory, domain,
-      connectTimeout, retries, hostFingerprint
+      host,
+      port,
+      username,
+      useSSH,
+      privateKey,
+      passphrase,
+      directory,
+      domain,
+      connectTimeout,
+      retries,
+      hostFingerprint
     } = storage.sftp
     const sftp = new SftpClient()
     const connectConfig = {
@@ -375,13 +422,11 @@ export const uploadToSftp = async (filePath, key) => {
 }
 
 // 从 SFTP 删除
-export const deleteFromSftp = async (filePath) => {
+export const deleteFromSftp = async filePath => {
   try {
     const { storage } = await Config.findOne()
-    const {
-      host, port, username, useSSH, privateKey, retries,
-      passphrase, connectTimeout, hostFingerprint
-    } = storage.sftp
+    const { host, port, username, useSSH, privateKey, retries, passphrase, connectTimeout, hostFingerprint } =
+      storage.sftp
     const sftp = new SftpClient()
     const connectConfig = {
       host,
@@ -415,13 +460,22 @@ export const uploadToFtp = async (filePath, key) => {
     try {
       const { storage } = await Config.findOne()
       const {
-        host, port, username, password,
-        secure, useUTF8, directory, domain,
-        connectTimeout, transferMode, passive, recursive
+        host,
+        port,
+        username,
+        password,
+        secure,
+        useUTF8,
+        directory,
+        domain,
+        connectTimeout,
+        transferMode,
+        passive,
+        recursive
       } = storage.ftp
       client = new ftp.Client()
       // 设置客户端选项
-      client.ftp.verbose = true  // 启用详细日志
+      client.ftp.verbose = true // 启用详细日志
       client.ftp.encoding = useUTF8 ? 'utf8' : 'latin1'
       // 设置更长的超时时间
       const accessOptions = {
@@ -477,14 +531,11 @@ export const uploadToFtp = async (filePath, key) => {
 }
 
 // 从 FTP 删除
-export const deleteFromFtp = async (filePath) => {
+export const deleteFromFtp = async filePath => {
   try {
     const { storage } = await Config.findOne()
-    const {
-      host, port, username, password,
-      secure, useUTF8, ignorePassiveIP,
-      connectTimeout, transferMode, passive
-    } = storage.ftp
+    const { host, port, username, password, secure, useUTF8, ignorePassiveIP, connectTimeout, transferMode, passive } =
+      storage.ftp
     const client = new ftp.Client()
     // 设置客户端选项
     client.ftp.verbose = true
@@ -534,7 +585,7 @@ export const uploadToWebdav = async (filePath, key) => {
 }
 
 // 从 WebDAV 删除
-export const deleteFromWebdav = async (filePath) => {
+export const deleteFromWebdav = async filePath => {
   try {
     const { storage } = await Config.findOne()
     const { username, password, authType, url } = storage.webdav
@@ -552,13 +603,13 @@ export const uploadToTelegram = async (filePath, key, user) => {
     const { botToken, polling, timeout, proxy, chatId } = storage.telegram
     // 创建bot实例，添加更多网络配置
     const bot = new TelegramBot(botToken, {
-      polling,  // 禁用轮询
+      polling, // 禁用轮询
       request: {
-        timeout: timeout * 1000,  // 设置超时时间为30秒
-        proxy,  // 使用代理
+        timeout: timeout * 1000, // 设置超时时间为30秒
+        proxy, // 使用代理
         agentOptions: {
           keepAlive: true,
-          family: 4,  // 强制使用 IPv4
+          family: 4, // 强制使用 IPv4
           timeout: timeout * 1000
         }
       }
@@ -580,18 +631,18 @@ export const uploadToTelegram = async (filePath, key, user) => {
 }
 
 // 从 Telegram 删除
-export const deleteFromTelegram = async (fileId) => {
+export const deleteFromTelegram = async fileId => {
   try {
     const { storage } = await Config.findOne()
     const { botToken, polling, timeout, proxy, chatId } = storage.telegram
     const bot = new TelegramBot(botToken, {
-      polling,  // 禁用轮询
+      polling, // 禁用轮询
       request: {
-        timeout: timeout * 1000,  // 设置超时时间为30秒
-        proxy,  // 使用代理
+        timeout: timeout * 1000, // 设置超时时间为30秒
+        proxy, // 使用代理
         agentOptions: {
           keepAlive: true,
-          family: 4,  // 强制使用 IPv4
+          family: 4, // 强制使用 IPv4
           timeout: timeout * 1000
         }
       }
@@ -618,9 +669,17 @@ export const uploadToGithub = async (filePath, key, user) => {
     try {
       const { storage } = await Config.findOne()
       const {
-        token, timeout, retries, repo,
-        retryAfter, directory, owner, branch,
-        customDomain, isGithubPages, domain,
+        token,
+        timeout,
+        retries,
+        repo,
+        retryAfter,
+        directory,
+        owner,
+        branch,
+        customDomain,
+        isGithubPages,
+        domain,
         githubPages
       } = storage.github
       // 创建 Octokit 实例，添加更多配置
@@ -669,7 +728,7 @@ export const uploadToGithub = async (filePath, key, user) => {
 }
 
 // 从 GitHub 删除
-export const deleteFromGithub = async (filePath) => {
+export const deleteFromGithub = async filePath => {
   try {
     const { storage } = await Config.findOne()
     const { token, repo, owner, branch } = storage.github

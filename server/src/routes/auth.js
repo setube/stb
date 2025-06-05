@@ -9,6 +9,7 @@ import { sendVerificationCode } from '../utils/mailer.js'
 import { InviteCode } from '../models/InviteCode.js'
 import { VerificationCode } from '../models/VerificationCode.js'
 import { Album } from '../models/Album.js'
+import { Captcha } from '../models/Captcha.js'
 
 const router = express.Router()
 
@@ -97,11 +98,7 @@ router.post('/my', auth, async (req, res) => {
       // 如果只想查独立的，可以将 albumId 默认设为 'standalone' 或 null 在前端控制
     }
 
-    const images = await Image.find(query)
-      .sort({ date: -1 })
-      .populate('user', 'username')
-      .skip(skip)
-      .limit(limitMath)
+    const images = await Image.find(query).sort({ date: -1 }).populate('user', 'username').skip(skip).limit(limitMath)
 
     const total = await Image.countDocuments(query)
 
@@ -173,8 +170,28 @@ router.post('/register/send-code', async (req, res) => {
 // 注册接口
 router.post('/register', async (req, res) => {
   try {
-    const { username, password, email, code, inviteCode, ip } = req.body
+    const { body, clientIp } = req
+    const { username, password, email, code, inviteCode, ip, captchaId } = body
     const { site, smtp } = await Config.findOne()
+
+    // 检查是否开启验证码
+    if (site.captcha) {
+      if (!captchaId) {
+        return res.status(400).json({ error: '请先完成滑动验证' })
+      }
+      // 验证滑动验证码
+      const captcha = await Captcha.findById(captchaId)
+      if (!captcha) {
+        return res.status(400).json({ error: '滑动验证已失效,请重新验证' })
+      }
+      if (new Date() > captcha.expiresAt) {
+        await Captcha.deleteOne({ _id: captchaId })
+        return res.status(400).json({ error: '滑动验证已过期,请重新验证' })
+      }
+      // 删除已使用的验证记录
+      await Captcha.deleteOne({ _id: captchaId })
+    }
+
     // 检查是否开启注册
     if (!site.register) {
       return res.status(403).json({ error: '注册已关闭' })
@@ -206,7 +223,11 @@ router.post('/register', async (req, res) => {
       }
       // 查找验证码记录并验证
       const verificationCodeRecord = await VerificationCode.findOne({ email, type: 'register' })
-      if (!verificationCodeRecord || verificationCodeRecord.code !== code || verificationCodeRecord.expires < new Date()) {
+      if (
+        !verificationCodeRecord ||
+        verificationCodeRecord.code !== code ||
+        verificationCodeRecord.expires < new Date()
+      ) {
         // 验证失败或过期后删除该记录
         if (verificationCodeRecord) {
           await VerificationCode.deleteOne({ _id: verificationCodeRecord._id })
@@ -225,8 +246,8 @@ router.post('/register', async (req, res) => {
     // 创建新用户
     const user = new User({
       ip: {
-        ipv4: ip?.ipv4,
-        ipv6: ip?.ipv6
+        ipv4: clientIp.ipv4 || ip?.ipv4,
+        ipv6: clientIp.ipv6 || ip?.ipv6
       },
       username,
       password,
@@ -269,7 +290,27 @@ router.post('/register', async (req, res) => {
 // 登录账号
 router.post('/login', async (req, res) => {
   try {
-    const { username, password } = req.body
+    const { username, password, captchaId } = req.body
+
+    // 检查是否开启验证码
+    const { site } = await Config.findOne()
+    if (site.captcha) {
+      if (!captchaId) {
+        return res.status(400).json({ error: '请先完成滑动验证' })
+      }
+      // 验证滑动验证码
+      const captcha = await Captcha.findById(captchaId)
+      if (!captcha) {
+        return res.status(400).json({ error: '滑动验证已失效,请重新验证' })
+      }
+      if (new Date() > captcha.expiresAt) {
+        await Captcha.deleteOne({ _id: captchaId })
+        return res.status(400).json({ error: '滑动验证已过期,请重新验证' })
+      }
+      // 删除已使用的验证记录
+      await Captcha.deleteOne({ _id: captchaId })
+    }
+
     const user = await User.findOne({ username })
     if (!user || !(await user.comparePassword(password))) {
       throw new Error('用户名或密码错误')
@@ -346,7 +387,11 @@ router.post('/verify-code', async (req, res) => {
     }
     // 查找验证码记录并验证
     const verificationCodeRecord = await VerificationCode.findOne({ email })
-    if (!verificationCodeRecord || verificationCodeRecord.code !== code || verificationCodeRecord.expires < new Date()) {
+    if (
+      !verificationCodeRecord ||
+      verificationCodeRecord.code !== code ||
+      verificationCodeRecord.expires < new Date()
+    ) {
       // 验证失败或过期后删除该记录
       if (verificationCodeRecord) {
         await VerificationCode.deleteOne({ _id: verificationCodeRecord._id })
@@ -356,11 +401,7 @@ router.post('/verify-code', async (req, res) => {
     // 验证成功后删除记录
     await VerificationCode.deleteOne({ _id: verificationCodeRecord._id })
     // 生成临时令牌
-    const token = jwt.sign(
-      { userId: user._id, type: 'reset' },
-      process.env.JWT_SECRET,
-      { expiresIn: '15m' }
-    )
+    const token = jwt.sign({ userId: user._id, type: 'reset' }, process.env.JWT_SECRET, { expiresIn: '15m' })
     res.json({ token })
   } catch ({ message }) {
     res.status(500).json({ error: message })
@@ -460,7 +501,11 @@ router.post('/user/verify-code', auth, async (req, res) => {
     }
     // 查找验证码记录并验证
     const verificationCodeRecord = await VerificationCode.findOne({ email })
-    if (!verificationCodeRecord || verificationCodeRecord.code !== code || verificationCodeRecord.expires < new Date()) {
+    if (
+      !verificationCodeRecord ||
+      verificationCodeRecord.code !== code ||
+      verificationCodeRecord.expires < new Date()
+    ) {
       // 验证失败或过期后删除该记录
       if (verificationCodeRecord) {
         await VerificationCode.deleteOne({ _id: verificationCodeRecord._id })
@@ -508,9 +553,7 @@ router.post('/albums/my', auth, async (req, res) => {
     const userId = req.user._id
 
     // 获取用户相册列表，并可以 populate coverImage
-    const albums = await Album.find({ user: userId })
-      .sort({ createdAt: -1 })
-      .populate('coverImage', 'thumb url') // 填充封面图片信息
+    const albums = await Album.find({ user: userId }).sort({ createdAt: -1 }).populate('coverImage', 'thumb url') // 填充封面图片信息
     // .skip(...) // 如果需要分页
     // .limit(...) // 如果需要分页
 
@@ -528,8 +571,7 @@ router.get('/albums/:id', auth, async (req, res) => {
   try {
     const { id } = req.params
     const userId = req.user._id
-    const album = await Album.findOne({ _id: id, user: userId })
-      .populate('coverImage', 'thumb url')
+    const album = await Album.findOne({ _id: id, user: userId }).populate('coverImage', 'thumb url')
     if (!album) {
       return res.status(404).json({ error: '相册不存在或无权访问' })
     }
@@ -538,7 +580,6 @@ router.get('/albums/:id', auth, async (req, res) => {
     res.status(500).json({ error: message })
   }
 })
-
 
 // 更新相册
 router.patch('/albums/:id', auth, async (req, res) => {
@@ -586,7 +627,6 @@ router.delete('/albums/:id', auth, async (req, res) => {
     res.status(500).json({ error: message })
   }
 })
-
 
 // 将图片添加到相册 或 从相册移除
 router.patch('/images/:id/album', auth, async (req, res) => {
@@ -636,4 +676,57 @@ router.patch('/images/:id/tags', auth, async (req, res) => {
   }
 })
 
-export default router 
+// 生成滑动验证
+router.post('/captcha/generate', async (req, res) => {
+  try {
+    const { site } = await Config.findOne()
+    if (!site.captcha) {
+      return res.status(400).json({ error: '验证码功能未开启' })
+    }
+    // 生成一个随机的验证值（这里用时间戳作为示例）
+    const verifyValue = Date.now().toString()
+    // 创建验证记录
+    const captcha = new Captcha({
+      verifyValue,
+      expiresAt: new Date(Date.now() + 5 * 60 * 1000) // 5分钟有效期
+    })
+    await captcha.save()
+    res.json({
+      success: true,
+      captchaId: captcha._id
+    })
+  } catch (error) {
+    res.status(500).json({ error: '生成验证失败' })
+  }
+})
+
+// 验证滑动结果
+router.post('/captcha/verify', async (req, res) => {
+  try {
+    const { site } = await Config.findOne()
+    if (!site.captcha) {
+      return res.status(400).json({ error: '验证码功能未开启' })
+    }
+    const { captchaId, verifyResult } = req.body
+    if (!captchaId || verifyResult === undefined) {
+      return res.status(400).json({ error: '参数不完整' })
+    }
+    // 查找验证记录
+    const captcha = await Captcha.findById(captchaId)
+    if (!captcha) {
+      return res.status(404).json({ error: '验证记录不存在' })
+    }
+    // 检查是否过期
+    if (new Date() > captcha.expiresAt) {
+      return res.status(400).json({ error: '验证已过期' })
+    }
+    res.json({
+      success: true,
+      isValid: verifyResult === true
+    })
+  } catch (error) {
+    res.status(500).json({ error: '验证失败' })
+  }
+})
+
+export default router

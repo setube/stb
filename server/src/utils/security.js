@@ -7,7 +7,7 @@ import tencentcloud from 'tencentcloud-sdk-nodejs'
 import { Config } from '../models/Config.js'
 
 // 腾讯云内容安全检测函数
-export const tencentCheckImageSecurity = async (filePath) => {
+export const tencentCheckImageSecurity = async filePath => {
   try {
     // 导入内容安全客户端
     const ImsClient = tencentcloud.ims.v20201229.Client
@@ -53,7 +53,7 @@ export const tencentCheckImageSecurity = async (filePath) => {
 }
 
 // 阿里云内容安全检测函数
-export const aliyunCheckImageSecurity = async (filePath) => {
+export const aliyunCheckImageSecurity = async filePath => {
   try {
     // 获取配置
     const { ai } = await Config.findOne()
@@ -87,19 +87,24 @@ export const aliyunCheckImageSecurity = async (filePath) => {
     })
     // 生成文件名
     const split = filePath.split('.')
-    const objectName = split.length > 1
-      ? `${tokenData.FileNamePrefix}${uuidv4()}.${split[split.length - 1]}`
-      : `${tokenData.FileNamePrefix}${uuidv4()}`
+    const objectName =
+      split.length > 1
+        ? `${tokenData.FileNamePrefix}${uuidv4()}.${split[split.length - 1]}`
+        : `${tokenData.FileNamePrefix}${uuidv4()}`
     // 上传文件到OSS
     await ossClient.put(objectName, path.normalize(filePath))
     // 调用检测接口
-    const { Code, Data, Msg } = await client.request('ImageModeration', {
-      Service: service,
-      ServiceParameters: JSON.stringify({
-        ossBucketName: tokenData.BucketName,
-        ossObjectName: objectName
-      })
-    }, { method: 'POST', formatParams: false })
+    const { Code, Data, Msg } = await client.request(
+      'ImageModeration',
+      {
+        Service: service,
+        ServiceParameters: JSON.stringify({
+          ossBucketName: tokenData.BucketName,
+          ossObjectName: objectName
+        })
+      },
+      { method: 'POST', formatParams: false }
+    )
     // 处理结果
     if (Code === 200) {
       // 检查数据结构
@@ -122,7 +127,7 @@ export const aliyunCheckImageSecurity = async (filePath) => {
 }
 
 // NsfwJs内容安全检测函数
-export const nsfwjsCheckImageSecurity = async (filePath) => {
+export const nsfwjsCheckImageSecurity = async filePath => {
   try {
     // 获取配置
     const { ai } = await Config.findOne()

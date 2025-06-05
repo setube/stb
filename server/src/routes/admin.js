@@ -18,7 +18,7 @@ const router = express.Router()
 const statsCache = new NodeCache({ stdTTL: 60 })
 
 // 格式化文件大小
-const formatSize = (bytes) => {
+const formatSize = bytes => {
   if (bytes === 0) return '0 B'
   const k = 1024
   const sizes = ['B', 'KB', 'MB', 'GB', 'TB', 'PB']
@@ -27,7 +27,7 @@ const formatSize = (bytes) => {
 }
 
 // 格式化运行时间
-const formatUptime = (seconds) => {
+const formatUptime = seconds => {
   const days = Math.floor(seconds / (3600 * 24))
   const hours = Math.floor((seconds % (3600 * 24)) / 3600)
   const minutes = Math.floor((seconds % 3600) / 60)
@@ -52,9 +52,7 @@ router.post('/users', auth, checkRole(['admin']), async (req, res) => {
       query.username = { $regex: username, $options: 'i' }
     }
     // 查询用户
-    const users = await User.find(query, '-password')
-      .skip(skip)
-      .limit(limitMath)
+    const users = await User.find(query, '-password').skip(skip).limit(limitMath)
     const total = await User.countDocuments(query)
     res.json({ users, total })
   } catch ({ message }) {
@@ -176,7 +174,9 @@ router.post('/images', auth, checkRole(['admin']), async (req, res) => {
       // 组合过滤条件和搜索条件
       if (Object.keys(query).length > 0) {
         const currentQuery = { ...query }
-        for (const key in query) { delete query[key] }
+        for (const key in query) {
+          delete query[key]
+        }
         query.$and = [currentQuery, searchConditions]
       } else {
         Object.assign(query, searchConditions)
@@ -450,16 +450,14 @@ router.post('/invite-codes', auth, checkRole(['admin']), async (req, res) => {
 router.get('/invite-codes/export', auth, checkRole(['admin']), async (req, res) => {
   try {
     // 获取邀请码数据并填充用户信息
-    const codes = await InviteCode.find()
-      .populate('usedBy', 'username email')
-      .sort({ createdAt: -1 })
+    const codes = await InviteCode.find().populate('usedBy', 'username email').sort({ createdAt: -1 })
     // 构造 CSV 数据
     const csvData = codes.map(code => ({
-      '邀请码': code.code,
-      '状态': code.status === 'unused' ? '未使用' : '已使用',
-      '使用人': code.usedBy ? `${code.usedBy.username} (${code.usedBy.email})` : '-',
-      '使用时间': code.usedAt ? new Date(code.usedAt).toLocaleString() : '-',
-      '生成时间': new Date(code.createdAt).toLocaleString()
+      邀请码: code.code,
+      状态: code.status === 'unused' ? '未使用' : '已使用',
+      使用人: code.usedBy ? `${code.usedBy.username} (${code.usedBy.email})` : '-',
+      使用时间: code.usedAt ? new Date(code.usedAt).toLocaleString() : '-',
+      生成时间: new Date(code.createdAt).toLocaleString()
     }))
     res.setHeader('Content-Type', 'text/csv; charset=utf-8')
     res.setHeader('Content-Disposition', 'attachment; filename=invite-codes.csv')
@@ -506,10 +504,7 @@ router.post('/albums', auth, checkRole(['admin']), async (req, res) => {
       query.permission = permission
     }
     if (username) {
-      const users = await User.find(
-        { username: { $regex: username, $options: 'i' } },
-        '_id'
-      )
+      const users = await User.find({ username: { $regex: username, $options: 'i' } }, '_id')
       const userIds = users.map(user => user._id)
       query.user = { $in: userIds }
     }
@@ -522,7 +517,7 @@ router.post('/albums', auth, checkRole(['admin']), async (req, res) => {
       .lean()
     // 获取每个相册的图片数量
     const albumsWithCount = await Promise.all(
-      albums.map(async (album) => {
+      albums.map(async album => {
         const imageCount = await Image.countDocuments({ album: album._id })
         return { ...album, imageCount }
       })
@@ -542,10 +537,7 @@ router.post('/users/search', auth, checkRole(['admin']), async (req, res) => {
       return res.json({ users: [] })
     }
     // 查询用户
-    const users = await User.find(
-      { username: { $regex: username, $options: 'i' } },
-      'username _id'
-    ).limit(10)
+    const users = await User.find({ username: { $regex: username, $options: 'i' } }, 'username _id').limit(10)
     const formattedUsers = users.map(user => ({
       value: user._id,
       label: user.username
@@ -576,9 +568,7 @@ router.post('/albums/new', auth, checkRole(['admin']), async (req, res) => {
     })
     await album.save()
     // 返回创建后的相册信息（包含用户信息）
-    const createdAlbum = await Album.findById(album._id)
-      .populate('user', 'username')
-      .lean()
+    const createdAlbum = await Album.findById(album._id).populate('user', 'username').lean()
     res.json({ message: '相册创建成功', album: createdAlbum })
   } catch ({ message }) {
     res.status(500).json({ error: message })
@@ -604,9 +594,7 @@ router.put('/albums/:id', auth, checkRole(['admin']), async (req, res) => {
     if (permission) album.permission = permission
     await album.save()
     // 返回更新后的相册信息
-    const updatedAlbum = await Album.findById(album._id)
-      .populate('user', 'username')
-      .lean()
+    const updatedAlbum = await Album.findById(album._id).populate('user', 'username').lean()
     res.json({ message: '相册更新成功', album: updatedAlbum })
   } catch ({ message }) {
     res.status(500).json({ error: message })
@@ -622,10 +610,7 @@ router.delete('/albums/:id', auth, checkRole(['admin']), async (req, res) => {
     if (!album) {
       return res.status(404).json({ error: '相册不存在' })
     }
-    await Image.updateMany(
-      { album: id },
-      { $set: { album: null } }
-    )
+    await Image.updateMany({ album: id }, { $set: { album: null } })
     // 删除相册
     await Album.deleteOne({ _id: id })
     res.json({ message: '相册删除成功' })

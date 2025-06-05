@@ -4,19 +4,20 @@ const verificationCodeSchema = new mongoose.Schema({
   email: {
     type: String,
     required: true,
-    lowercase: true,
+    lowercase: true
   },
   code: {
     type: String,
-    required: true,
+    required: true
   },
-  type: { // 'register', 'reset', 'changeEmail', etc.
+  type: {
+    // 'register', 'reset', 'changeEmail', etc.
     type: String,
-    required: true,
+    required: true
   },
   expires: {
     type: Date,
-    required: true,
+    required: true
   },
   createdAt: {
     type: Date,
@@ -47,4 +48,4 @@ verificationCodeSchema.methods.setExpires = function (duration) {
 // 自动删除过期的记录
 verificationCodeSchema.index({ createdAt: 1 }, { expireAfterSeconds: 7200 })
 
-export const VerificationCode = mongoose.model('VerificationCode', verificationCodeSchema) 
+export const VerificationCode = mongoose.model('VerificationCode', verificationCodeSchema)

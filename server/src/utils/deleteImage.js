@@ -1,8 +1,15 @@
 import {
-  deleteFromOSS, deleteFromCOS, deleteFromS3,
-  deleteFromR2, deleteFromQiNiu, deleteFromUpyun,
-  deleteFromSftp, deleteFromFtp, deleteFromWebdav,
-  deleteFromTelegram, deleteFromGithub
+  deleteFromOSS,
+  deleteFromCOS,
+  deleteFromS3,
+  deleteFromR2,
+  deleteFromQiNiu,
+  deleteFromUpyun,
+  deleteFromSftp,
+  deleteFromFtp,
+  deleteFromWebdav,
+  deleteFromTelegram,
+  deleteFromGithub
 } from '../utils/oss.js'
 import fs from 'fs/promises'
 import path from 'path'

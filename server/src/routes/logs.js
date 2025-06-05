@@ -17,7 +17,7 @@ router.post('/logs', auth, checkRole(['admin']), async (req, res) => {
       if (startDate) query.createdAt.$gte = new Date(startDate)
       if (endDate) query.createdAt.$lte = new Date(endDate)
     }
-    // IP过滤 
+    // IP过滤
     if (ip) {
       query.ip = new RegExp(ip, 'i')
     }
@@ -90,7 +90,7 @@ router.post('/logs/stats', auth, checkRole(['admin']), async (req, res) => {
       { $match: match },
       {
         $lookup: {
-          from: 'users',  // 关联 users 集合
+          from: 'users', // 关联 users 集合
           localField: 'user',
           foreignField: '_id',
           as: 'userInfo'
@@ -145,4 +145,4 @@ router.delete('/logs', auth, checkRole(['admin']), async (req, res) => {
   }
 })
 
-export default router 
+export default router

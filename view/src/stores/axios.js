@@ -1,25 +1,27 @@
 import axios from 'axios'
 
 // 函数返回唯一的请求key
-const getRequestKey = (config) => {
+const getRequestKey = config => {
   const { method, url, params, data } = config
-  return [method, url, JSON.stringify(params), JSON.stringify(data)].join("&")
+  return [method, url, JSON.stringify(params), JSON.stringify(data)].join('&')
 }
 
 // 添加请求信息
 const pendingRequest = new Map()
 
-const addPendingRequest = (config) => {
+const addPendingRequest = config => {
   const requestKey = getRequestKey(config)
-  config.cancelToken = config.cancelToken || new axios.CancelToken((cancel) => {
-    if (!pendingRequest.has(requestKey)) {
-      pendingRequest.set(requestKey, cancel)
-    }
-  })
+  config.cancelToken =
+    config.cancelToken ||
+    new axios.CancelToken(cancel => {
+      if (!pendingRequest.has(requestKey)) {
+        pendingRequest.set(requestKey, cancel)
+      }
+    })
 }
 
 // 取消重复请求，移除重复请求信息
-const removePendingRequest = (config) => {
+const removePendingRequest = config => {
   const requestKey = getRequestKey(config)
   if (pendingRequest.has(requestKey)) {
     // 重复请求时调用该函数
@@ -37,30 +39,36 @@ const instance = axios.create({
 })
 
 // 添加请求拦截器
-instance.interceptors.request.use(config => {
-  // 取消重复请求，移除重复请求信息
-  removePendingRequest(config)
-  // 把当前请求信息添加到pendingRequest对象中
-  addPendingRequest(config)
-  const { token } = JSON.parse(localStorage.getItem('stb')) || {}
-  config.headers.Authorization = token ? `Bearer ${token}` : ''
-  return config
-}, error => {
-  return Promise.reject(error)
-})
+instance.interceptors.request.use(
+  config => {
+    // 取消重复请求，移除重复请求信息
+    removePendingRequest(config)
+    // 把当前请求信息添加到pendingRequest对象中
+    addPendingRequest(config)
+    const { token } = JSON.parse(localStorage.getItem('stb')) || {}
+    config.headers.Authorization = token ? `Bearer ${token}` : ''
+    return config
+  },
+  error => {
+    return Promise.reject(error)
+  }
+)
 
 // 添加响应拦截器
-instance.interceptors.response.use(response => {
-  removePendingRequest(response.config)
-  return response
-}, error => {
-  const config = JSON.parse(localStorage.getItem('stb')) || {}
-  if (!config?.site?.anonymousUpload && error.response?.status === 401) {
-    localStorage.removeItem('stb')
-    location.href = '/login'
+instance.interceptors.response.use(
+  response => {
+    removePendingRequest(response.config)
+    return response
+  },
+  error => {
+    const config = JSON.parse(localStorage.getItem('stb')) || {}
+    if (!config?.site?.anonymousUpload && error.response?.status === 401) {
+      localStorage.removeItem('stb')
+      location.href = '/login'
+    }
+    removePendingRequest(error.config || {})
+    return Promise.reject(error)
   }
-  removePendingRequest(error.config || {})
-  return Promise.reject(error)
-})
+)
 
 export default instance

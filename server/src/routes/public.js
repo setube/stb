@@ -20,7 +20,7 @@ router.post('/users/:userId', async (req, res) => {
   }
 })
 
-// 获取用户公开的相册列表 
+// 获取用户公开的相册列表
 router.post('/users/:userId/albums', async (req, res) => {
   try {
     const { userId } = req.params
@@ -70,4 +70,4 @@ router.post('/albums/:albumId/images', async (req, res) => {
   }
 })
 
-export default router 
+export default router

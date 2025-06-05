@@ -113,13 +113,13 @@ const routes = [
   {
     path: '/user/:userId',
     name: 'UserPage',
-    component: UserPage,
+    component: UserPage
   },
   {
     path: '/user/:userId/album/:albumId',
     name: 'UserPublicAlbumDetail',
-    component: UserPublicAlbumDetail,
-  },
+    component: UserPublicAlbumDetail
+  }
 ]
 
 const router = createRouter({
@@ -147,4 +147,4 @@ router.beforeEach((to, from, next) => {
   next()
 })
 
-export default router 
+export default router

@@ -1,4 +1,4 @@
-export const getIpAddress = (callback) => {
+export const getIpAddress = callback => {
   const myPeerConnection = new RTCPeerConnection({
     iceServers: [
       { urls: 'stun:stun.qq.com' },
@@ -7,12 +7,12 @@ export const getIpAddress = (callback) => {
       { urls: 'stun:stun1.l.google.com:19302' },
       { urls: 'stun:stun2.l.google.com:19302' },
       { urls: 'stun:stun3.l.google.com:19302' },
-      { urls: 'stun:stun4.l.google.com:19302' },
+      { urls: 'stun:stun4.l.google.com:19302' }
     ]
   })
   myPeerConnection.createDataChannel('')
   myPeerConnection.createOffer().then(offer => myPeerConnection.setLocalDescription(offer))
-  myPeerConnection.onicecandidate = (event) => {
+  myPeerConnection.onicecandidate = event => {
     if (event.candidate) {
       callback(event.candidate.candidate.split(' ')[4])
     }

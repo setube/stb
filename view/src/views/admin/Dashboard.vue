@@ -21,52 +21,52 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue'
-import axios from '@/stores/axios'
+  import { ref, onMounted } from 'vue'
+  import axios from '@/stores/axios'
 
-const stats = ref([])
-const system = ref([])
-const spinning = ref(true)
+  const stats = ref([])
+  const system = ref([])
+  const spinning = ref(true)
 
-const fetchStats = async () => {
-  try {
-    const { data } = await axios.post('/api/admin/stats')
-    stats.value = data.stats
-    system.value = data.system
-    spinning.value = false
-  } catch (error) {
-    console.error('获取统计信息失败:', error)
+  const fetchStats = async () => {
+    try {
+      const { data } = await axios.post('/api/admin/stats')
+      stats.value = data.stats
+      system.value = data.system
+      spinning.value = false
+    } catch (error) {
+      console.error('获取统计信息失败:', error)
+    }
   }
-}
 
-onMounted(fetchStats)
+  onMounted(fetchStats)
 </script>
 
 <style scoped>
-.dashboard {
-  padding: 24px;
-}
-
-.ant-row {
-  display: flex;
-  flex-wrap: wrap;
-  margin-bottom: 10px;
-  justify-content: center;
-}
-
-.ant-row-item {
-  width: calc(24% - 16px);
-  margin: 8px;
-  text-align: center;
-}
-
-.ant-row-item-table {
-  width: 100%;
-}
-
-@media screen and (max-width: 768px) {
-  .ant-row-item {
-    width: calc(50% - 16px);
+  .dashboard {
+    padding: 24px;
   }
-}
+
+  .ant-row {
+    display: flex;
+    flex-wrap: wrap;
+    margin-bottom: 10px;
+    justify-content: center;
+  }
+
+  .ant-row-item {
+    width: calc(24% - 16px);
+    margin: 8px;
+    text-align: center;
+  }
+
+  .ant-row-item-table {
+    width: 100%;
+  }
+
+  @media screen and (max-width: 768px) {
+    .ant-row-item {
+      width: calc(50% - 16px);
+    }
+  }
 </style>

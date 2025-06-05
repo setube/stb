@@ -7,5 +7,5 @@
 </template>
 
 <script setup>
-import erro404 from '@/assets/404.svg'
+  import erro404 from '@/assets/404.svg'
 </script>

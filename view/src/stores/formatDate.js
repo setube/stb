@@ -1,9 +1,8 @@
-
 import ClipboardJS from 'clipboard'
 import { message } from 'ant-design-vue'
 
 // 时间格式转换
-export const formatDate = (timestamp) => {
+export const formatDate = timestamp => {
   const date = new Date(timestamp)
   const year = date.getFullYear()
   const month = String(date.getMonth() + 1).padStart(2, '0')
@@ -15,7 +14,7 @@ export const formatDate = (timestamp) => {
 }
 
 // 图片大小转换
-export const formatFileSize = (bytes) => {
+export const formatFileSize = bytes => {
   if (bytes === 0) return '0 B'
   const k = 1024
   const sizes = ['B', 'KB', 'MB', 'GB']
@@ -31,12 +30,12 @@ export const copyImages = (event, image, userStore) => {
       return image.type == 'local' ? userStore.config.site.url + image.url : image.url
     }
   })
-  clipboard.on('success', (e) => {
+  clipboard.on('success', e => {
     e.clearSelection()
     message.success('链接已复制到剪贴板')
     clipboard.destroy()
   })
-  clipboard.on('error', (e) => {
+  clipboard.on('error', e => {
     message.error('复制失败, 请检查当前浏览器是否支持Clipboard.js')
     clipboard.destroy()
   })
@@ -56,7 +55,7 @@ export const imageStoreType = {
   webdav: 'WebDAV',
   telegram: 'Telegram',
   github: 'GitHub',
-  get: (key) => imageStoreType[key] ?? '本地存储'
+  get: key => imageStoreType[key] ?? '本地存储'
 }
 
 // 图片健康状态
@@ -66,27 +65,27 @@ export const imageHealthStatus = {
     text: '建议屏蔽'
   },
   Review: {
-    color:'orange',
+    color: 'orange',
     text: '建议人工审核'
   },
   Pass: {
-    color:'green',
+    color: 'green',
     text: '建议通过'
   },
   high: {
-    color:'red',
+    color: 'red',
     text: '高风险'
   },
   medium: {
-    color:'orange',
+    color: 'orange',
     text: '中风险'
   },
   low: {
-    color:'green',
+    color: 'green',
     text: '低风险'
   },
   none: {
-    color:'gray',
+    color: 'gray',
     text: '无风险'
   }
 }
@@ -94,27 +93,27 @@ export const imageHealthStatus = {
 // 图片检测结果
 export const imageCheckResult = {
   Porn: {
-    color:'red',
+    color: 'red',
     text: '色情'
   },
   Ad: {
-    color:'red',
+    color: 'red',
     text: '广告'
   },
   Abuse: {
-    color:'red',
+    color: 'red',
     text: '暴力'
   },
   Normal: {
-    color:'green',
+    color: 'green',
     text: '正常'
   },
   unsafe: {
-    color:'red',
+    color: 'red',
     text: '不安全'
   },
   safe: {
-    color:'green',
+    color: 'green',
     text: '安全'
   }
 }

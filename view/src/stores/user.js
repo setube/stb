@@ -7,9 +7,9 @@ export const useUserStore = defineStore('user', {
     token: null,
     config: null,
     activeKey: '1'
-  }), 
+  }),
   getters: {
-    menuVisibility: (state) => ({
+    menuVisibility: state => ({
       home: true,
       my: !!state.token,
       gallery: !!state.config?.site?.gallery,
@@ -20,8 +20,8 @@ export const useUserStore = defineStore('user', {
     key: 'stb',
     storage: localStorage,
     serializer: {
-      serialize: (state) => JSON.stringify(state),
-      deserialize: (value) => JSON.parse(value)
+      serialize: state => JSON.stringify(state),
+      deserialize: value => JSON.parse(value)
     }
   }
 })

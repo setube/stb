@@ -15,6 +15,7 @@ import path from 'path'
 import requestIP from 'request-ip'
 import { fileURLToPath } from 'url'
 import publicRoutes from './routes/public.js'
+import ipaddr from 'ipaddr.js'
 
 dotenv.config()
 
@@ -23,8 +24,203 @@ const __dirname = path.dirname(__filename)
 
 const app = express()
 
-app.set('trust proxy', false) // default is false
+app.set('trust proxy', true)
 app.use(requestIP.mw({ attributeName: 'clientIP' }))
+
+app.use(
+  cors({
+    origin: true, // 允许所有来源
+    credentials: true // 允许携带凭证
+  })
+)
+
+app.use((req, res, next) => {
+  const ipSources = [
+    'CACHE_INFO',
+    'CF_CONNECTING_IP',
+    'CF-Connecting-IP',
+    'CLIENT_IP',
+    'Client-IP',
+    'COMING_FROM',
+    'CONNECT_VIA_IP',
+    'FORWARD_FOR',
+    'FORWARD-FOR',
+    'FORWARDED_FOR_IP',
+    'FORWARDED_FOR',
+    'FORWARDED-FOR-IP',
+    'FORWARDED-FOR',
+    'FORWARDED',
+    'HTTP-CLIENT-IP',
+    'HTTP-FORWARDED-FOR-IP',
+    'HTTP-PC-REMOTE-ADDR',
+    'HTTP-PROXY-CONNECTION',
+    'HTTP-VIA',
+    'HTTP-X-FORWARDED-FOR-IP',
+    'HTTP-X-IMFORWARDS',
+    'HTTP-XROXY-CONNECTION',
+    'PC_REMOTE_ADDR',
+    'PRAGMA',
+    'PROXY_AUTHORIZATION',
+    'PROXY_CONNECTION',
+    'Proxy-Client-IP',
+    'PROXY',
+    'REMOTE_ADDR',
+    'Source-IP',
+    'True-Client-IP',
+    'Via',
+    'WL-Proxy-Client-IP',
+    'X_CLUSTER_CLIENT_IP',
+    'X_COMING_FROM',
+    'X_DELEGATE_REMOTE_HOST',
+    'X_FORWARDED_FOR_IP',
+    'X_FORWARDED_FOR',
+    'X_FORWARDED',
+    'X_IMFORWARDS',
+    'X_LOCKING',
+    'X_LOOKING',
+    'X_REAL_IP',
+    'X-Backend-Host',
+    'X-BlueCoat-Via',
+    'X-Cache-Info',
+    'X-Forward-For',
+    'X-Forwarded-By',
+    'X-Forwarded-For-Original',
+    'X-Forwarded-For',
+    'X-Forwarded-Server',
+    'X-Forwared-Host',
+    'X-From-IP',
+    'X-From',
+    'X-Gateway-Host',
+    'X-Host',
+    'X-Ip',
+    'X-Original-Host',
+    'X-Original-IP',
+    'X-Original-Remote-Addr',
+    'X-Original-Url',
+    'X-Originally-Forwarded-For',
+    'X-Originating-IP',
+    'X-ProxyMesh-IP',
+    'X-ProxyUser-IP',
+    'X-Real-IP',
+    'X-Remote-Addr',
+    'X-Remote-IP',
+    'X-True-Client-IP',
+    'XONNECTION',
+    'XPROXY',
+    'XROXY_CONNECTION',
+    'Z-Forwarded-For',
+    'ZCACHE_CONTROL',
+    'X-Forwarded',
+    'Remote-Addr',
+    'X-Cluster-Client-IP',
+    'CF_PSEUDO_IPV4',
+    'X_CF_Connecting_IP',
+    'Fastly-Client-IP',
+    'X-Amz-Cf-Id',
+    'X-Amzn-Trace-Id',
+    'X-Azure-Client-IP',
+    'X-Envoy-External-Address',
+    'X-Google-Forwarded-For',
+    'X-Tencent-Forwarded-For',
+    'Ali-Cdn-Real-Ip',
+    'Cdn-Src-Ip',
+    'Cdn-Real-Ip',
+    'Bcdn-Real-Ip',
+    'X-Vercel-Forwarded-For',
+    'X-Coming-From',
+    'X-Proxied-For',
+    'X-Original-Forwarded-For',
+    'ClientIP',
+    'Coming-From',
+    'Connect-Via-IP',
+    'Forwared-Host',
+    'P-Client-IP',
+    'Proxy-Connection',
+    'Proxy-Authorization',
+    'X-External-Access'
+  ]
+  // 收集所有可用 IP 字符串
+  const allIps = ipSources
+    .map(header => req.headers[header.toLowerCase()])
+    .filter(Boolean)
+    .flatMap(ip => ip.split(',').map(i => i.trim()))
+    .concat(req.socket?.remoteAddress || [], req.ip || [])
+    .filter(Boolean)
+  const uniqueIps = [...new Set(allIps)]
+  // 过滤出第一个合法 IPv4 和 IPv6 地址
+  let ipv4 = null
+  let ipv6 = null
+  // 检查是否为私网 IP
+  const isPrivateIP = ip => {
+    try {
+      const addr = ipaddr.parse(ip)
+      return addr.range() === 'private' || addr.range() === 'loopback' || addr.range() === 'linkLocal'
+    } catch (e) {
+      return false
+    }
+  }
+  // 检查 IP 是否合法
+  const isValidIP = ip => {
+    try {
+      ipaddr.parse(ip)
+      return true
+    } catch (e) {
+      return false
+    }
+  }
+  for (const ip of uniqueIps) {
+    // 跳过无效 IP
+    if (!isValidIP(ip)) continue
+    // 处理 IPv4
+    if (!ipv4 && /^[\d.]+$/.test(ip)) {
+      // 跳过私网 IP
+      if (!isPrivateIP(ip)) {
+        ipv4 = ip
+      }
+    }
+    // 处理 IPv6
+    else if (!ipv6 && /^[a-fA-F0-9:]+$/.test(ip)) {
+      // 跳过 ::ffff: 开头的映射 IPv4
+      if (!ip.toLowerCase().startsWith('::ffff:')) {
+        // 跳过私网 IP
+        if (!isPrivateIP(ip)) {
+          ipv6 = ip
+        }
+      }
+    }
+    // 特殊处理 ::ffff:IPv4 的情况
+    if (!ipv4 && ip.toLowerCase().startsWith('::ffff:')) {
+      const ipv4FromV6 = ip.replace('::ffff:', '')
+      if (!isPrivateIP(ipv4FromV6)) {
+        ipv4 = ipv4FromV6
+      }
+    }
+    if (ipv4 && ipv6) break
+  }
+  // 如果所有 IP 都是私网 IP,则使用第一个有效的 IP
+  if (!ipv4 && !ipv6) {
+    for (const ip of uniqueIps) {
+      if (!isValidIP(ip)) continue
+      if (!ipv4 && /^[\d.]+$/.test(ip)) {
+        ipv4 = ip
+      } else if (!ipv6 && /^[a-fA-F0-9:]+$/.test(ip)) {
+        if (!ip.toLowerCase().startsWith('::ffff:')) {
+          ipv6 = ip
+        }
+      }
+      if (!ipv4 && ip.toLowerCase().startsWith('::ffff:')) {
+        ipv4 = ip.replace('::ffff:', '')
+      }
+      if (ipv4 || ipv6) break
+    }
+  }
+  req.clientIp = {
+    ipv4: ipv4 === '127.0.0.1' ? null : ipv4 || null,
+    ipv6: ipv6 === '::1' ? null : ipv6 || null
+  }
+  next()
+})
+
 // 中间件
 app.use(cors())
 app.use(express.json())
@@ -61,7 +257,7 @@ const connectDB = async () => {
     try {
       await mongoose.connect(process.env.MONGODB_URI, {
         serverSelectionTimeoutMS: 5000, // 超时时间
-        socketTimeoutMS: 45000, // Socket 超时时间
+        socketTimeoutMS: 45000 // Socket 超时时间
       })
       console.log('MongoDB数据库连接成功')
       // 初始化配置
@@ -93,4 +289,4 @@ const startServer = async () => {
   }
 }
 
-startServer() 
+startServer()

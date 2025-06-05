@@ -9,9 +9,8 @@ export const checkIpWhitelist = async (req, res, next) => {
     // 检查 IP 功能是否启用
     if (!enabled) return next()
     // 使用前端传来的IP，如果没有则使用请求IP
-    const reqBodyIp = req.body.ip.includes('127.0.0.1') || !req.body.ip ? req.ip : req.body.ip
-    const reqIp = req.ip.includes('::1') || req.ip.includes('127.0.0.1') || !req.ip ? reqBodyIp : req.ip
-    const bodyIp = reqIp || reqBodyIp
+    const { body, clientIp } = req
+    const bodyIp = clientIp.ipv4 || clientIp.ipv6 || body.ip
     // 检查黑名单
     if (enabled && blacklist.includes(bodyIp)) {
       await fs.unlink(req.file.path)
@@ -20,6 +19,6 @@ export const checkIpWhitelist = async (req, res, next) => {
     next()
   } catch (error) {
     await fs.unlink(file.path)
-    res.status(500).json({ error: 'IP检查失败' })
+    res.status(400).json({ error: 'IP检查失败' })
   }
-} 
+}

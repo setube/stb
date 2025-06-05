@@ -18,4 +18,4 @@ export const checkDailyLimit = async (req, res, next) => {
   } catch ({ message }) {
     res.status(500).json({ error: message })
   }
-} 
+}

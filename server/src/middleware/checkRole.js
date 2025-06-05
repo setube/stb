@@ -1,4 +1,4 @@
-export const checkRole = (roles) => {
+export const checkRole = roles => {
   return (req, res, next) => {
     if (!req.user) {
       return res.status(401).json({ error: '未授权' })
@@ -8,4 +8,4 @@ export const checkRole = (roles) => {
     }
     next()
   }
-} 
+}

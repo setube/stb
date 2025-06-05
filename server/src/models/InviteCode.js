@@ -26,4 +26,4 @@ const inviteCodeSchema = new mongoose.Schema({
   }
 })
 
-export const InviteCode = mongoose.model('InviteCode', inviteCodeSchema) 
+export const InviteCode = mongoose.model('InviteCode', inviteCodeSchema)

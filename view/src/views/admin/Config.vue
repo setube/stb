@@ -20,13 +20,21 @@
               <a-switch v-model:checked="formState.site.gallery" checked-children="启用" un-checked-children="禁用" />
             </a-form-item>
             <a-form-item label="是否游客上传">
-              <a-switch v-model:checked="formState.site.anonymousUpload" checked-children="启用" un-checked-children="禁用" />
+              <a-switch
+                v-model:checked="formState.site.anonymousUpload"
+                checked-children="启用"
+                un-checked-children="禁用"
+              />
             </a-form-item>
             <a-form-item label="是否开启注册">
               <a-switch v-model:checked="formState.site.register" checked-children="启用" un-checked-children="禁用" />
             </a-form-item>
             <a-form-item label="是否开启邀请码注册" v-if="formState.site.register">
-              <a-switch v-model:checked="formState.site.inviteCodeRequired" checked-children="启用" un-checked-children="禁用" />
+              <a-switch
+                v-model:checked="formState.site.inviteCodeRequired"
+                checked-children="启用"
+                un-checked-children="禁用"
+              />
             </a-form-item>
           </a-collapse-panel>
           <a-collapse-panel key="2" header="SMTP设置">
@@ -42,7 +50,10 @@
                   <a-input v-model:value="formState.smtp.fromName" placeholder="输入发件人名称" />
                 </a-form-item>
                 <a-form-item required label="SMTP 服务器地址">
-                  <a-input v-model:value="formState.smtp.host" placeholder="输入 SMTP 服务器地址，例如：smtp.qiye.aliyun.com" />
+                  <a-input
+                    v-model:value="formState.smtp.host"
+                    placeholder="输入 SMTP 服务器地址，例如：smtp.qiye.aliyun.com"
+                  />
                 </a-form-item>
                 <a-form-item required label="SMTP 服务器端口">
                   <a-input v-model:value="formState.smtp.port" placeholder="输入 SMTP 服务器端口，例如：465" />
@@ -65,7 +76,11 @@
           </a-collapse-panel>
           <a-collapse-panel key="3" header="水印设置">
             <a-form-item>
-              <a-switch v-model:checked="formState.watermark.enabled" checked-children="启用" un-checked-children="禁用" />
+              <a-switch
+                v-model:checked="formState.watermark.enabled"
+                checked-children="启用"
+                un-checked-children="禁用"
+              />
             </a-form-item>
             <template v-if="formState.watermark.enabled">
               <a-form-item label="水印类型">
@@ -87,7 +102,11 @@
               </template>
               <template v-else>
                 <a-form-item label="上传水印">
-                  <a-upload v-model:fileList="watermarkFileList" :beforeUpload="handleWatermarkUpload" :showUploadList="false">
+                  <a-upload
+                    v-model:fileList="watermarkFileList"
+                    :beforeUpload="handleWatermarkUpload"
+                    :showUploadList="false"
+                  >
                     <a-button>选择水印图片</a-button>
                   </a-upload>
                 </a-form-item>
@@ -118,8 +137,9 @@
           <a-collapse-panel key="4" header="存储设置">
             <a-form-item label="存储类型">
               <a-select v-model:value="formState.storage.type">
-                <a-select-option v-for="(item, index) in imageStoreArray" :value="item.value" :key="index">{{ item.label
-                }}</a-select-option>
+                <a-select-option v-for="(item, index) in imageStoreArray" :value="item.value" :key="index">
+                  {{ item.label }}
+                </a-select-option>
               </a-select>
             </a-form-item>
             <template v-if="formState.storage.type === 'local'">
@@ -132,7 +152,10 @@
                 <a-input v-model:value="formState.storage.oss.accessKeyId" placeholder="输入 AccessKeyId" />
               </a-form-item>
               <a-form-item required label="AccessKey Secret">
-                <a-input-password v-model:value="formState.storage.oss.accessKeySecret" placeholder="输入 AccessKeySecret" />
+                <a-input-password
+                  v-model:value="formState.storage.oss.accessKeySecret"
+                  placeholder="输入 AccessKeySecret"
+                />
               </a-form-item>
               <a-form-item required label="OSS Bucket">
                 <a-input v-model:value="formState.storage.oss.bucket" />
@@ -144,13 +167,23 @@
                 <a-input v-model:value="formState.storage.oss.region" placeholder="输入 Region，例如：cn-shanghai" />
               </a-form-item>
               <a-form-item required label="外网 Endpoint">
-                <a-input v-model:value="formState.storage.oss.endpoint" placeholder="输入 Endpoint，例如：oss-cn-shanghai.aliyuncs.com" />
+                <a-input
+                  v-model:value="formState.storage.oss.endpoint"
+                  placeholder="输入 Endpoint，例如：oss-cn-shanghai.aliyuncs.com"
+                />
               </a-form-item>
               <a-form-item label="内网 Endpoint">
-                <a-input v-model:value="formState.storage.oss.internal" placeholder="输入内网 Endpoint，内网上传地址，填写即启用，例如：oss-cn-shanghai-internal.aliyuncs.com" />
+                <a-input
+                  v-model:value="formState.storage.oss.internal"
+                  placeholder="输入内网 Endpoint，内网上传地址，填写即启用，例如：oss-cn-shanghai-internal.aliyuncs.com"
+                />
               </a-form-item>
               <a-form-item label="Is Cname">
-                <a-switch v-model:checked="formState.storage.oss.isCname" checked-children="是" un-checked-children="否" />
+                <a-switch
+                  v-model:checked="formState.storage.oss.isCname"
+                  checked-children="是"
+                  un-checked-children="否"
+                />
                 <p>若 Endpoint 为自定义域名，请打开此项。</p>
               </a-form-item>
             </template>
@@ -176,13 +209,19 @@
                 <a-input v-model:value="formState.storage.s3.directory" placeholder="输入储存目录" />
               </a-form-item>
               <a-form-item required label="Endpoint">
-                <a-input v-model:value="formState.storage.s3.endpoint" placeholder="输入 Endpoint，例如：https://s3.amazonaws.com" />
+                <a-input
+                  v-model:value="formState.storage.s3.endpoint"
+                  placeholder="输入 Endpoint，例如：https://s3.amazonaws.com"
+                />
               </a-form-item>
               <a-form-item required label="AccessKeyId">
                 <a-input v-model:value="formState.storage.s3.accessKeyId" placeholder="输入 AccessKeyId" />
               </a-form-item>
               <a-form-item required label="SecretAccessKey">
-                <a-input-password v-model:value="formState.storage.s3.secretAccessKey" placeholder="输入 SecretAccessKey" />
+                <a-input-password
+                  v-model:value="formState.storage.s3.secretAccessKey"
+                  placeholder="输入 SecretAccessKey"
+                />
               </a-form-item>
               <a-form-item label="Region">
                 <a-input v-model:value="formState.storage.s3.region" placeholder="输入 Region，例如：us-east-1" />
@@ -202,7 +241,10 @@
                 <a-input v-model:value="formState.storage.r2.accessKeyId" placeholder="输入 AccessKeyId" />
               </a-form-item>
               <a-form-item required label="SecretAccessKey">
-                <a-input-password v-model:value="formState.storage.r2.secretAccessKey" placeholder="输入 SecretAccessKey" />
+                <a-input-password
+                  v-model:value="formState.storage.r2.secretAccessKey"
+                  placeholder="输入 SecretAccessKey"
+                />
               </a-form-item>
               <a-form-item required label="公共URL">
                 <a-input v-model:value="formState.storage.r2.publicUrl" placeholder="输入 公共URL" />
@@ -239,7 +281,10 @@
                 <a-input v-model:value="formState.storage.upyun.directory" placeholder="输入储存目录" />
               </a-form-item>
               <a-form-item required label="访问域名">
-                <a-input v-model:value="formState.storage.upyun.domain" placeholder="输入访问域名, 例如: https://domain.com" />
+                <a-input
+                  v-model:value="formState.storage.upyun.domain"
+                  placeholder="输入访问域名, 例如: https://domain.com"
+                />
               </a-form-item>
             </template>
             <template v-if="formState.storage.type === 'sftp'">
@@ -259,13 +304,22 @@
                 <a-input v-model:value="formState.storage.sftp.directory" placeholder="输入储存目录" />
               </a-form-item>
               <a-form-item required label="连接超时时间">
-                <a-input v-model:value="formState.storage.sftp.connectTimeout" placeholder="输入连接超时时间，默认为 10 秒" />
+                <a-input
+                  v-model:value="formState.storage.sftp.connectTimeout"
+                  placeholder="输入连接超时时间，默认为 10 秒"
+                />
               </a-form-item>
               <a-form-item required label="连接最大尝试次数">
-                <a-input v-model:value="formState.storage.sftp.retries" placeholder="输入连接最大尝试次数，默认为 4 次" />
+                <a-input
+                  v-model:value="formState.storage.sftp.retries"
+                  placeholder="输入连接最大尝试次数，默认为 4 次"
+                />
               </a-form-item>
               <a-form-item required label="访问域名">
-                <a-input v-model:value="formState.storage.sftp.domain" placeholder="输入访问域名, 例如: https://domain.com" />
+                <a-input
+                  v-model:value="formState.storage.sftp.domain"
+                  placeholder="输入访问域名, 例如: https://domain.com"
+                />
               </a-form-item>
               <a-form-item label="主机指纹">
                 <a-input-password v-model:value="formState.storage.sftp.hostFingerprint" placeholder="输入主机指纹" />
@@ -275,10 +329,17 @@
               </a-form-item>
               <template v-if="formState.storage.sftp.useSSH">
                 <a-form-item label="私钥">
-                  <a-textarea v-model:value="formState.storage.sftp.privateKey" placeholder="使用私钥连接请输入私钥" :auto-size="{ minRows: 2, maxRows: 5 }" />
+                  <a-textarea
+                    v-model:value="formState.storage.sftp.privateKey"
+                    placeholder="使用私钥连接请输入私钥"
+                    :auto-size="{ minRows: 2, maxRows: 5 }"
+                  />
                 </a-form-item>
                 <a-form-item label="私钥口令">
-                  <a-input-password v-model:value="formState.storage.sftp.passphrase" placeholder="使用私钥连接请输入私钥口令" />
+                  <a-input-password
+                    v-model:value="formState.storage.sftp.passphrase"
+                    placeholder="使用私钥连接请输入私钥口令"
+                  />
                 </a-form-item>
               </template>
             </template>
@@ -306,10 +367,16 @@
                 <p>请选择传输模式，默认为 FTP_BINARY</p>
               </a-form-item>
               <a-form-item required label="连接超时时间">
-                <a-input v-model:value="formState.storage.ftp.connectTimeout" placeholder="输入连接超时时间，默认为 90 秒" />
+                <a-input
+                  v-model:value="formState.storage.ftp.connectTimeout"
+                  placeholder="输入连接超时时间，默认为 90 秒"
+                />
               </a-form-item>
               <a-form-item required label="访问域名">
-                <a-input v-model:value="formState.storage.ftp.domain" placeholder="输入访问域名, 例如: https://domain.com" />
+                <a-input
+                  v-model:value="formState.storage.ftp.domain"
+                  placeholder="输入访问域名, 例如: https://domain.com"
+                />
               </a-form-item>
               <a-form-item label="是否使用被动模式">
                 <a-switch v-model:checked="formState.storage.ftp.passive" />
@@ -353,7 +420,10 @@
                 <a-input-password v-model:value="formState.storage.webdav.password" placeholder="输入密码" />
               </a-form-item>
               <a-form-item required label="访问域名">
-                <a-input v-model:value="formState.storage.webdav.domain" placeholder="输入访问域名, 例如: https://domain.com" />
+                <a-input
+                  v-model:value="formState.storage.webdav.domain"
+                  placeholder="输入访问域名, 例如: https://domain.com"
+                />
               </a-form-item>
             </template>
             <template v-if="formState.storage.type === 'telegram'">
@@ -367,7 +437,10 @@
                 <a-switch v-model:checked="formState.storage.telegram.polling" />
               </a-form-item>
               <a-form-item label="连接超时时间">
-                <a-input v-model:value="formState.storage.telegram.timeout" placeholder="输入连接超时时间，默认为 30 秒" />
+                <a-input
+                  v-model:value="formState.storage.telegram.timeout"
+                  placeholder="输入连接超时时间，默认为 30 秒"
+                />
               </a-form-item>
               <a-form-item label="代理地址">
                 <a-input v-model:value="formState.storage.telegram.proxy" placeholder="输入代理地址" />
@@ -375,7 +448,10 @@
             </template>
             <template v-if="formState.storage.type === 'github'">
               <a-form-item required label="GitHub 个人访问令牌">
-                <a-input-password v-model:value="formState.storage.github.token" placeholder="输入 GitHub 个人访问令牌" />
+                <a-input-password
+                  v-model:value="formState.storage.github.token"
+                  placeholder="输入 GitHub 个人访问令牌"
+                />
               </a-form-item>
               <a-form-item required label="仓库所有者">
                 <a-input v-model:value="formState.storage.github.owner" placeholder="输入仓库所有者" />
@@ -391,7 +467,10 @@
                 <p>Github不允许文件路径以斜杠"/"开头</p>
               </a-form-item>
               <a-form-item required label="连接超时时间">
-                <a-input v-model:value="formState.storage.github.timeout" placeholder="输入连接超时时间，默认为 30 秒" />
+                <a-input
+                  v-model:value="formState.storage.github.timeout"
+                  placeholder="输入连接超时时间，默认为 30 秒"
+                />
               </a-form-item>
               <a-form-item required label="重试次数">
                 <a-input v-model:value="formState.storage.github.retries" placeholder="输入重试次数，默认为 3 次" />
@@ -406,11 +485,25 @@
               <a-form-item label="是否Github Pages" v-if="formState.storage.github.customDomain">
                 <a-switch v-model:checked="formState.storage.github.isGithubPages" />
               </a-form-item>
-              <a-form-item required label="自定义域名" v-if="formState.storage.github.customDomain && !formState.storage.github.isGithubPages">
-                <a-input v-model:value="formState.storage.github.domain" placeholder="输入自定义域名, 例如: https://domain.com" />
+              <a-form-item
+                required
+                label="自定义域名"
+                v-if="formState.storage.github.customDomain && !formState.storage.github.isGithubPages"
+              >
+                <a-input
+                  v-model:value="formState.storage.github.domain"
+                  placeholder="输入自定义域名, 例如: https://domain.com"
+                />
               </a-form-item>
-              <a-form-item required label="Github Pages" v-if="formState.storage.github.customDomain && formState.storage.github.isGithubPages">
-                <a-input v-model:value="formState.storage.github.githubPages" placeholder="输入Github Pages, 例如: https://user.github.io" />
+              <a-form-item
+                required
+                label="Github Pages"
+                v-if="formState.storage.github.customDomain && formState.storage.github.isGithubPages"
+              >
+                <a-input
+                  v-model:value="formState.storage.github.githubPages"
+                  placeholder="输入Github Pages, 例如: https://user.github.io"
+                />
               </a-form-item>
             </template>
           </a-collapse-panel>
@@ -459,25 +552,44 @@
                   <a-input v-model:value="formState.ai.aliyun.accessKeyId" placeholder="请输入 AccessKeyId" />
                 </a-form-item>
                 <a-form-item required label="AccessKeySecret">
-                  <a-input-password v-model:value="formState.ai.aliyun.accessKeySecret" placeholder="请输入 AccessKeySecret" />
+                  <a-input-password
+                    v-model:value="formState.ai.aliyun.accessKeySecret"
+                    placeholder="请输入 AccessKeySecret"
+                  />
                 </a-form-item>
                 <a-form-item required label="地域节点">
                   <a-input v-model:value="formState.ai.aliyun.region" placeholder="请输入地域节点，例如：cn-shanghai" />
                 </a-form-item>
                 <a-form-item required label="检测 Service">
-                  <a-input v-model:value="formState.ai.aliyun.service" placeholder="检测服务规则配置，示例：baselineCheck" />
+                  <a-input
+                    v-model:value="formState.ai.aliyun.service"
+                    placeholder="检测服务规则配置，示例：baselineCheck"
+                  />
                 </a-form-item>
                 <a-form-item required label="阈值">
-                  <a-input-number v-model:value="formState.ai.aliyun.threshold" :min="1" :max="100" placeholder="取值 1-100" />
+                  <a-input-number
+                    v-model:value="formState.ai.aliyun.threshold"
+                    :min="1"
+                    :max="100"
+                    placeholder="取值 1-100"
+                  />
                   <p>阈值是指图片违规程度上限，取值 1-100 之间，数值越低审核越严格</p>
                 </a-form-item>
               </template>
               <template v-if="formState.ai.type === 'nsfwjs'">
                 <a-form-item required label="接口地址">
-                  <a-input v-model:value="formState.ai.nsfwjs.apiUrl" placeholder="请输入接口地址，http(s)://domain.com/classify" />
+                  <a-input
+                    v-model:value="formState.ai.nsfwjs.apiUrl"
+                    placeholder="请输入接口地址，http(s)://domain.com/classify"
+                  />
                 </a-form-item>
                 <a-form-item required label="阈值">
-                  <a-input-number v-model:value="formState.ai.nsfwjs.threshold" :min="1" :max="100" placeholder="取值 1-100" />
+                  <a-input-number
+                    v-model:value="formState.ai.nsfwjs.threshold"
+                    :min="1"
+                    :max="100"
+                    placeholder="取值 1-100"
+                  />
                   <p>阈值是指图片违规程度上限，取值 1-100 之间，数值越低审核越严格</p>
                 </a-form-item>
               </template>
@@ -485,7 +597,11 @@
           </a-collapse-panel>
           <a-collapse-panel key="6" header="上传设置">
             <a-form-item label="允许的图片格式">
-              <a-select v-model:value="formState.upload.allowedFormats" mode="multiple" placeholder="选择允许的图片格式">
+              <a-select
+                v-model:value="formState.upload.allowedFormats"
+                mode="multiple"
+                placeholder="选择允许的图片格式"
+              >
                 <a-select-option value="jpg">JPG</a-select-option>
                 <a-select-option value="jpeg">JPEG</a-select-option>
                 <a-select-option value="png">PNG</a-select-option>
@@ -532,16 +648,25 @@
               </a-select>
             </a-form-item>
             <a-form-item label="图片压缩">
-              <a-switch v-model:checked="formState.upload.qualityOpen" checked-children="启用" un-checked-children="禁用" />
+              <a-switch
+                v-model:checked="formState.upload.qualityOpen"
+                checked-children="启用"
+                un-checked-children="禁用"
+              />
             </a-form-item>
             <a-form-item label="图片质量" v-if="formState.upload.qualityOpen">
-              <a-slider v-model:value="formState.upload.quality" :min="1" :max="100" :marks="{
-                1: '1%',
-                25: '25%',
-                50: '50%',
-                75: '75%',
-                100: '100%'
-              }" />
+              <a-slider
+                v-model:value="formState.upload.quality"
+                :min="1"
+                :max="100"
+                :marks="{
+                  1: '1%',
+                  25: '25%',
+                  50: '50%',
+                  75: '75%',
+                  100: '100%'
+                }"
+              />
             </a-form-item>
             <a-form-item label="每日上传限制">
               <a-input-number v-model:value="formState.upload.dailyLimit" :min="0" placeholder="0表示不限制" />
@@ -552,7 +677,12 @@
               <a-collapse class="namingRule-collapse">
                 <a-collapse-panel header="支持的文件命名规则">
                   <el-table :data="namingRuleData">
-                    <el-table-column :prop="item.prop" :label="item.label" v-for="(item, index) in namingRuleColumns" :key="index" />
+                    <el-table-column
+                      :prop="item.prop"
+                      :label="item.label"
+                      v-for="(item, index) in namingRuleColumns"
+                      :key="index"
+                    />
                   </el-table>
                 </a-collapse-panel>
               </a-collapse>
@@ -563,7 +693,12 @@
               <a-switch v-model:checked="formState.ip.enabled" checked-children="启用" un-checked-children="禁用" />
             </a-form-item>
             <a-form-item label="IP黑名单">
-              <a-textarea v-model:value="ipBlacklistText" :rows="4" placeholder="每行一个IP地址" @change="handleIpBlacklistChange" />
+              <a-textarea
+                v-model:value="ipBlacklistText"
+                :rows="4"
+                placeholder="每行一个IP地址"
+                @change="handleIpBlacklistChange"
+              />
             </a-form-item>
           </a-collapse-panel>
           <a-collapse-panel key="8" header="社会化登录">
@@ -572,42 +707,63 @@
             </a-form-item>
             <template v-if="formState.oauth.enabled">
               <a-form-item label="GitHub登录开关">
-                <a-switch v-model:checked="formState.oauth.github.enabled" checked-children="启用" un-checked-children="禁用" />
+                <a-switch
+                  v-model:checked="formState.oauth.github.enabled"
+                  checked-children="启用"
+                  un-checked-children="禁用"
+                />
               </a-form-item>
               <template v-if="formState.oauth.github.enabled">
                 <a-form-item required label="Client ID">
                   <a-input v-model:value="formState.oauth.github.clientId" placeholder="输入 GitHub Client ID" />
                 </a-form-item>
                 <a-form-item required label="Client Secret">
-                  <a-input-password v-model:value="formState.oauth.github.clientSecret" placeholder="输入 GitHub Client Secret" />
+                  <a-input-password
+                    v-model:value="formState.oauth.github.clientSecret"
+                    placeholder="输入 GitHub Client Secret"
+                  />
                 </a-form-item>
                 <a-form-item label="回调地址">
                   <a-input v-model:value="formState.oauth.github.callbackUrl" placeholder="输入回调地址" />
                 </a-form-item>
               </template>
               <a-form-item label="Google登录开关">
-                <a-switch v-model:checked="formState.oauth.google.enabled" checked-children="启用" un-checked-children="禁用" />
+                <a-switch
+                  v-model:checked="formState.oauth.google.enabled"
+                  checked-children="启用"
+                  un-checked-children="禁用"
+                />
               </a-form-item>
               <template v-if="formState.oauth.google.enabled">
                 <a-form-item required label="Client ID">
                   <a-input v-model:value="formState.oauth.google.clientId" placeholder="输入 Google Client ID" />
                 </a-form-item>
                 <a-form-item required label="Client Secret">
-                  <a-input-password v-model:value="formState.oauth.google.clientSecret" placeholder="输入 Google Client Secret" />
+                  <a-input-password
+                    v-model:value="formState.oauth.google.clientSecret"
+                    placeholder="输入 Google Client Secret"
+                  />
                 </a-form-item>
                 <a-form-item label="回调地址">
                   <a-input v-model:value="formState.oauth.google.callbackUrl" placeholder="输入回调地址" />
                 </a-form-item>
               </template>
               <a-form-item label="Linux DO登录开关">
-                <a-switch v-model:checked="formState.oauth.linuxdo.enabled" checked-children="启用" un-checked-children="禁用" />
+                <a-switch
+                  v-model:checked="formState.oauth.linuxdo.enabled"
+                  checked-children="启用"
+                  un-checked-children="禁用"
+                />
               </a-form-item>
               <template v-if="formState.oauth.linuxdo.enabled">
                 <a-form-item required label="Client ID">
                   <a-input v-model:value="formState.oauth.linuxdo.clientId" placeholder="输入 Linux DO Client ID" />
                 </a-form-item>
                 <a-form-item required label="Client Secret">
-                  <a-input-password v-model:value="formState.oauth.linuxdo.clientSecret" placeholder="输入 Linux DO Client Secret" />
+                  <a-input-password
+                    v-model:value="formState.oauth.linuxdo.clientSecret"
+                    placeholder="输入 Linux DO Client Secret"
+                  />
                 </a-form-item>
                 <a-form-item label="回调地址">
                   <a-input v-model:value="formState.oauth.linuxdo.callbackUrl" placeholder="输入回调地址" />
@@ -617,9 +773,7 @@
           </a-collapse-panel>
         </a-collapse>
         <a-form-item>
-          <a-button type="primary" html-type="submit" :loading="submitting">
-            保存设置
-          </a-button>
+          <a-button type="primary" html-type="submit" :loading="submitting">保存设置</a-button>
         </a-form-item>
       </a-form>
     </a-spin>
@@ -627,160 +781,168 @@
 </template>
 
 <script setup>
-import { ref, onMounted, watch } from 'vue'
-import { message } from 'ant-design-vue'
-import axios from '@/stores/axios'
-import { useUserStore } from '@/stores/user'
-import { imageStoreType } from '@/stores/formatDate'
+  import { ref, onMounted, watch } from 'vue'
+  import { message } from 'ant-design-vue'
+  import axios from '@/stores/axios'
+  import { useUserStore } from '@/stores/user'
+  import { imageStoreType } from '@/stores/formatDate'
 
-const userStore = useUserStore()
-const loading = ref(false)
-const submitting = ref(false)
-const watermarkFileList = ref([])
-const ipBlacklistText = ref('')
-const activeKey = ref('1')
-const imageStoreArray = Object.entries(imageStoreType)
-  .filter(([key]) => key !== 'get') // 排除get方法
-  .map(([value, label]) => ({ value, label }))
+  const userStore = useUserStore()
+  const loading = ref(false)
+  const submitting = ref(false)
+  const watermarkFileList = ref([])
+  const ipBlacklistText = ref('')
+  const activeKey = ref('1')
+  const imageStoreArray = Object.entries(imageStoreType)
+    .filter(([key]) => key !== 'get') // 排除get方法
+    .map(([value, label]) => ({ value, label }))
 
-const formState = ref({
-  site: {},
-  upload: {},
-  storage: {},
-  watermark: {},
-  ip: {},
-  ai: {},
-  oauth: {}
-})
+  const formState = ref({
+    site: {},
+    upload: {},
+    storage: {},
+    watermark: {},
+    ip: {},
+    ai: {},
+    oauth: {}
+  })
 
-const namingRuleColumns = [
-  { label: '变量', prop: 'variable' },
-  { label: '说明', prop: 'description' },
-  { label: '示例', prop: 'example' }
-]
+  const namingRuleColumns = [
+    { label: '变量', prop: 'variable' },
+    { label: '说明', prop: 'description' },
+    { label: '示例', prop: 'example' }
+  ]
 
-const namingRuleData = [
-  { variable: '{Y}', description: '年份（4位）', example: '2024' },
-  { variable: '{y}', description: '年份（2位）', example: '24' },
-  { variable: '{m}', description: '月份', example: '03' },
-  { variable: '{d}', description: '日期', example: '15' },
-  { variable: '{Ymd}', description: '年月日', example: '20240315' },
-  { variable: '{filename}', description: '原始文件名', example: 'image' },
-  { variable: '{ext}', description: '文件扩展名', example: 'jpg' },
-  { variable: '{time}', description: '时间戳', example: '1748695143942' },
-  { variable: '{uniqid}', description: '唯一ID', example: 'a1b2c3d4' },
-  { variable: '{md5}', description: '文件MD5值', example: 'd41d8cd98f00b204e9800998ecf8427e' },
-  { variable: '{sha1}', description: '文件SHA1值', example: 'da39a3ee5e6b4b0d3255bfef95601890afd80709' },
-  { variable: '{uuid}', description: 'UUID', example: '550e8400-e29b-41d4-a716-446655440000' },
-  { variable: '{uid}', description: '用户ID（仅登录用户）', example: '123456' }
-]
+  const namingRuleData = [
+    { variable: '{Y}', description: '年份（4位）', example: '2024' },
+    { variable: '{y}', description: '年份（2位）', example: '24' },
+    { variable: '{m}', description: '月份', example: '03' },
+    { variable: '{d}', description: '日期', example: '15' },
+    { variable: '{Ymd}', description: '年月日', example: '20240315' },
+    { variable: '{filename}', description: '原始文件名', example: 'image' },
+    { variable: '{ext}', description: '文件扩展名', example: 'jpg' },
+    { variable: '{time}', description: '时间戳', example: '1748695143942' },
+    { variable: '{uniqid}', description: '唯一ID', example: 'a1b2c3d4' },
+    { variable: '{md5}', description: '文件MD5值', example: 'd41d8cd98f00b204e9800998ecf8427e' },
+    { variable: '{sha1}', description: '文件SHA1值', example: 'da39a3ee5e6b4b0d3255bfef95601890afd80709' },
+    { variable: '{uuid}', description: 'UUID', example: '550e8400-e29b-41d4-a716-446655440000' },
+    { variable: '{uid}', description: '用户ID（仅登录用户）', example: '123456' }
+  ]
 
-// 获取配置
-const fetchConfig = async () => {
-  loading.value = true
-  try {
-    const { data } = await axios.post('/api/admin/config')
-    const { ip } = data
-    formState.value = data
-    ipBlacklistText.value = ip.blacklist.join('\n')
-  } catch (error) {
-    message.error('获取配置失败')
-  } finally {
-    loading.value = false
+  // 获取配置
+  const fetchConfig = async () => {
+    loading.value = true
+    try {
+      const { data } = await axios.post('/api/admin/config')
+      const { ip } = data
+      formState.value = data
+      ipBlacklistText.value = ip.blacklist.join('\n')
+    } catch (error) {
+      message.error('获取配置失败')
+    } finally {
+      loading.value = false
+    }
   }
-}
 
-// 处理水印图片上传
-const handleWatermarkUpload = async (file) => {
-  try {
-    const formData = new FormData()
-    formData.append('image', file)
-    const { data } = await axios.post('/api/admin/upload-watermark', formData)
-    formState.value.watermark.image.path = data.path
-    message.success('水印图片上传成功')
-    return false
-  } catch (error) {
-    message.error('水印图片上传失败')
-    return false
+  // 处理水印图片上传
+  const handleWatermarkUpload = async file => {
+    try {
+      const formData = new FormData()
+      formData.append('image', file)
+      const { data } = await axios.post('/api/admin/upload-watermark', formData)
+      formState.value.watermark.image.path = data.path
+      message.success('水印图片上传成功')
+      return false
+    } catch (error) {
+      message.error('水印图片上传失败')
+      return false
+    }
   }
-}
 
-// 处理IP黑名单变化
-const handleIpBlacklistChange = (e) => {
-  const { ip } = formState.value
-  ip.blacklist = e.target.value.split('\n').map(ip => ip.trim()).filter(ip => ip)
-}
-
-// 提交表单
-const handleSubmit = async () => {
-  submitting.value = true
-  try {
-    const { data } = await axios.put('/api/admin/config', formState.value)
-    const { site, upload, ai, oauth } = formState.value
-    userStore.config = JSON.parse(JSON.stringify({
-      site,
-      upload,
-      ai: {
-        enabled: ai.enabled
-      },
-      oauth: {
-        enabled: oauth.enabled,
-        github: {
-          enabled: oauth.github.enabled
-        },
-        google: {
-          enabled: oauth.google.enabled
-        },
-        linuxdo: {
-          enabled: oauth.linuxdo.enabled
-        }
-      }
-    }))
-    message.success(data.message)
-  } catch (error) {
-    message.error(error.response?.data?.error)
-  } finally {
-    submitting.value = false
+  // 处理IP黑名单变化
+  const handleIpBlacklistChange = e => {
+    const { ip } = formState.value
+    ip.blacklist = e.target.value
+      .split('\n')
+      .map(ip => ip.trim())
+      .filter(ip => ip)
   }
-}
 
-watch(() => activeKey.value, (newValue) => {
-  userStore.activeKey = newValue || '1'
-})
+  // 提交表单
+  const handleSubmit = async () => {
+    submitting.value = true
+    try {
+      const { data } = await axios.put('/api/admin/config', formState.value)
+      const { site, upload, ai, oauth } = formState.value
+      userStore.config = JSON.parse(
+        JSON.stringify({
+          site,
+          upload,
+          ai: {
+            enabled: ai.enabled
+          },
+          oauth: {
+            enabled: oauth.enabled,
+            github: {
+              enabled: oauth.github.enabled
+            },
+            google: {
+              enabled: oauth.google.enabled
+            },
+            linuxdo: {
+              enabled: oauth.linuxdo.enabled
+            }
+          }
+        })
+      )
+      message.success(data.message)
+    } catch (error) {
+      message.error(error.response?.data?.error)
+    } finally {
+      submitting.value = false
+    }
+  }
 
-onMounted(() => {
-  activeKey.value = userStore.activeKey || '1'
-  fetchConfig()
-})
+  watch(
+    () => activeKey.value,
+    newValue => {
+      userStore.activeKey = newValue || '1'
+    }
+  )
+
+  onMounted(() => {
+    activeKey.value = userStore.activeKey || '1'
+    fetchConfig()
+  })
 </script>
 
 <style scoped>
-.config-container {
-  padding: 24px;
-}
+  .config-container {
+    padding: 24px;
+  }
 
-p {
-  margin-top: 8px;
-}
+  p {
+    margin-top: 8px;
+  }
 
-.mb-4 {
-  margin-bottom: 24px;
-}
+  .mb-4 {
+    margin-bottom: 24px;
+  }
 
-.namingRule-collapse {
-  margin-top: 10px;
-}
+  .namingRule-collapse {
+    margin-top: 10px;
+  }
 
-.ant-collapse-item {
-  background: #f0f2f5;
-  border-radius: 4px;
-  margin-bottom: 24px;
-  border: 0px;
-  overflow: hidden;
-}
+  .ant-collapse-item {
+    background: #f0f2f5;
+    border-radius: 4px;
+    margin-bottom: 24px;
+    border: 0px;
+    overflow: hidden;
+  }
 
-:deep(.ant-collapse-header),
-:deep(.ant-collapse-content-box) {
-  background: rgb(255, 255, 255);
-}
+  :deep(.ant-collapse-header),
+  :deep(.ant-collapse-content-box) {
+    background: rgb(255, 255, 255);
+  }
 </style>

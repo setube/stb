@@ -57,4 +57,4 @@ export const sendVerificationCode = async (email, code, type = 'reset') => {
     console.error('发送邮件失败:', error)
     throw new Error('发送邮件失败')
   }
-} 
+}

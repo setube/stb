@@ -26,7 +26,8 @@ const storage = multer.diskStorage({
 })
 
 const upload = multer({
-  storage, fileFilter: (req, file, cb) => {
+  storage,
+  fileFilter: (req, file, cb) => {
     if (file.mimetype.startsWith('image/')) {
       cb(null, true)
     } else {
@@ -85,4 +86,4 @@ router.post('/upload-watermark', auth, checkRole(['admin']), upload.single('imag
   }
 })
 
-export default router 
+export default router
