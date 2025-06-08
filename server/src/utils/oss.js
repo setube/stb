@@ -171,11 +171,15 @@ export const uploadToS3 = async filePath => {
         '.svg': 'image/svg+xml'
       }[ext] || 'application/octet-stream'
 
+    const stats = await fs.promises.stat(filePath);
+    const contentLength = stats.size;
+
     const command = new PutObjectCommand({
       Bucket: bucket,
       Key: key,
       Body: createReadStream(filePath),
-      ContentType: contentType // 添加 Content-Type
+      ContentType: contentType, // 添加 Content-Type
+      ContentLength: contentLength  
     })
     await s3Client.send(command)
     // 构建访问URL
