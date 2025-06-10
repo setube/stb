@@ -124,7 +124,7 @@
 
   // 定义菜单项
   const menuItems = [
-    { name: 'home', title: '图床首页', url: '/', icon: HomeOutlined },
+    { name: 'home', title: '图床首页', url: '/home', icon: HomeOutlined },
     { name: 'my', title: '我的图片', url: '/my', icon: SmileOutlined },
     { name: 'gallery', title: '图片广场', url: '/gallery', icon: FireOutlined },
     { name: 'docs', title: '接口文档', url: '/docs', icon: QuestionCircleOutlined }
@@ -152,15 +152,6 @@
     { name: 'config', title: '系统配置' }
   ]
 
-  // 获取配置
-  const fetchConfig = async () => {
-    try {
-      const { data } = await axios.post('/api/auth/config')
-      userStore.config = data
-    } catch (error) {
-      message.error(error)
-    }
-  }
 
   const fetchUserInfo = async () => {
     try {
@@ -220,7 +211,6 @@
   )
 
   onMounted(async () => {
-    fetchConfig()
     routerWatch(location.pathname)
     handleOAuthCallback()
     if (userStore.token) {
