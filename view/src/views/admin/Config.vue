@@ -36,6 +36,18 @@
                 un-checked-children="禁用"
               />
             </a-form-item>
+            <a-form-item label="导航栏顺序">
+              <a-select
+                v-model:value="formState.site.navigationOrder"
+                mode="multiple"
+                placeholder="选择导航项"
+                style="width: 100%"
+              >
+                <a-select-option v-for="item in availableNavigationItems" :key="item.value" :value="item.value">
+                  {{ item.label }}
+                </a-select-option>
+              </a-select>
+            </a-form-item>
           </a-collapse-panel>
           <a-collapse-panel key="2" header="SMTP设置">
             <template v-if="formState.site.register">
@@ -781,7 +793,7 @@
 </template>
 
 <script setup>
-  import { ref, onMounted, watch } from 'vue'
+  import { ref, onMounted, watch, computed } from 'vue'
   import { message } from 'ant-design-vue'
   import axios from '@/stores/axios'
   import { useUserStore } from '@/stores/user'
@@ -797,8 +809,17 @@
     .filter(([key]) => key !== 'get') // 排除get方法
     .map(([value, label]) => ({ value, label }))
 
+  const availableNavigationItems = ref([
+    { value: 'home', label: 'home (图床首页)' },
+    { value: 'my', label: 'my (我的图片)' },
+    { value: 'gallery', label: 'gallery (图片广场)' },
+    { value: 'docs', label: 'docs (接口文档)' }
+  ])
+
   const formState = ref({
-    site: {},
+    site: {
+      navigationOrder: [] // 确保 navigationOrder 初始为数组
+    },
     upload: {},
     storage: {},
     watermark: {},
@@ -834,9 +855,13 @@
     loading.value = true
     try {
       const { data } = await axios.post('/api/admin/config')
-      const { ip } = data
+      const { ip, site } = data
       formState.value = data
       ipBlacklistText.value = ip.blacklist.join('\n')
+      // 确保 navigationOrder 是一个数组，即使后端返回 null 或 undefined
+      if (!Array.isArray(formState.value.site.navigationOrder)) {
+        formState.value.site.navigationOrder = [];
+      }
     } catch (error) {
       message.error('获取配置失败')
     } finally {
@@ -908,7 +933,8 @@
     newValue => {
       userStore.activeKey = newValue || '1'
     }
-  )
+  );
+
 
   onMounted(() => {
     activeKey.value = userStore.activeKey || '1'

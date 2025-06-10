@@ -43,6 +43,11 @@ const configSchema = new mongoose.Schema(
       gallery: {
         type: Boolean,
         default: true
+      },
+      // 导航栏顺序
+      navigationOrder: {
+        type: [String],
+        default: ['home', 'my', 'gallery', 'docs']
       }
     },
     upload: {

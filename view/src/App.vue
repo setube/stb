@@ -130,9 +130,13 @@
     { name: 'docs', title: '接口文档', url: '/docs', icon: QuestionCircleOutlined }
   ]
 
-  // 计算属性返回过滤后的菜单
+  // 计算属性返回过滤和排序后的菜单
   const menus = computed(() => {
-    return menuItems.map(item => ({
+    const order = userStore.config?.site?.navigationOrder || ['home', 'my', 'gallery', 'docs']
+    const sortedMenuItems = [...menuItems].sort((a, b) => {
+      return order.indexOf(a.name) - order.indexOf(b.name)
+    })
+    return sortedMenuItems.map(item => ({
       ...item,
       show: userStore.menuVisibility[item.name]
     }))
