@@ -11,19 +11,6 @@ jobs:
     permissions:
       contents: write
     steps:
-      - name: 检出代码
-        uses: actions/checkout@v4
-
-      - name: 创建源码压缩包
-        run: |
-          git archive --format=zip --output=${{ github.event.release.tag_name }}.zip HEAD
-
-      - name: 上传源码包到Release
-        uses: softprops/action-gh-release@v2
-        with:
-          files: ${{ github.event.release.tag_name }}.zip
-          token: ${{ secrets.GITHUB_TOKEN }}
-    steps:
       - name: Checkout
         uses: actions/checkout@v4
         with:
