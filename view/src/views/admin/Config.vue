@@ -36,6 +36,19 @@
                 un-checked-children="禁用"
               />
             </a-form-item>
+            <a-form-item label="导航栏顺序">
+              <a-select
+                v-model:value="formState.site.navigationOrder"
+                mode="multiple"
+                placeholder="选择导航项"
+                style="width: 100%"
+              >
+                <a-select-option v-for="item in availableNavigationItems" :key="item.value" :value="item.value">
+                  {{ item.label }}
+                </a-select-option>
+              </a-select>
+              <p>注意: 修改该设置后访问网站根目录时会自动重定向到该设置的第一项</p>
+            </a-form-item>
           </a-collapse-panel>
           <a-collapse-panel key="2" header="SMTP设置">
             <template v-if="formState.site.register">
@@ -110,18 +123,20 @@
                     <a-button>选择水印图片</a-button>
                   </a-upload>
                 </a-form-item>
-                <a-form-item label="水印管理">
-                  <a-button>删除水印图片</a-button>
-                </a-form-item>
-                <a-form-item label="水印图片" v-if="formState.watermark.image.path">
-                  <a-image :src="userStore.config.site.url + formState.watermark.image.path" />
-                </a-form-item>
-                <a-form-item label="水印图片URL" v-if="formState.watermark.image.path">
-                  <a-textarea v-model:value="formState.watermark.image.path" auto-size disabled />
-                </a-form-item>
-                <a-form-item label="透明度">
-                  <a-slider v-model:value="formState.watermark.image.opacity" :min="0" :max="1" :step="0.1" />
-                </a-form-item>
+                <template v-if="formState.watermark.image.path">
+                  <a-form-item label="水印管理">
+                    <a-button @click="deleteWatermark">删除水印图片</a-button>
+                  </a-form-item>
+                  <a-form-item label="水印图片">
+                    <a-image :src="userStore.config.site.url + formState.watermark.image.path" />
+                  </a-form-item>
+                  <a-form-item label="水印图片URL">
+                    <a-textarea v-model:value="formState.watermark.image.path" auto-size disabled />
+                  </a-form-item>
+                  <a-form-item label="透明度">
+                    <a-slider v-model:value="formState.watermark.image.opacity" :min="0" :max="1" :step="0.1" />
+                  </a-form-item>
+                </template>
               </template>
               <a-form-item label="水印位置">
                 <a-select v-model:value="formState.watermark[formState.watermark.type].position">
@@ -131,6 +146,15 @@
                   <a-select-option value="bottom-right">右下</a-select-option>
                   <a-select-option value="center">居中</a-select-option>
                 </a-select>
+              </a-form-item>
+              <a-form-item label="是否平铺水印">
+                <a-switch
+                  v-model:checked="formState.watermark.tile"
+                  checked-children="启用"
+                  un-checked-children="禁用"
+                />
+                <p>本功能仅支持: jpg、jpeg、png 或 webp</p>
+                <p>开启后水印将会铺满整张图片</p>
               </a-form-item>
             </template>
           </a-collapse-panel>
@@ -205,13 +229,10 @@
               </a-form-item>
             </template>
             <template v-if="formState.storage.type === 's3'">
-              <a-form-item required label="储存目录">
-                <a-input v-model:value="formState.storage.s3.directory" placeholder="输入储存目录" />
-              </a-form-item>
               <a-form-item required label="Endpoint">
                 <a-input
                   v-model:value="formState.storage.s3.endpoint"
-                  placeholder="输入 Endpoint，例如：https://s3.amazonaws.com"
+                  placeholder="输入 Endpoint，例如：s3.amazonaws.com 或 minio.example.com:9000 或 r2.cloudflarestorage.com"
                 />
               </a-form-item>
               <a-form-item required label="AccessKeyId">
@@ -224,33 +245,20 @@
                 />
               </a-form-item>
               <a-form-item label="Region">
-                <a-input v-model:value="formState.storage.s3.region" placeholder="输入 Region，例如：us-east-1" />
-              </a-form-item>
-              <a-form-item label="Bucket">
-                <a-input v-model:value="formState.storage.s3.bucket" placeholder="输入 Bucket" />
-              </a-form-item>
-            </template>
-            <template v-if="formState.storage.type === 'r2'">
-              <a-form-item required label="储存目录">
-                <a-input v-model:value="formState.storage.r2.directory" placeholder="输入储存目录" />
-              </a-form-item>
-              <a-form-item required label="AccountId">
-                <a-input v-model:value="formState.storage.r2.accountId" placeholder="输入 AccountId" />
-              </a-form-item>
-              <a-form-item required label="AccessKeyId">
-                <a-input v-model:value="formState.storage.r2.accessKeyId" placeholder="输入 AccessKeyId" />
-              </a-form-item>
-              <a-form-item required label="SecretAccessKey">
-                <a-input-password
-                  v-model:value="formState.storage.r2.secretAccessKey"
-                  placeholder="输入 SecretAccessKey"
+                <a-input
+                  v-model:value="formState.storage.s3.region"
+                  placeholder="输入 Region，例如：us-east-1 或 auto"
                 />
               </a-form-item>
-              <a-form-item required label="公共URL">
-                <a-input v-model:value="formState.storage.r2.publicUrl" placeholder="输入 公共URL" />
-              </a-form-item>
               <a-form-item required label="Bucket">
-                <a-input v-model:value="formState.storage.r2.bucket" placeholder="输入 Bucket" />
+                <a-input v-model:value="formState.storage.s3.bucket" placeholder="输入 Bucket" />
+              </a-form-item>
+              <a-form-item required label="存储目录">
+                <a-input v-model:value="formState.storage.s3.directory" placeholder="输入存储目录" />
+              </a-form-item>
+              <a-form-item label="使用 SSL">
+                <a-switch v-model:checked="formState.storage.s3.useSSL" />
+                <p>如果使用 MinIO 或 Cloudflare R2，请根据服务器配置选择是否启用 SSL</p>
               </a-form-item>
             </template>
             <template v-if="formState.storage.type === 'qiniu'">
@@ -433,6 +441,9 @@
               <a-form-item required label="聊天ID">
                 <a-input v-model:value="formState.storage.telegram.chatId" placeholder="输入聊天ID" />
               </a-form-item>
+              <a-form-item required label="频道ID">
+                <a-input v-model:value="formState.storage.telegram.channelId" placeholder="输入频道ID" />
+              </a-form-item>
               <a-form-item label="禁用轮询">
                 <a-switch v-model:checked="formState.storage.telegram.polling" />
               </a-form-item>
@@ -602,11 +613,9 @@
                 mode="multiple"
                 placeholder="选择允许的图片格式"
               >
-                <a-select-option value="jpg">JPG</a-select-option>
-                <a-select-option value="jpeg">JPEG</a-select-option>
-                <a-select-option value="png">PNG</a-select-option>
-                <a-select-option value="gif">GIF</a-select-option>
-                <a-select-option value="webp">WEBP</a-select-option>
+                <a-select-option :value="item" v-for="item in imageExitType" :key="item">
+                  {{ item.toUpperCase() }}
+                </a-select-option>
               </a-select>
             </a-form-item>
             <a-form-item label="最大文件大小(MB)">
@@ -642,9 +651,9 @@
             <a-form-item label="转换格式">
               <a-select v-model:value="formState.upload.convertFormat" allowClear placeholder="选择转换格式">
                 <a-select-option value="">不转换</a-select-option>
-                <a-select-option value="jpeg">JPEG</a-select-option>
-                <a-select-option value="png">PNG</a-select-option>
-                <a-select-option value="webp">WEBP</a-select-option>
+                <a-select-option :value="item" v-for="item in imageExitType" :key="item">
+                  {{ item.toUpperCase() }}
+                </a-select-option>
               </a-select>
             </a-form-item>
             <a-form-item label="图片压缩">
@@ -785,7 +794,7 @@
   import { message } from 'ant-design-vue'
   import axios from '@/stores/axios'
   import { useUserStore } from '@/stores/user'
-  import { imageStoreType } from '@/stores/formatDate'
+  import { imageStoreType, imageExitType } from '@/stores/formatDate'
 
   const userStore = useUserStore()
   const loading = ref(false)
@@ -794,8 +803,15 @@
   const ipBlacklistText = ref('')
   const activeKey = ref('1')
   const imageStoreArray = Object.entries(imageStoreType)
-    .filter(([key]) => key !== 'get') // 排除get方法
+    .filter(([key]) => key !== 'get')
     .map(([value, label]) => ({ value, label }))
+
+  const availableNavigationItems = [
+    { value: 'home', label: '图床首页' },
+    { value: 'my', label: '我的图片' },
+    { value: 'gallery', label: '图片广场' },
+    { value: 'docs', label: '接口文档' }
+  ]
 
   const formState = ref({
     site: {},
@@ -837,8 +853,8 @@
       const { ip } = data
       formState.value = data
       ipBlacklistText.value = ip.blacklist.join('\n')
-    } catch (error) {
-      message.error('获取配置失败')
+    } catch ({ response }) {
+      message.error(response?.data?.error)
     } finally {
       loading.value = false
     }
@@ -853,9 +869,20 @@
       formState.value.watermark.image.path = data.path
       message.success('水印图片上传成功')
       return false
-    } catch (error) {
-      message.error('水印图片上传失败')
+    } catch ({ response }) {
+      message.error(response?.data?.error)
       return false
+    }
+  }
+
+  // 删除水印图片
+  const deleteWatermark = async () => {
+    try {
+      await axios.delete(`/api/admin/delete-watermark/${encodeURIComponent(formState.value.watermark.image.path)}`)
+      formState.value.watermark.image.path = ''
+      message.success('水印图片删除成功')
+    } catch ({ response }) {
+      message.error(response?.data?.error)
     }
   }
 
@@ -896,8 +923,8 @@
         })
       )
       message.success(data.message)
-    } catch (error) {
-      message.error(error.response?.data?.error)
+    } catch ({ response }) {
+      message.error(response?.data?.error)
     } finally {
       submitting.value = false
     }

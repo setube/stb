@@ -10,14 +10,6 @@
 
 </div>
 
-> [!TIP]\
-> 如果上传者的 IP 获取不准确, 请在 Nginx 配置文件中添加以下配置
->
-> ```nginx
-> proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-> proxy_set_header X-Real-IP $remote_addr;
-> ```
-
 ## 特点
 
 - [x] 支持图片广场、广场开关
@@ -46,7 +38,7 @@
 - [x] Github
 - [x] 阿里云 OSS
 - [x] 腾讯云 COS
-- [x] AWS S3
+- [x] S3 兼容
 - [x] Cloudflare R2
 - [x] 七牛云 Kodo
 - [x] 又拍云 USS

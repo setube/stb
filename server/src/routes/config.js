@@ -65,6 +65,14 @@ router.post('/upload-watermark', auth, checkRole(['admin']), upload.single('imag
     if (!file) {
       return res.status(400).json({ error: '请选择要上传的图片' })
     }
+    const { watermark } = await Config.findOne()
+    // 如果有旧的水印
+    if (watermark.image.path) {
+      // 确保水印目录存在
+      const imagePath = path.join(process.cwd(), watermark.image.path)
+      // 删除旧水印文件
+      await fs.unlink(imagePath)
+    }
     // 确保水印目录存在
     await fs.mkdir(path.join('uploads', 'watermarks'), { recursive: true })
     // 生成水印文件名
@@ -81,6 +89,24 @@ router.post('/upload-watermark', auth, checkRole(['admin']), upload.single('imag
     // 更新配置中的水印图片路径
     await Config.findOneAndUpdate({}, { 'watermark.image.path': relativePath }, { upsert: true })
     res.json({ path: relativePath })
+  } catch ({ message }) {
+    res.status(500).json({ error: message })
+  }
+})
+
+// 删除水印图片
+router.delete('/delete-watermark/:imgPath', auth, checkRole(['admin']), async (req, res) => {
+  try {
+    const { imgPath } = req.params
+    if (!imgPath) {
+      return res.status(400).json({ error: '需要删除的水印图片为空' })
+    }
+    // 确保水印目录存在
+    const imagePath = path.join(process.cwd(), imgPath)
+    await fs.unlink(imagePath)
+    // 更新配置中的水印图片路径
+    await Config.findOneAndUpdate({}, { 'watermark.image.path': '' }, { upsert: true })
+    res.json({ message: '删除成功' })
   } catch ({ message }) {
     res.status(500).json({ error: message })
   }

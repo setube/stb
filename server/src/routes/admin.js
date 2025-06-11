@@ -11,6 +11,9 @@ import { InviteCode } from '../models/InviteCode.js'
 import crypto from 'crypto'
 import Papa from 'papaparse'
 import { Album } from '../models/Album.js'
+import sharp from 'sharp'
+import path from 'path'
+import fs from 'fs/promises'
 
 const router = express.Router()
 
@@ -200,31 +203,72 @@ router.post('/images', auth, checkRole(['admin']), async (req, res) => {
 router.patch('/images/:id', auth, checkRole(['admin']), async (req, res) => {
   try {
     const { id } = req.params
-    const updates = req.body
-    // 这里只允许修改备注
-    const allowedUpdates = ['remarks']
-    const actualUpdates = {}
-    Object.keys(updates).forEach(key => {
-      if (allowedUpdates.includes(key)) {
-        actualUpdates[key] = updates[key]
-      }
-    })
-    if (Object.keys(actualUpdates).length === 0) {
-      return res.status(400).json({ error: '没有要更新的字段' })
-    }
+    const { remarks, orientation } = req.body
+    // 获取图片信息
     const image = await Image.findById(id)
     if (!image) {
-      return res.status(404).json({ error: '图片不存在' })
+      throw new Error('图片不存在')
     }
-    Object.assign(image, actualUpdates)
+    if (remarks.length > 500) {
+      throw new Error('图片备注不能超过500个字符')
+    }
+    // 更新备注
+    if (remarks !== undefined) {
+      image.remarks = remarks
+    }
+    if (image.type !== 'local') {
+      throw new Error('修改图片方向功能仅限本地图片, 第三方存储无效')
+    }
+    // 如果方向发生变化，重新生成图片
+    if (orientation !== undefined && orientation !== 0) {
+      const imagePath = path.join(process.cwd(), image.url)
+      const thumbPath = path.join(process.cwd(), image.thumb)
+      try {
+        // 读取原图
+        const imageBuffer = await fs.readFile(imagePath)
+        // 生成新的文件名
+        const ext = path.extname(image.url)
+        const newFilename = `${Date.now()}${ext}`
+        const newThumbFilename = `thumb_${newFilename}`
+        // 生成临时文件路径
+        const tempImagePath = `${imagePath}.temp`
+        const tempThumbPath = `${thumbPath}.temp`
+        // 生成新的图片和缩略图到临时文件
+        await sharp(imageBuffer).rotate(parseInt(orientation)).toFile(tempImagePath)
+        await sharp(imageBuffer)
+          .rotate(parseInt(orientation))
+          .resize({
+            width: Math.round(image.width * 0.5),
+            height: Math.round(image.height * 0.5),
+            fit: 'inside',
+            withoutEnlargement: true
+          })
+          .toFile(tempThumbPath)
+        // 删除原图
+        await fs.unlink(imagePath)
+        await fs.unlink(thumbPath)
+        // 生成新的文件路径
+        const newImagePath = path.join(path.dirname(imagePath), newFilename)
+        const newThumbPath = path.join(path.dirname(thumbPath), newThumbFilename)
+        // 重命名临时文件为新的文件名
+        await fs.rename(tempImagePath, newImagePath)
+        await fs.rename(tempThumbPath, newThumbPath)
+        // 更新数据库中的文件路径
+        image.url = `/uploads/${newFilename}`
+        image.thumb = `/uploads/thumbnails/${newThumbFilename}`
+      } catch ({ message }) {
+        await fs.unlink(`${imagePath}.temp`)
+        await fs.unlink(`${thumbPath}.temp`)
+        throw new Error(message)
+      }
+    }
     await image.save()
-    // 返回更新后的图片信息 (重新 populate user 和 album)
+    // 返回更新后的图片信息
     const updatedImage = await Image.findById(image._id)
       .populate('user', 'username')
       .populate('album', 'name permission')
     res.json({ message: '图片数据更新成功', image: updatedImage })
   } catch ({ message }) {
-    console.error('Admin 更新图片数据失败:', message)
     res.status(500).json({ error: message })
   }
 })
@@ -467,7 +511,6 @@ router.get('/invite-codes/export', auth, checkRole(['admin']), async (req, res) 
     csv = '\ufeff' + csv
     res.send(csv)
   } catch ({ message }) {
-    console.error('导出邀请码失败:', message) // 添加日志
     res.status(500).json({ error: message })
   }
 })
@@ -619,4 +662,4 @@ router.delete('/albums/:id', auth, checkRole(['admin']), async (req, res) => {
   }
 })
 
-export default router 
+export default router

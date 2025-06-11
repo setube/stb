@@ -183,7 +183,7 @@
       total.value = data.total
       users.value.push(...data.users)
     } catch ({ response }) {
-      message.error('获取用户列表失败')
+      message.error(response?.data?.error)
     } finally {
       loading.value = false
     }
@@ -231,13 +231,8 @@
       message.success('用户创建成功')
       createModalVisible.value = false
       fetchUsers()
-    } catch (error) {
-      console.error('创建用户失败:', error)
-      if (error.response?.data?.error) {
-        message.error(error.response.data.error)
-      } else {
-        message.error('创建用户失败')
-      }
+    } catch ({ response }) {
+      message.error(response?.data?.error)
     }
   }
 

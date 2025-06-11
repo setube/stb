@@ -1,126 +1,73 @@
 import { createRouter, createWebHistory } from 'vue-router'
-import login from '@/views/Login.vue'
-import register from '@/views/Register.vue'
-import home from '@/views/Home.vue'
-import gallery from '@/views/Gallery.vue'
-import docs from '@/views/Docs.vue'
-import not from '@/views/Not.vue'
-import my from '@/views/My.vue'
-import dashboard from '@/views/admin/Dashboard.vue'
-import users from '@/views/admin/Users.vue'
-import images from '@/views/admin/Images.vue'
-import config from '@/views/admin/Config.vue'
-import log from '@/views/admin/Logs.vue'
-import resetpassword from '@/views/ResetPassword.vue'
-import settings from '@/views/Settings.vue'
 import { useUserStore } from '@/stores/user'
-import invitecodes from '@/views/admin/InviteCodes.vue'
-import UserPage from '@/views/UserPage.vue'
-import UserPublicAlbumDetail from '@/views/UserPublicAlbumDetail.vue'
-import AdminAlbums from '@/views/admin/Albums.vue'
 
-const routes = [
-  {
-    path: '/404',
-    name: '404',
-    component: not
-  },
-  {
-    path: '/:pathMatch(.*)*',
-    component: not
-  },
-  {
-    path: '/login',
-    name: 'Login',
-    component: login
-  },
-  {
-    path: '/register',
-    name: 'Register',
-    component: register
-  },
-  {
-    path: '/',
-    name: 'Home',
-    component: home
-  },
-  {
-    path: '/gallery',
-    name: 'Gallery',
-    component: gallery
-  },
-  {
-    path: '/docs',
-    name: 'Docs',
-    component: docs
-  },
-  {
-    path: '/my',
-    name: 'My',
-    component: my
-  },
-  {
-    path: '/reset-password',
-    name: 'ResetPassword',
-    component: resetpassword
-  },
-  {
-    path: '/settings',
-    name: 'Settings',
-    component: settings
-  },
-  {
-    path: '/admin',
-    redirect: '/admin/dashboard',
-    children: [
-      {
-        path: 'dashboard',
-        name: 'Admin',
-        component: dashboard
-      },
-      {
-        path: 'users',
-        name: 'AdminUsers',
-        component: users
-      },
-      {
-        path: 'images',
-        name: 'AdminImages',
-        component: images
-      },
-      {
-        path: 'config',
-        name: 'AdminConfig',
-        component: config
-      },
-      {
-        path: 'logs',
-        name: 'AdminLogs',
-        component: log
-      },
-      {
-        path: 'invitecodes',
-        name: 'AdminInviteCodes',
-        component: invitecodes
-      },
-      {
-        path: 'albums',
-        name: 'AdminAlbums',
-        component: AdminAlbums
-      }
-    ]
-  },
-  {
-    path: '/user/:userId',
-    name: 'UserPage',
-    component: UserPage
-  },
-  {
-    path: '/user/:userId/album/:albumId',
-    name: 'UserPublicAlbumDetail',
-    component: UserPublicAlbumDetail
-  }
+const publicNames = [
+  '404',
+  'RootRedirect',
+  'Login',
+  'Register',
+  'Home',
+  'Gallery',
+  'Docs',
+  'My',
+  'ResetPassword',
+  'Settings',
+  'admin',
+  'UserPage',
+  'UserPublicAlbumDetail'
 ]
+
+const adminNames = ['Dashboard', 'Users', 'Images', 'Config', 'Logs', 'InviteCodes', 'Albums']
+
+const routes = publicNames.map(item => {
+  let data = {
+    path: `/${item.toLowerCase()}`,
+    name: item,
+    component: () => import(`@/views/${item}.vue`)
+  }
+  if (item === '404') {
+    data = {
+      path: '/:pathMatch(.*)*',
+      name: item,
+      component: () => import('@/views/Not.vue')
+    }
+  }
+  if (item === 'RootRedirect') {
+    data = {
+      path: '/',
+      name: item,
+      component: () => import('@/views/Home.vue')
+    }
+  }
+  if (item === 'admin') {
+    data = {
+      path: '/admin',
+      redirect: '/admin/dashboard',
+      children: adminNames.map(item => {
+        return {
+          path: item.toLowerCase(),
+          name: item,
+          component: () => import(`@/views/admin/${item}.vue`)
+        }
+      })
+    }
+  }
+  if (item === 'UserPage') {
+    data = {
+      path: '/user/:userId',
+      name: item,
+      component: () => import(`@/views/user/${item}.vue`)
+    }
+  }
+  if (item === 'UserPublicAlbumDetail') {
+    data = {
+      path: '/user/:userId/album/:albumId',
+      name: item,
+      component: () => import(`@/views/user/${item}.vue`)
+    }
+  }
+  return data
+})
 
 const router = createRouter({
   history: createWebHistory(),
@@ -129,17 +76,25 @@ const router = createRouter({
 
 router.beforeEach((to, from, next) => {
   const { config, token, user } = useUserStore()
+  // 动态重定向根路径
+  if (to.path === '/') {
+    const pathName = config?.site?.navigationOrder[0]
+    const name = pathName.replace(pathName[0], pathName[0].toUpperCase())
+    if (to.name !== name) {
+      return next({ name })
+    }
+  }
   if (to.name === 'Docs' && !config?.site?.api) {
-    return next('/404')
+    return next({ name: '404' })
   }
   if (to.name === 'Register' && !config?.site?.register) {
-    return next('/404')
+    return next({ name: '404' })
   }
   if (to.name === 'Gallery' && !config?.site?.gallery) {
-    return next('/404')
+    return next({ name: '404' })
   }
   if (to.name === 'Admin' && (!token || user?.role !== 'admin')) {
-    return next('/404')
+    return next({ name: '404' })
   }
   if (to.name === 'My' && !token) {
     return next('/login')

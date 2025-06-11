@@ -108,7 +108,6 @@
   import {
     CloudUploadOutlined,
     DeleteOutlined,
-    CheckOutlined,
     CopyOutlined,
     UploadOutlined
   } from '@ant-design/icons-vue'
@@ -169,7 +168,7 @@
       message.success('链接已复制到剪贴板')
       clipboard.destroy()
     })
-    clipboard.on('error', e => {
+    clipboard.on('error', () => {
       message.error('复制失败, 请手动复制')
       clipboard.destroy()
     })
@@ -187,7 +186,7 @@
 
   // 生成MIME类型字符串
   const formats = computed(() => {
-    const allowedFormats = userStore.config?.upload?.allowedFormats
+    const { allowedFormats } = userStore.config?.upload
     if (!allowedFormats?.length) {
       return 'image/*'
     }
@@ -196,7 +195,7 @@
 
   // 生成文件扩展名字符串
   const mimeTypes = computed(() => {
-    const allowedFormats = userStore.config?.upload?.allowedFormats
+    const { allowedFormats } = userStore.config?.upload
     if (!allowedFormats?.length) {
       return 'all'
     }

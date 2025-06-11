@@ -122,8 +122,8 @@
       )
       logs.value = data.logs
       total.value = data.total
-    } catch (error) {
-      message.error('获取日志列表失败')
+    } catch ({ response }) {
+      message.error(response?.data?.error)
     } finally {
       loading.value = false
     }
@@ -140,8 +140,8 @@
         })
       )
       initCharts(data)
-    } catch (error) {
-      message.error('获取统计信息失败')
+    } catch ({ response }) {
+      message.error(response?.data?.error)
     }
   }
 
@@ -294,8 +294,8 @@
       message.success('删除成功')
       // 刷新列表
       fetchLogs()
-    } catch (error) {
-      message.error('删除失败')
+    } catch ({ response }) {
+      message.error(response?.data?.error)
     }
   }
 
@@ -315,8 +315,8 @@
           fetchLogs()
         }
       })
-    } catch (error) {
-      message.error('清空失败')
+    } catch ({ response }) {
+      message.error(response?.data?.error)
     }
   }
 </script>

@@ -13,7 +13,6 @@ import {
   uploadToOSS,
   uploadToCOS,
   uploadToS3,
-  uploadToR2,
   getUploadToken,
   uploadToQiNiu,
   uploadToUpyun,
@@ -304,21 +303,6 @@ const uploadImageToStorage = async (file, req, isuser) => {
     }
     // 处理图片
     let imageProcessor = sharp(file.path)
-    // 生成缩略图
-    const thumbnailPath = path.join('uploads', storage.local.path, 'thumbnails')
-    await checkAndCreateDir(thumbnailPath)
-    const thumbnailFilename = `thumb_${Date.now()}.${upload.convertFormat || format}`
-    const thumbnailFullPath = path.join(thumbnailPath, thumbnailFilename)
-    // 生成缩略图（这里设置缩略图尺寸为 200x200，保持比例）
-    await imageProcessor
-      .clone()
-      .resize({
-        width: Math.round(width * 0.5),
-        height: Math.round(height * 0.5),
-        fit: 'inside',
-        withoutEnlargement: true
-      })
-      .toFile(thumbnailFullPath)
     // 调整尺寸
     if (upload.maxWidth || upload.maxHeight) {
       imageProcessor = imageProcessor.resize({
@@ -354,6 +338,24 @@ const uploadImageToStorage = async (file, req, isuser) => {
         case 'gif':
           imageProcessor = imageProcessor.gif()
           break
+        case 'jp2':
+          imageProcessor = imageProcessor.jp2()
+          break
+        case 'tiff':
+          imageProcessor = imageProcessor.tiff()
+          break
+        case 'avif':
+          imageProcessor = imageProcessor.avif()
+          break
+        case 'heif':
+          imageProcessor = imageProcessor.heif()
+          break
+        case 'jxl':
+          imageProcessor = imageProcessor.jxl()
+          break
+        case 'raw':
+          imageProcessor = imageProcessor.raw()
+          break
         default:
           imageProcessor = imageProcessor.jpeg()
       }
@@ -374,6 +376,26 @@ const uploadImageToStorage = async (file, req, isuser) => {
           break
         case 'webp':
           imageProcessor = imageProcessor.webp({
+            quality: upload.quality
+          })
+          break
+        case 'jp2':
+          imageProcessor = imageProcessor.jp2({
+            quality: upload.quality
+          })
+          break
+        case 'tiff':
+          imageProcessor = imageProcessor.tiff({
+            quality: upload.quality
+          })
+          break
+        case 'avif':
+          imageProcessor = imageProcessor.avif({
+            quality: upload.quality
+          })
+          break
+        case 'heif':
+          imageProcessor = imageProcessor.heif({
             quality: upload.quality
           })
           break
@@ -425,6 +447,7 @@ const uploadImageToStorage = async (file, req, isuser) => {
           {
             input: Buffer.from(svgText),
             gravity,
+            tile: watermark.tile,
             top: 10,
             left: 10
           }
@@ -462,6 +485,7 @@ const uploadImageToStorage = async (file, req, isuser) => {
           {
             input: watermarkBuffer,
             gravity,
+            tile: watermark.tile,
             top: 10,
             left: 10,
             blend: 'over'
@@ -477,10 +501,13 @@ const uploadImageToStorage = async (file, req, isuser) => {
     const processedPath = path.join(uploadPath, processedFilename)
     // 确保目录存在
     await checkAndCreateDir(path.dirname(processedPath))
-    await imageProcessor.toFile(processedPath)
+    if (upload.convertFormat || upload.qualityOpen) {
+      await imageProcessor.toFile(processedPath)
+    } else {
+      await fs.copyFile(file.path, processedPath)
+    }
     // 获取处理后的文件大小
-    const processedStats = await fs.stat(processedPath)
-    const processedSize = processedStats.size
+    const { size } = await fs.stat(processedPath)
     // 计算处理后的图片的 SHA-1 值
     const sha1 = await calculateSHA1(processedPath)
     let url = '',
@@ -512,21 +539,12 @@ const uploadImageToStorage = async (file, req, isuser) => {
         }
         break
       case 's3':
-        // 上传到S3
+        // 上传到S3兼容存储
         filePath = `${storage.s3.directory}/${processedFilename}`
         try {
           url = await uploadToS3(`${uploadPath}${processedFilename}`)
         } catch ({ message }) {
-          throw new Error('上传到S3失败: ' + message)
-        }
-        break
-      case 'r2':
-        // 上传到R2
-        filePath = `${storage.r2.directory}/${processedFilename}`
-        try {
-          url = await uploadToR2(`${uploadPath}${processedFilename}`)
-        } catch (error) {
-          throw new Error('R2上传失败:', error)
+          throw new Error('上传到S3兼容存储失败: ' + message)
         }
         break
       case 'qiniu':
@@ -540,8 +558,8 @@ const uploadImageToStorage = async (file, req, isuser) => {
           if (urlInfo) {
             url = urlInfo
           }
-        } catch (error) {
-          throw new Error('七牛上传失败:', error)
+        } catch ({ message }) {
+          throw new Error('七牛上传失败:' + message)
         }
         break
       case 'upyun':
@@ -552,8 +570,8 @@ const uploadImageToStorage = async (file, req, isuser) => {
           if (urlInfo) {
             url = urlInfo
           }
-        } catch (error) {
-          throw new Error('又拍云上传失败:', error)
+        } catch ({ message }) {
+          throw new Error('又拍云上传失败:' + message)
         }
         break
       case 'sftp':
@@ -564,8 +582,8 @@ const uploadImageToStorage = async (file, req, isuser) => {
           if (urlInfo) {
             url = urlInfo
           }
-        } catch (error) {
-          throw new Error('SFTP上传失败:', error)
+        } catch ({ message }) {
+          throw new Error('SFTP上传失败:' + message)
         }
         break
       case 'ftp':
@@ -576,8 +594,8 @@ const uploadImageToStorage = async (file, req, isuser) => {
           if (urlInfo) {
             url = urlInfo
           }
-        } catch (error) {
-          throw new Error('FTP上传失败:', error)
+        } catch ({ message }) {
+          throw new Error('FTP上传失败:' + message)
         }
         break
       case 'webdav':
@@ -588,8 +606,8 @@ const uploadImageToStorage = async (file, req, isuser) => {
           if (urlInfo) {
             url = urlInfo
           }
-        } catch (error) {
-          throw new Error('WebDAV上传失败:', error)
+        } catch ({ message }) {
+          throw new Error('WebDAV上传失败:' + message)
         }
         break
       case 'telegram':
@@ -599,8 +617,8 @@ const uploadImageToStorage = async (file, req, isuser) => {
             url = urlInfo.url
             filePath = urlInfo.fileId
           }
-        } catch (error) {
-          throw new Error('Telegram上传失败:', error)
+        } catch ({ message }) {
+          throw new Error('Telegram上传失败:' + message)
         }
         break
       case 'github':
@@ -610,10 +628,12 @@ const uploadImageToStorage = async (file, req, isuser) => {
           if (urlInfo) {
             url = urlInfo
           }
-        } catch (error) {
-          throw new Error('Github上传失败:', error)
+        } catch ({ message }) {
+          throw new Error('Github上传失败:' + message)
         }
         break
+      case 'r2':
+        throw new Error('当前存储类型已被废弃, 请前往后台重新设置')
       default:
         throw new Error('未知的存储类型')
     }
@@ -621,17 +641,30 @@ const uploadImageToStorage = async (file, req, isuser) => {
     try {
       // 等待一小段时间确保文件不再被使用
       await new Promise(resolve => setTimeout(resolve, 100))
-      await fs.unlink(file.path)
+      await fs.unlink(storage.type === 'local' ? file.path : processedPath)
     } catch (unlinkError) {
       console.error('删除临时文件失败:', unlinkError)
     }
-    // 缩略图路径
-    const thumb = `/${uploadPath}thumbnails/${thumbnailFilename}`
+    // 生成缩略图
+    const thumbnailPath = path.join('uploads', storage.local.path, 'thumbnails')
+    await checkAndCreateDir(thumbnailPath)
+    const thumbnailFilename = `thumb_${Date.now()}.${upload.convertFormat || format}`
+    const thumbnailFullPath = path.join(thumbnailPath, thumbnailFilename)
+    // 生成缩略图
+    await imageProcessor
+      .clone()
+      .resize({
+        width: Math.round(width * 0.5),
+        height: Math.round(height * 0.5),
+        fit: 'inside',
+        withoutEnlargement: true
+      })
+      .toFile(thumbnailFullPath)
     // 保存图片记录，添加 SHA-1 值
     const image = new Image({
       name: file.originalname,
       url,
-      thumb,
+      thumb: `/${uploadPath}thumbnails/${thumbnailFilename}`,
       md5,
       sha1,
       safe: securityResult,
@@ -642,7 +675,7 @@ const uploadImageToStorage = async (file, req, isuser) => {
       height,
       date: Date.now(),
       ip: bodyIp,
-      size: processedSize,
+      size,
       filePath,
       filename: processedFilename
     })
@@ -654,7 +687,7 @@ const uploadImageToStorage = async (file, req, isuser) => {
       ip: bodyIp,
       image: image._id,
       originalName: file.originalname,
-      size: processedSize,
+      size,
       format,
       md5,
       width,

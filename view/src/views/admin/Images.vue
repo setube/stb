@@ -98,16 +98,25 @@
       show-size-changer
       @change="fetchImages"
     />
-    <!-- 编辑图片弹窗 -->
     <a-modal
       v-model:open="editModalVisible"
       title="编辑图片"
       @ok="handleUpdateImage"
       @cancel="editModalVisible = false"
     >
-      <a-form :model="editForm" :rules="editRules" layout="vertical" ref="editFormRef">
+      <a-form :model="editForm" :rules="editRules" layout="vertical">
         <a-form-item label="备注" name="remarks">
           <a-textarea v-model:value="editForm.remarks" placeholder="添加图片备注" :rows="4" />
+        </a-form-item>
+        <a-form-item label="图片方向" name="orientation">
+          <a-select v-model:value="editForm.orientation" style="width: 100%" :disabled="editForm.type !== 'local'">
+            <a-select-option value="0">原始方向</a-select-option>
+            <a-select-option value="90">顺时针旋转90°</a-select-option>
+            <a-select-option value="-90">逆时针旋转90°</a-select-option>
+            <a-select-option value="180">旋转180°</a-select-option>
+            <a-select-option value="270">顺时针旋转270°</a-select-option>
+            <a-select-option value="-270">逆时针旋转270°</a-select-option>
+          </a-select>
         </a-form-item>
       </a-form>
     </a-modal>
@@ -141,10 +150,10 @@
 
   // 编辑图片相关的状态
   const editModalVisible = ref(false)
-  const editFormRef = ref(null)
   const editForm = ref({
     _id: '',
-    remarks: ''
+    remarks: '',
+    orientation: '0'
   })
 
   // 编辑表单的验证规则
@@ -200,24 +209,18 @@
 
   // 显示编辑图片弹窗并填充数据
   const showEditModal = record => {
-    editForm.value = {
-      _id: record._id,
-      remarks: record.remarks
-    }
+    editForm.value = record
+    editForm.value.orientation = '0'
     editModalVisible.value = true
-    // 重置表单验证状态
-    if (editFormRef.value) {
-      editFormRef.value.resetFields()
-    }
   }
 
   // 处理更新图片数据
   const handleUpdateImage = async () => {
     try {
-      await editFormRef.value.validate() // 验证编辑表单
-      const imageId = editForm.value._id
-      await axios.patch(`/api/admin/images/${imageId}`, {
-        remarks: editForm.value.remarks
+      const { _id, remarks, orientation } = editForm.value
+      await axios.patch(`/api/admin/images/${_id}`, {
+        remarks,
+        orientation: parseInt(orientation)
       })
       message.success('图片数据更新成功')
       editModalVisible.value = false

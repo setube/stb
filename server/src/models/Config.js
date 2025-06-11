@@ -43,12 +43,16 @@ const configSchema = new mongoose.Schema(
       gallery: {
         type: Boolean,
         default: true
+      },
+      navigationOrder: {
+        type: [String],
+        default: ['home', 'my', 'gallery', 'docs']
       }
     },
     upload: {
       allowedFormats: {
         type: [String],
-        default: ['jpg', 'jpeg', 'png', 'gif', 'webp']
+        default: ['jpeg', 'jpg', 'png', 'webp', 'gif', 'jp2', 'tiff', 'avif', 'heif', 'jxl', 'raw']
       },
       // 同时上传数量
       concurrentUploads: {
@@ -77,7 +81,7 @@ const configSchema = new mongoose.Schema(
       },
       convertFormat: {
         type: String,
-        enum: ['', 'jpeg', 'jpg', 'png', 'webp', 'gif'],
+        enum: ['', 'jpeg', 'jpg', 'png', 'webp', 'gif', 'jp2', 'tiff', 'avif', 'heif', 'jxl', 'raw'],
         default: ''
       },
       qualityOpen: {
@@ -113,6 +117,10 @@ const configSchema = new mongoose.Schema(
         type: String,
         enum: ['text', 'image'],
         default: 'text'
+      },
+      tile: {
+        type: Boolean,
+        default: false
       },
       text: {
         content: {
@@ -163,7 +171,7 @@ const configSchema = new mongoose.Schema(
     storage: {
       type: {
         type: String,
-        enum: ['local', 'oss', 'cos', 'r2', 's3', 'qiniu', 'upyun', 'sftp', 'ftp', 'webdav', 'telegram'],
+        enum: ['local', 'oss', 'cos', 's3', 'qiniu', 'upyun', 'sftp', 'ftp', 'webdav', 'telegram', 'github'],
         default: 'local'
       },
       // 本地存储
@@ -268,33 +276,10 @@ const configSchema = new mongoose.Schema(
         directory: {
           type: String,
           default: 'uploads'
-        }
-      },
-      // Cloudflare R2 配置
-      r2: {
-        accountId: {
-          type: String,
-          default: ''
         },
-        accessKeyId: {
-          type: String,
-          default: ''
-        },
-        secretAccessKey: {
-          type: String,
-          default: ''
-        },
-        bucket: {
-          type: String,
-          default: ''
-        },
-        publicUrl: {
-          type: String,
-          default: ''
-        },
-        directory: {
-          type: String,
-          default: 'uploads'
+        useSSL: {
+          type: Boolean,
+          default: false
         }
       },
       // 七牛云
@@ -522,6 +507,11 @@ const configSchema = new mongoose.Schema(
         },
         chatId: {
           // 目标聊天ID
+          type: String,
+          default: ''
+        },
+        channelId: {
+          // 目标频道ID
           type: String,
           default: ''
         },

@@ -150,16 +150,13 @@ router.get('/:type', async (req, res, next) => {
       })
       res.redirect(`${config.authorizationEndpoint}?${params.toString()}`)
     } else {
-      // 如果是绑定操作,将 bindToken 作为 state 参数传递
-      // 如果是登录操作,将 redirectUrl 作为 state 参数传递
       passport.authenticate(type, {
         scope: oauthStrategies[type].scope,
         passReqToCallback: true,
-        state: req.query.bindToken || req.query.redirectUrl // 传递 state 参数
+        state: req.query.bindToken || req.query.redirectUrl
       })(req, res, next)
     }
   } catch (error) {
-    console.error('OAuth 初始化失败:', error)
     return res.status(500).json({ error: error.message })
   }
 })

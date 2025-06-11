@@ -102,7 +102,7 @@
       total.value = data.total
       codes.value = data.codes
     } catch ({ response }) {
-      message.error('获取邀请码列表失败')
+      message.error(response?.data?.error)
     } finally {
       loading.value = false
     }
@@ -122,12 +122,8 @@
       message.success('邀请码生成成功')
       generateModalVisible.value = false
       fetchCodes()
-    } catch (error) {
-      if (error.response?.data?.error) {
-        message.error(error.response.data.error)
-      } else {
-        message.error('生成邀请码失败')
-      }
+    } catch ({ response }) {
+      message.error(response?.data?.error)
     }
   }
 
@@ -144,8 +140,8 @@
       document.body.appendChild(link)
       link.click()
       document.body.removeChild(link)
-    } catch (error) {
-      message.error('导出邀请码失败')
+    } catch ({ response }) {
+      message.error(response?.data?.error)
     }
   }
 
@@ -160,7 +156,7 @@
           message.success('邀请码已删除')
           fetchCodes() // 刷新列表
         } catch ({ response }) {
-          message.error(response?.data?.error || '删除失败')
+          message.error(response?.data?.error)
         }
       }
     })

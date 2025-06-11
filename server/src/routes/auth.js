@@ -104,7 +104,6 @@ router.post('/my', auth, async (req, res) => {
 
     res.json({ images, total })
   } catch ({ message }) {
-    console.error('获取我的图片列表失败:', message)
     res.status(500).json({ error: message })
   }
 })
@@ -162,7 +161,6 @@ router.post('/register/send-code', async (req, res) => {
     await sendVerificationCode(email, code, 'register')
     res.json({ message: '验证码已发送' })
   } catch ({ message }) {
-    console.error('发送注册验证码失败:', message)
     res.status(500).json({ error: message })
   }
 })
@@ -541,7 +539,6 @@ router.post('/albums', auth, async (req, res) => {
     await album.save()
     res.status(201).json({ message: '相册创建成功', album })
   } catch ({ message }) {
-    console.error('创建相册失败:', message)
     res.status(500).json({ error: message })
   }
 })
@@ -561,7 +558,6 @@ router.post('/albums/my', auth, async (req, res) => {
     const standaloneCount = await Image.countDocuments({ user: userId, album: null })
     res.json({ albums, standaloneCount })
   } catch ({ message }) {
-    console.error('获取我的相册列表失败:', message)
     res.status(500).json({ error: message })
   }
 })

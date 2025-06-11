@@ -2,7 +2,6 @@ import {
   deleteFromOSS,
   deleteFromCOS,
   deleteFromS3,
-  deleteFromR2,
   deleteFromQiNiu,
   deleteFromUpyun,
   deleteFromSftp,
@@ -17,8 +16,8 @@ import { Image } from '../models/Image.js'
 import { UploadLog } from '../models/UploadLog.js'
 
 export const deleteImage = async (imageInfo, id) => {
+  const { _id, type, url, filename, filePath, thumb } = imageInfo
   try {
-    const { _id, type, url, filename, filePath, thumb } = imageInfo
     // 根据存储类型删除文件
     switch (type) {
       case 'local':
@@ -38,9 +37,6 @@ export const deleteImage = async (imageInfo, id) => {
         break
       case 's3':
         await deleteFromS3(filePath)
-        break
-      case 'r2':
-        await deleteFromR2(filePath)
         break
       case 'qiniu':
         await deleteFromQiNiu(filename)
@@ -76,6 +72,18 @@ export const deleteImage = async (imageInfo, id) => {
     // 删除相关的上传日志
     await UploadLog.deleteMany({ image: _id })
   } catch (error) {
-    throw new Error(error)
+    if (error.message.includes('message to delete')) {
+      if (thumb) {
+        // 删除本地缩略图
+        const thumbFilePath = path.join(process.cwd(), thumb)
+        await fs.unlink(thumbFilePath)
+      }
+      // 删除数据库记录
+      await Image.deleteOne({ _id })
+      // 删除相关的上传日志
+      await UploadLog.deleteMany({ image: _id })
+    } else {
+      throw new Error(error)
+    }
   }
 }

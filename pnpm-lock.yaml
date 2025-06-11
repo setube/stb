@@ -167,6 +167,9 @@ importers:
       vue-waterfall-plugin-next:
         specifier: ^2.6.5
         version: 2.6.5
+      vuedraggable:
+        specifier: ^2.24.3
+        version: 2.24.3
     devDependencies:
       '@vitejs/plugin-vue':
         specifier: ^5.2.3
@@ -3235,6 +3238,9 @@ packages:
     resolution: {integrity: sha512-D3YaD0aRxR3mEcqnidIs7ReYJFVzWdd6fXJYUM8ixcQcJRGTka/b3saV0KflYhyVJXKhb947GndU35SxYNResQ==}
     engines: {node: '>= 10.0.0', npm: '>= 3.0.0'}
 
+  sortablejs@1.10.2:
+    resolution: {integrity: sha512-YkPGufevysvfwn5rfdlGyrGjt7/CRHwvRPogD/lC+TnvcN29jDpCifKP+rBqf+LRldfXSTh+0CGLcSg0VIxq3A==}
+
   source-map-js@1.2.1:
     resolution: {integrity: sha512-UXWMKhLOwVKb728IUtQPXxfYU+usdybtUrK/8uGE8CQMvrhOpwvzDBwj0QhSL7MQc7vIsISBG8VQ8+IDQxpfQA==}
     engines: {node: '>=0.10.0'}
@@ -3685,6 +3691,9 @@ packages:
     peerDependenciesMeta:
       typescript:
         optional: true
+
+  vuedraggable@2.24.3:
+    resolution: {integrity: sha512-6/HDXi92GzB+Hcs9fC6PAAozK1RLt1ewPTLjK0anTYguXLAeySDmcnqE8IC0xa7shvSzRjQXq3/+dsZ7ETGF3g==}
 
   warning@4.0.3:
     resolution: {integrity: sha512-rpJyN222KWIvHJ/F53XSZv0Zl/accqHR8et1kpaMTD/fLCRxtV8iX8czMzY7sVZupTI3zcUTg8eycS2kNF9l6w==}
@@ -7631,6 +7640,8 @@ snapshots:
       ip-address: 9.0.5
       smart-buffer: 4.2.0
 
+  sortablejs@1.10.2: {}
+
   source-map-js@1.2.1: {}
 
   source-map-support@0.5.21:
@@ -8123,6 +8134,10 @@ snapshots:
       '@vue/shared': 3.5.14
     optionalDependencies:
       typescript: 4.9.5
+
+  vuedraggable@2.24.3:
+    dependencies:
+      sortablejs: 1.10.2
 
   warning@4.0.3:
     dependencies:

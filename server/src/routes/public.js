@@ -15,7 +15,6 @@ router.post('/users/:userId', async (req, res) => {
     }
     res.json(user)
   } catch (error) {
-    console.error('获取公共用户信息失败:', error)
     res.status(500).json({ error: error.message })
   }
 })

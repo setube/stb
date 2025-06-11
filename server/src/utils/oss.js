@@ -4,7 +4,7 @@ import OSS from 'ali-oss'
 import COS from 'cos-nodejs-sdk-v5'
 // 七牛云
 import qiniu from 'qiniu'
-// AWS S3 和 CloudFlare R2
+// S3 兼容存储
 import { S3Client, PutObjectCommand, DeleteObjectCommand } from '@aws-sdk/client-s3'
 // 又拍云
 import upyun from 'upyun'
@@ -20,6 +20,7 @@ import fs from 'fs'
 import { createReadStream } from 'fs'
 import { Config } from '../models/Config.js'
 import path from 'path'
+import axios from 'axios'
 
 // 上传文件到COS
 export const uploadToCOS = async (filePath, cosPath) => {
@@ -43,8 +44,7 @@ export const uploadToCOS = async (filePath, cosPath) => {
         '.jpeg': 'image/jpeg',
         '.png': 'image/png',
         '.gif': 'image/gif',
-        '.webp': 'image/webp',
-        '.svg': 'image/svg+xml'
+        '.webp': 'image/webp'
       }[ext] || 'application/octet-stream'
     return new Promise((resolve, reject) => {
       cos.putObject(
@@ -148,16 +148,23 @@ export const deleteFromOSS = async ossPath => {
 }
 
 // 上传到 S3
-export const uploadToS3 = async filePath => {
+export const uploadToS3 = async (filePath, Key) => {
   try {
     const { storage } = await Config.findOne()
-    const { region, accessKeyId, bucket, secretAccessKey, endpoint } = storage.s3
+    const { s3 } = storage
+
+    // 创建 S3 客户端
     const s3Client = new S3Client({
-      region,
-      credentials: { accessKeyId, secretAccessKey },
-      ...(endpoint && { endpoint })
+      region: s3.region,
+      endpoint: s3.endpoint,
+      credentials: {
+        accessKeyId: s3.accessKeyId,
+        secretAccessKey: s3.secretAccessKey
+      },
+      forcePathStyle: true,
+      sslEnabled: s3.useSSL
     })
-    const key = filePath
+
     // 获取文件扩展名
     const ext = path.extname(filePath).toLowerCase()
     // 根据扩展名设置 Content-Type
@@ -167,31 +174,21 @@ export const uploadToS3 = async filePath => {
         '.jpeg': 'image/jpeg',
         '.png': 'image/png',
         '.gif': 'image/gif',
-        '.webp': 'image/webp',
-        '.svg': 'image/svg+xml'
+        '.webp': 'image/webp'
       }[ext] || 'application/octet-stream'
-
-    const stats = await fs.promises.stat(filePath);
-    const contentLength = stats.size;
-
-    const command = new PutObjectCommand({
-      Bucket: bucket,
-      Key: key,
-      Body: createReadStream(filePath),
-      ContentType: contentType, // 添加 Content-Type
-      ContentLength: contentLength  
-    })
-    await s3Client.send(command)
+    const stats = await fs.promises.stat(filePath)
+    // 上传文件
+    await s3Client.send(
+      new PutObjectCommand({
+        Bucket: s3.bucket,
+        Key,
+        Body: createReadStream(filePath),
+        ContentType: contentType,
+        ContentLength: stats.size
+      })
+    )
     // 构建访问URL
-    let url
-    if (endpoint) {
-      // 自定义域名
-      url = `${endpoint}/${key}`
-    } else {
-      // AWS 标准域名
-      url = `https://${bucket}.s3.${region}.amazonaws.com/${key}`
-    }
-    return url
+    return `${s3.useSSL ? 'https' : 'http'}://${s3.endpoint}/${s3.bucket}/${Key}`
   } catch ({ message }) {
     throw new Error(message)
   }
@@ -213,70 +210,6 @@ export const deleteFromS3 = async filename => {
     const command = new DeleteObjectCommand({
       Bucket: bucket,
       Key: filename
-    })
-    await s3Client.send(command)
-  } catch ({ message }) {
-    throw new Error(message)
-  }
-}
-
-// 上传到 R2
-export const uploadToR2 = async filePath => {
-  try {
-    const { storage } = await Config.findOne()
-    const { accountId, accessKeyId, secretAccessKey, bucket, publicUrl } = storage.r2
-    const s3Client = new S3Client({
-      region: 'auto',
-      endpoint: `https://${accountId}.r2.cloudflarestorage.com`,
-      credentials: {
-        accessKeyId,
-        secretAccessKey
-      }
-    })
-    const key = filePath
-    // 获取文件扩展名
-    const ext = path.extname(filePath).toLowerCase()
-    // 根据扩展名设置 Content-Type
-    const contentType =
-      {
-        '.jpg': 'image/jpeg',
-        '.jpeg': 'image/jpeg',
-        '.png': 'image/png',
-        '.gif': 'image/gif',
-        '.webp': 'image/webp',
-        '.svg': 'image/svg+xml'
-      }[ext] || 'application/octet-stream'
-
-    const command = new PutObjectCommand({
-      Bucket: bucket,
-      Key: key,
-      Body: createReadStream(filePath),
-      ContentType: contentType // 添加 Content-Type
-    })
-    await s3Client.send(command)
-    // 使用配置的公共URL
-    return `${publicUrl}/${key}`
-  } catch ({ message }) {
-    throw new Error(message)
-  }
-}
-
-// 从 R2 删除
-export const deleteFromR2 = async filePath => {
-  try {
-    const { storage } = await Config.findOne()
-    const { accountId, accessKeyId, secretAccessKey, bucket, publicUrl } = storage.r2
-    const s3Client = new S3Client({
-      region: 'auto',
-      endpoint: `https://${accountId}.r2.cloudflarestorage.com`,
-      credentials: {
-        accessKeyId,
-        secretAccessKey
-      }
-    })
-    const command = new DeleteObjectCommand({
-      Bucket: bucket,
-      Key: filePath
     })
     await s3Client.send(command)
   } catch ({ message }) {
@@ -604,32 +537,57 @@ export const deleteFromWebdav = async filePath => {
 export const uploadToTelegram = async (filePath, key, user) => {
   try {
     const { storage } = await Config.findOne()
-    const { botToken, polling, timeout, proxy, chatId } = storage.telegram
-    // 创建bot实例，添加更多网络配置
+    const { botToken, polling, timeout, proxy, chatId, channelId } = storage.telegram
+    if (!channelId) {
+      throw new Error('未设置频道ID, 无法上传')
+    }
+    // 创建 bot 实例
     const bot = new TelegramBot(botToken, {
-      polling, // 禁用轮询
+      polling,
       request: {
-        timeout: timeout * 1000, // 设置超时时间为30秒
-        proxy, // 使用代理
+        timeout: timeout * 1000,
+        proxy,
         agentOptions: {
           keepAlive: true,
-          family: 4, // 强制使用 IPv4
+          family: 4,
           timeout: timeout * 1000
         }
       }
     })
-    // 使用 sendPhoto 方法上传图片
-    const result = await bot.sendPhoto(chatId, filePath, {
+    // 上传图片到频道
+    const { message_id } = await bot.sendPhoto(chatId, filePath, {
       caption: `文件名: ${key}\n上传用户: ${user.username}\n用户ID: ${user._id}`,
       parse_mode: 'HTML'
     })
-    // 获取文件信息
-    const fileId = result.photo[result.photo.length - 1].file_id
+    // 获取图片URL
+    const { data, status } = await axios.get(`https://post.tg.dev/${channelId}/${message_id}`)
+    if (status !== 200) {
+      await bot.deleteMessage(chatId, message_id)
+      throw new Error('请确认环境网络能够访问post.tg.dev')
+    }
+    if (data.includes(`Channel with username <b>@${channelId}</b> not found`)) {
+      await bot.deleteMessage(chatId, message_id)
+      throw new Error(`请确认频道${channelId}是否为公开`)
+    }
+    // 使用正则匹配图片URL
+    const match = data.match(/https:\/\/cdn\d+\.telesco\.pe\/file\/[^\s)'"]+/)
+    if (!match) {
+      await bot.deleteMessage(chatId, message_id)
+      throw new Error(
+        '无法获取图片URL, 请前往: https://github.com/setube/stb/issues/new?template=BUG%E5%8F%8D%E9%A6%88.md 反馈'
+      )
+    }
     return {
-      url: await bot.getFileLink(fileId),
-      fileId: result.message_id
+      url: match[0],
+      fileId: message_id
     }
   } catch ({ message }) {
+    if (message.includes('chat not found') || message.includes('bot is not a member')) {
+      throw new Error('Bot 需要被添加到频道中并具有发送消息的权限')
+    }
+    if (message.includes('chat_write_forbidden')) {
+      throw new Error('Bot 在频道中没有发送消息的权限')
+    }
     throw new Error(message)
   }
 }
@@ -651,12 +609,6 @@ export const deleteFromTelegram = async fileId => {
         }
       }
     })
-
-    // 发送消息获取消息ID
-    const message = await bot.sendMessage(chatId, '正在删除文件...')
-    const messageId = message.message_id
-    // 删除消息
-    await bot.deleteMessage(chatId, messageId)
     await bot.deleteMessage(chatId, fileId)
   } catch ({ message }) {
     throw new Error(message)

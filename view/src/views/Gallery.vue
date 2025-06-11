@@ -109,7 +109,7 @@
       return
     }
     loading.value = true
-    is404.value = false // 重置状态
+    is404.value = false
     try {
       const { data } = await axios.post(
         '/api/images',
@@ -132,9 +132,8 @@
       } else {
         is404.value = false
       }
-    } catch (error) {
-      console.error('获取图片列表失败:', error)
-      message.error('获取图片列表失败')
+    } catch (response) {
+      message.error(response?.data?.error)
       is404.value = true
     } finally {
       loading.value = false
@@ -148,14 +147,13 @@
 
   // 处理标签搜索
   const handleTagSearch = () => {
-    page.value = 1 // 搜索时重置页码到第一页
-    total.value = 0 // 重置总数
-    images.value = [] // 清空当前图片列表
-    fetchImages() // 重新获取图片列表
+    page.value = 1
+    total.value = 0
+    images.value = []
+    fetchImages()
   }
 
   onMounted(() => {
-    // 初始加载时，先设置page为1，然后调用fetchImages
     page.value = 1
     fetchImages()
   })

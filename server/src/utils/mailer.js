@@ -53,8 +53,7 @@ export const sendVerificationCode = async (email, code, type = 'reset') => {
     }
     await transporter.sendMail(mailOptions)
     return true
-  } catch (error) {
-    console.error('发送邮件失败:', error)
-    throw new Error('发送邮件失败')
+  } catch ({ message }) {
+    throw new Error(message)
   }
 }

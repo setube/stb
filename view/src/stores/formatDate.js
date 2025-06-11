@@ -24,10 +24,9 @@ export const formatFileSize = bytes => {
 
 // 复制链接
 export const copyImages = (event, image, userStore) => {
-  // 创建新的实例
   const clipboard = new ClipboardJS(event.target, {
     text: () => {
-      return image.type == 'local' ? userStore.config.site.url + image.url : image.url
+      return image.type == 'local' ? userStore?.config?.site.url + image.url : image.url
     }
   })
   clipboard.on('success', e => {
@@ -35,27 +34,29 @@ export const copyImages = (event, image, userStore) => {
     message.success('链接已复制到剪贴板')
     clipboard.destroy()
   })
-  clipboard.on('error', e => {
+  clipboard.on('error', () => {
     message.error('复制失败, 请检查当前浏览器是否支持Clipboard.js')
     clipboard.destroy()
   })
+  clipboard.onClick(event)
 }
+
+// 图片格式
+export const imageExitType = ['jpeg', 'jpg', 'png', 'webp', 'gif', 'jp2', 'tiff', 'avif', 'heif', 'jxl', 'raw']
 
 // 图片所属存储类型
 export const imageStoreType = {
   local: '本地存储',
   oss: '阿里云OSS',
   cos: '腾讯云COS',
-  s3: 'AWS S3',
-  r2: 'Cloudflare R2',
+  s3: 'S3 兼容存储',
   qiniu: '七牛云 Kodo',
   upyun: '又拍云 USS',
   sftp: 'SFTP',
   ftp: 'FTP',
   webdav: 'WebDAV',
   telegram: 'Telegram',
-  github: 'GitHub',
-  get: key => imageStoreType[key] ?? '本地存储'
+  github: 'GitHub'
 }
 
 // 图片健康状态

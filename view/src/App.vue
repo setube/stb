@@ -124,15 +124,19 @@
 
   // 定义菜单项
   const menuItems = [
-    { name: 'home', title: '图床首页', url: '/', icon: HomeOutlined },
+    { name: 'home', title: '图床首页', url: '/home', icon: HomeOutlined },
     { name: 'my', title: '我的图片', url: '/my', icon: SmileOutlined },
     { name: 'gallery', title: '图片广场', url: '/gallery', icon: FireOutlined },
     { name: 'docs', title: '接口文档', url: '/docs', icon: QuestionCircleOutlined }
   ]
 
-  // 计算属性返回过滤后的菜单
+  // 计算属性返回过滤和排序后的菜单
   const menus = computed(() => {
-    return menuItems.map(item => ({
+    const order = userStore.config?.site?.navigationOrder
+    const sortedMenuItems = [...menuItems].sort((a, b) => {
+      return order.indexOf(a.name) - order.indexOf(b.name)
+    })
+    return sortedMenuItems.map(item => ({
       ...item,
       show: userStore.menuVisibility[item.name]
     }))
@@ -153,8 +157,8 @@
     try {
       const { data } = await axios.post('/api/auth/config')
       userStore.config = data
-    } catch (error) {
-      message.error(error)
+    } catch ({ response }) {
+      message.error(response?.data?.error)
     }
   }
 
@@ -162,8 +166,8 @@
     try {
       const { data } = await axios.post('/api/auth/info')
       userStore.user = data
-    } catch (error) {
-      message.error(error?.response?.data?.error || '获取用户信息失败')
+    } catch ({ response }) {
+      message.error(response?.data?.error)
     }
   }
 
