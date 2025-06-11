@@ -5,25 +5,28 @@ on:
     types: [published]
 
 jobs:
-  build:
-    name: 构建并上传源码包
+  telegram_notification:
+    name: 处理Telegram通知
     runs-on: ubuntu-latest
     permissions:
       contents: write
     steps:
-      - name: Checkout
+      - name: 检出代码
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
 
-      - name: Download
-        uses: actions/download-artifact@v4
-        with:
-          path: ./dist/
-          pattern: artifact-*
-          merge-multiple: true
+      - name: 创建 dist 目录
+        run: mkdir -p dist
 
-      - name: Push to telegram
+      - name: 生成源码归档文件到 dist 目录
+        run: |
+          git archive --format=zip --output=source.zip HEAD
+          mv source.zip "dist/Source code (zip)"
+          git archive --format=tar.gz --output=source.tar.gz HEAD
+          mv source.tar.gz "dist/Source code (tar.gz)"
+
+      - name: 安装 Python 依赖并运行脚本
         env:
           TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
           TAG: ${{ github.ref_name }}
@@ -32,4 +35,3 @@ jobs:
           python -m pip install --upgrade pip
           pip install requests
           python release_telegram.py
-    
