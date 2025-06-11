@@ -23,32 +23,26 @@ jobs:
         with:
           files: ${{ github.event.release.tag_name }}.zip
           token: ${{ secrets.GITHUB_TOKEN }}
-
-  notify:
-    name: 发布信息推送到Telegram
-    needs: build
-    runs-on: ubuntu-latest
     steps:
-      - name: 获取Release资源下载链接
-        id: get_assets
-        run: |
-          urls=$(curl -s -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" \
-            "https://api.github.com/repos/${{ github.repository }}/releases/${{ github.event.release.id }}" \
-            | jq -r '.assets[].browser_download_url')
-          echo "ASSET_URLS<<EOF" >> $GITHUB_ENV
-          echo "$urls" >> $GITHUB_ENV
-          echo "EOF" >> $GITHUB_ENV
-
-      - name: 发送Telegram通知
-        uses: appleboy/telegram-action@master
+      - name: Checkout
+        uses: actions/checkout@v4
         with:
-          to: ${{ secrets.TELEGRAM_CHAT_ID }}
-          token: ${{ secrets.TELEGRAM_BOT_TOKEN }}
-          format: html
-          message: |
-            <code>${{ github.event.release.tag_name }}</code>
-            <b>更新内容:</b>
-            <pre>${{ github.event.release.body }}</pre>
-            <b>Release 页面:</b>
-            <a href="${{ github.event.release.html_url }}">${{ github.event.release.html_url }}</a>
-            ${{ env.ASSET_URLS }}
+          fetch-depth: 0
+
+      - name: Download
+        uses: actions/download-artifact@v4
+        with:
+          path: ./dist/
+          pattern: artifact-*
+          merge-multiple: true
+
+      - name: Push to telegram
+        env:
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TAG: ${{ github.ref_name }}
+          RUN_ID: ${{ github.run_id }}
+        run: |
+          python -m pip install --upgrade pip
+          pip install requests
+          python release_telegram.py
+    
