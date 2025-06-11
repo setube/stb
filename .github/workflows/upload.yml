@@ -1,4 +1,4 @@
-name: 发布通知
+name: 发布并推送到Telegram
 
 on:
   release:
@@ -6,34 +6,40 @@ on:
 
 jobs:
   build:
-    name: 构建源码包
+    name: 构建并上传源码包
     runs-on: ubuntu-latest
     permissions:
       contents: write
     steps:
       - name: 检出代码
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       - name: 创建源码压缩包
         run: |
-          git archive --format=zip --output=source.zip HEAD
-          
-      - name: 上传源码包
-        uses: actions/upload-release-asset@v2
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          git archive --format=zip --output=${{ github.event.release.tag_name }}.zip HEAD
+
+      - name: 上传源码包到Release
+        uses: softprops/action-gh-release@v2
         with:
-          upload_url: ${{ github.event.release.upload_url }}
-          asset_path: ./source.zip
-          asset_name: ${{ github.event.release.tag_name }}.zip
-          asset_content_type: application/zip
+          files: ${{ github.event.release.tag_name }}.zip
+          token: ${{ secrets.GITHUB_TOKEN }}
 
   notify:
-    name: 发送通知
+    name: 发布信息推送到Telegram
     needs: build
     runs-on: ubuntu-latest
     steps:
-      - name: 发送 Telegram 通知
+      - name: 获取Release资源下载链接
+        id: get_assets
+        run: |
+          urls=$(curl -s -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" \
+            "https://api.github.com/repos/${{ github.repository }}/releases/${{ github.event.release.id }}" \
+            | jq -r '.assets[].browser_download_url')
+          echo "ASSET_URLS<<EOF" >> $GITHUB_ENV
+          echo "$urls" >> $GITHUB_ENV
+          echo "EOF" >> $GITHUB_ENV
+
+      - name: 发送Telegram通知
         uses: appleboy/telegram-action@master
         with:
           to: ${{ secrets.TELEGRAM_CHAT_ID }}
@@ -41,4 +47,8 @@ jobs:
           format: html
           message: |
             <code>${{ github.event.release.tag_name }}</code>
+            <b>更新内容:</b>
             <pre>${{ github.event.release.body }}</pre>
+            <b>Release 页面:</b>
+            <a href="${{ github.event.release.html_url }}">${{ github.event.release.html_url }}</a>
+            ${{ env.ASSET_URLS }}
