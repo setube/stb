@@ -1,4 +1,4 @@
-name: 发布Telegram通知
+name: 发布通知
 
 on:
   release:
@@ -8,6 +8,8 @@ jobs:
   build:
     name: 构建源码包
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
     steps:
       - name: 检出代码
         uses: actions/checkout@v3
@@ -15,15 +17,15 @@ jobs:
       - name: 创建源码压缩包
         run: |
           git archive --format=zip --output=source.zip HEAD
-
+          
       - name: 上传源码包
-        uses: softprops/action-gh-release@v2
+        uses: actions/upload-release-asset@v2
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           upload_url: ${{ github.event.release.upload_url }}
           asset_path: ./source.zip
-          asset_name: source.zip
+          asset_name: ${{ github.event.release.tag_name }}.zip
           asset_content_type: application/zip
 
   notify:
