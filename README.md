@@ -6,7 +6,7 @@
 [![Stb GitHub's forks](https://img.shields.io/github/forks/setube/stb?style=social)](https://github.com/setube/stb/network/members)
 [![Stb is released under the Apache 2.0 license.](https://img.shields.io/badge/License-Apache%202.0-blue)](/LICENSE)
 
-[安装图床](https://github.com/setube/stb/wiki/install) • [界面展示](#界面展示) • [星标趋势](#星标趋势) • [开源协议](#开源协议)
+[安装图床](https://github.com/setube/stb/wiki/install) • [界面展示](#界面展示) • [星标趋势](#星标趋势) • [开源协议](#开源协议) • [Telegram群组](https://t.me/+jDH_82deSmc4NzRl)
 
 </div>
 
