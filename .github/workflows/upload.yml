@@ -28,8 +28,7 @@ jobs:
               .replace(/<a[^>]*href="([^"]*)"[^>]*>([^<]*)<\/a>/g, '<a href="$1">$2</a>')
               .replace(/<tt>([^<]*)<\/tt>/g, '$1')
               .replace(/<strong>([^<]*)<\/strong>/g, '<b>$1</b>')
-              // 移除所有引号和多余的空格
-              .replace(/"/g, '')
+              // 移除多余的空格
               .replace(/\s+/g, ' ')
               // 规范化换行符
               .replace(/\n{3,}/g, '\n\n')
