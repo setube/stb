@@ -24,12 +24,16 @@ jobs:
               .replace(/<p>/g, '')
               .replace(/<\/p>/g, '\n')
               .replace(/<br>/g, '\n')
-              .replace(/<a class="[^"]*" href="([^"]*)">([^<]*)<\/a>/g, '<a href="$1">$2</a>')
+              // 简化所有链接，只保留 href 和文本内容
+              .replace(/<a[^>]*href="([^"]*)"[^>]*>([^<]*)<\/a>/g, '<a href="$1">$2</a>')
               .replace(/<tt>([^<]*)<\/tt>/g, '$1')
               .replace(/<strong>([^<]*)<\/strong>/g, '<b>$1</b>')
-              .replace(/"/g, '') // 移除所有引号
-              .replace(/\n{3,}/g, '\n\n') // 将多个换行符替换为两个
-              .trim() // 移除首尾空白
+              // 移除所有引号和多余的空格
+              .replace(/"/g, '')
+              .replace(/\s+/g, ' ')
+              // 规范化换行符
+              .replace(/\n{3,}/g, '\n\n')
+              .trim()
             return processedHtml
 
       - name: 发送Telegram通知
