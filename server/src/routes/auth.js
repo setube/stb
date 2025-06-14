@@ -209,6 +209,8 @@ router.post('/register', async (req, res) => {
         await Captcha.deleteOne({ _id: captchaId })
         return res.status(400).json({ error: '滑动验证已过期,请重新验证' })
       }
+      // 删除已使用的验证记录
+      await Captcha.deleteOne({ _id: captchaId })
     }
 
     // 检查是否开启注册
@@ -297,8 +299,6 @@ router.post('/register', async (req, res) => {
       }
     }
     const user = await User.findOne({ _id: userinfo._id }).populate('role')
-    // 删除已使用的验证记录
-    await Captcha.deleteOne({ _id: captchaId })
     res.status(201).json({
       message: '注册成功',
       token: jwt.sign({ userId: user._id, role: user.role }, process.env.JWT_SECRET),
@@ -337,6 +337,8 @@ router.post('/login', async (req, res) => {
         await Captcha.deleteOne({ _id: captchaId })
         return res.status(400).json({ error: '滑动验证已过期,请重新验证' })
       }
+      // 删除已使用的验证记录
+      await Captcha.deleteOne({ _id: captchaId })
     }
 
     const user = await User.findOne({ username }).populate('role')
@@ -350,8 +352,6 @@ router.post('/login', async (req, res) => {
     // 更新最后登录时间
     user.lastLogin = Date.now()
     await user.save()
-    // 删除已使用的验证记录
-    await Captcha.deleteOne({ _id: captchaId })
     const token = jwt.sign({ userId: _id, role }, process.env.JWT_SECRET)
     res.json({
       token,
