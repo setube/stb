@@ -16,10 +16,13 @@ jobs:
           token: ${{ secrets.TELEGRAM_BOT_TOKEN }}
           format: html
           message: |
-            <p>${{ github.event.release.tag_name }}</p>
-            <p>更新内容:</p>
-            <p>${{ github.event.release.body }}</p>
-            <p>压缩包下载:</p>
-            <p><a href="${{ github.event.release.html_url }}">${{ github.event.release.html_url }}</a></p>
-            <p>Docker: </p>
-            <p><a href="https://github.com/setube/stb/pkgs/container/stb">https://github.com/setube/stb/pkgs/container/stb</a></p>
+            <b>版本: ${{ github.event.release.tag_name }}</b>
+
+            <b>更新内容:</b>
+            ${{ github.event.release.body }}
+
+            <b>压缩包下载:</b>
+            <a href="${{ github.event.release.html_url }}">点击下载</a>
+
+            <b>Docker:</b>
+            <a href="https://github.com/setube/stb/pkgs/container/stb">点击查看</a>
