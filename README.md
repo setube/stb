@@ -6,7 +6,7 @@
 [![Stb GitHub's forks](https://img.shields.io/github/forks/setube/stb?style=social)](https://github.com/setube/stb/network/members)
 [![Stb is released under the Apache 2.0 license.](https://img.shields.io/badge/License-Apache%202.0-blue)](/LICENSE)
 
-[安装图床](https://github.com/setube/stb/wiki/install) • [界面展示](#界面展示) • [星标趋势](#星标趋势) • [开源协议](#开源协议) • [Telegram群组](https://t.me/+jDH_82deSmc4NzRl)
+[安装图床](https://github.com/setube/stb/wiki/install) • [界面展示](#界面展示) • [星标趋势](#星标趋势) • [开源协议](#开源协议) • [Telegram 群组](https://t.me/+jDH_82deSmc4NzRl)
 
 </div>
 
@@ -31,40 +31,42 @@
 - [x] 支持管理、创建、修改、删除相册
 - [x] 支持通过接口上传、管理图片、管理全站
 - [x] 支持第三方社会化登录
+- [x] 支持角色组配置, 可以为每个角色组配置储存策略
 
 ## 已支持以下第三方存储
 
-- [x] Telegram
-- [x] Github
 - [x] 阿里云 OSS
 - [x] 腾讯云 COS
 - [x] S3 兼容
-- [x] Cloudflare R2
 - [x] 七牛云 Kodo
 - [x] 又拍云 USS
 - [x] SFTP
 - [x] FTP
 - [x] WebDAV
+- [x] Github
+- [x] Telegram
 
 ## 界面展示
 
-![Stb图床 - 上传页面](./docs/1.jpg)
+![Stb图床 - 图床首页](./docs/1.jpg)
 ![Stb图床 - 我的页面](./docs/2.jpg)
-![Stb图床 - 广场页面](./docs/3.jpg)
-![Stb图床 - 文档页面](./docs/4.jpg)
+![Stb图床 - 图片广场](./docs/3.jpg)
+![Stb图床 - 接口文档](./docs/4.jpg)
 ![Stb图床 - 统计页面](./docs/5.jpg)
 ![Stb图床 - 日志管理](./docs/6.jpg)
 ![Stb图床 - 用户管理](./docs/7.jpg)
 ![Stb图床 - 图片管理](./docs/8.jpg)
 ![Stb图床 - 相册管理](./docs/9.jpg)
-![Stb图床 - 邀请码管理](./docs/10.jpg)
+![Stb图床 - 公告管理](./docs/10.jpg)
 ![Stb图床 - 系统配置](./docs/11.jpg)
-![Stb图床 - 登录页面](./docs/12.jpg)
-![Stb图床 - 注册页面](./docs/13.jpg)
-![Stb图床 - 找回密码页面](./docs/14.jpg)
-![Stb图床 - 用户个人主页](./docs/15.jpg)
-![Stb图床 - 用户相册详细界面](./docs/16.jpg)
-![Stb图床 - 个人设置界面](./docs/17.jpg)
+![Stb图床 - 角色组管理](./docs/12.jpg)
+![Stb图床 - 邀请码管理](./docs/13.jpg)
+![Stb图床 - 登录页面](./docs/14.jpg)
+![Stb图床 - 注册页面](./docs/15.jpg)
+![Stb图床 - 找回密码页面](./docs/16.jpg)
+![Stb图床 - 用户个人主页](./docs/17.jpg)
+![Stb图床 - 用户相册详细界面](./docs/18.jpg)
+![Stb图床 - 个人设置界面](./docs/19.jpg)
 
 ## 星标趋势
 

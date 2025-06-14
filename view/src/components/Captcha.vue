@@ -71,7 +71,6 @@
       // 如果没有 captchaId,先生成一个
       await generateCaptcha()
     }
-
     try {
       const { data } = await axios.post('/api/auth/captcha/verify', {
         captchaId: captchaId.value,

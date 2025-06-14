@@ -7,6 +7,7 @@ import { auth } from '../middleware/auth.js'
 import { Image } from '../models/Image.js'
 import { Config } from '../models/Config.js'
 import { UploadLog } from '../models/UploadLog.js'
+import { RoleGroup } from '../models/RoleGroup.js'
 import { checkDailyLimit } from '../middleware/checkDailyLimit.js'
 import { checkIpWhitelist } from '../middleware/checkIpWhitelist.js'
 import {
@@ -44,9 +45,15 @@ const upload = multer({
   storage,
   fileFilter: async (req, file, cb) => {
     try {
-      const { upload } = await Config.findOne()
+      let userRole
+      if (req?.user?._id) {
+        const { role } = await User.findById(req.user._id).populate('role')
+        userRole = role
+      } else {
+        userRole = await RoleGroup.findOne({ isGuest: true })
+      }
       const ext = path.extname(file.originalname).toLowerCase().slice(1)
-      if (!upload.allowedFormats.includes(ext)) {
+      if (!userRole.upload.allowedFormats.includes(ext)) {
         return cb(new Error('不支持的图片格式'))
       }
       cb(null, true)
@@ -162,9 +169,15 @@ router.post('/images', async (req, res) => {
   }
 })
 
-// 添加文件命名规则处理函数
-const generateFileName = async (file, req, isuser) => {
-  const { upload } = await Config.findOne()
+// 正则处理函数
+const generate = async (variable, file, req, isuser) => {
+  let userRole
+  if (req?.user?._id) {
+    const { role } = await User.findById(req.user._id).populate('role')
+    userRole = role
+  } else {
+    userRole = await RoleGroup.findOne({ isGuest: true })
+  }
   // 获取文件信息
   const ext = path.extname(file.originalname).toLowerCase().slice(1)
   const filename = path.basename(file.originalname, path.extname(file.originalname))
@@ -182,14 +195,14 @@ const generateFileName = async (file, req, isuser) => {
   const d = String(date.getDate()).padStart(2, '0')
   const Ymd = `${Y}${m}${d}`
   // 替换变量
-  return upload.namingRule
+  return variable
     .replace(/{Y}/g, Y)
     .replace(/{y}/g, y)
     .replace(/{m}/g, m)
     .replace(/{d}/g, d)
     .replace(/{Ymd}/g, Ymd)
     .replace(/{filename}/g, filename)
-    .replace(/{ext}/g, upload.convertFormat || ext)
+    .replace(/{ext}/g, userRole.upload.convertFormat || ext)
     .replace(/{time}/g, time)
     .replace(/{uniqid}/g, uniqid)
     .replace(/{md5}/g, md5)
@@ -202,16 +215,20 @@ const generateFileName = async (file, req, isuser) => {
 const uploadImageToStorage = async (file, req, isuser) => {
   const md5 = await calculateMD5(file.path)
   try {
-    const { body, clientIp } = req
-    const { site, upload, storage, watermark, ai } = await Config.findOne()
+    const { body, clientIp, user } = req
+    let userRole = {}
+    if (isuser) {
+      const { role } = await User.findById(user._id).populate('role')
+      userRole = role
+    } else {
+      userRole = await RoleGroup.findOne({ isGuest: true })
+    }
+    const upload = userRole.upload
+    const { site, storage, watermark, ai } = await Config.findOne()
     const bodyIp = clientIp.ipv4 || clientIp.ipv6 || body.ip
     // 检查有没有填写网站URL
     if (!site.url) {
       throw new Error('请先配置网站URL')
-    }
-    // 检查文件大小
-    if (file.size > upload.maxSize * 1024 * 1024) {
-      throw new Error(`文件大小不能超过 ${upload.maxSize}MB`)
     }
     // 获取图片信息
     const { format, width, height } = await sharp(file.path).metadata()
@@ -494,10 +511,11 @@ const uploadImageToStorage = async (file, req, isuser) => {
       }
     }
     // 保存处理后的图片
-    const uploadPath = 'uploads' + storage.local.path
+    const generatePath = await generate(upload.catalogue, file, req, isuser)
+    const uploadPath = 'uploads' + storage.local.path + generatePath
     checkAndCreateDir(uploadPath)
     // 生成文件名
-    const processedFilename = await generateFileName(file, req, isuser)
+    const processedFilename = await generate(upload.namingRule, file, req, isuser)
     const processedPath = path.join(uploadPath, processedFilename)
     // 确保目录存在
     await checkAndCreateDir(path.dirname(processedPath))
@@ -512,14 +530,14 @@ const uploadImageToStorage = async (file, req, isuser) => {
     const sha1 = await calculateSHA1(processedPath)
     let url = '',
       filePath = ''
-    switch (storage.type) {
+    switch (upload.storageType) {
       case 'local':
-        url = `/${uploadPath}${processedFilename}`
+        url = `/${uploadPath}/${processedFilename}`
         filePath = url
         break
       case 'oss':
         // 上传到OSS
-        const ossPath = `${storage.oss.path}${processedFilename}`
+        const ossPath = `${storage.cos.filePath}/${generatePath}/${processedFilename}`
         filePath = ossPath
         // 上传到OSS后删除本地文件
         try {
@@ -530,31 +548,31 @@ const uploadImageToStorage = async (file, req, isuser) => {
         break
       case 'cos':
         // 上传到COS
-        const cosPath = `${storage.cos.filePath}/${processedFilename}`
+        const cosPath = `${storage.cos.filePath}/${generatePath}/${processedFilename}`
         filePath = cosPath
         try {
-          url = await uploadToCOS(processedPath, cosPath, processedFilename)
+          url = await uploadToCOS(processedPath, cosPath)
         } catch ({ message }) {
           throw new Error('上传到COS失败: ' + message)
         }
         break
       case 's3':
         // 上传到S3兼容存储
-        filePath = `${storage.s3.directory}/${processedFilename}`
+        filePath = `${storage.s3.directory}/${generatePath}/${processedFilename}`
         try {
-          url = await uploadToS3(`${uploadPath}${processedFilename}`)
+          url = await uploadToS3(`${uploadPath}/${processedFilename}`, filePath)
         } catch ({ message }) {
           throw new Error('上传到S3兼容存储失败: ' + message)
         }
         break
       case 'qiniu':
         // 上传到七牛
-        filePath = `/${processedFilename}`
+        filePath = `${storage.qiniu.directory}/${generatePath}/${processedFilename}`
         try {
           // 获取上传凭证
           const token = await getUploadToken()
           // 上传到七牛
-          const urlInfo = await uploadToQiNiu(token, processedPath, processedFilename)
+          const urlInfo = await uploadToQiNiu(token, processedPath, filePath)
           if (urlInfo) {
             url = urlInfo
           }
@@ -563,8 +581,8 @@ const uploadImageToStorage = async (file, req, isuser) => {
         }
         break
       case 'upyun':
-        // 上传到七牛
-        filePath = `${storage.upyun.directory}/${processedFilename}`
+        // 上传到又拍云
+        filePath = `${storage.upyun.directory}/${generatePath}/${processedFilename}`
         try {
           const urlInfo = await uploadToUpyun(processedPath)
           if (urlInfo) {
@@ -576,7 +594,7 @@ const uploadImageToStorage = async (file, req, isuser) => {
         break
       case 'sftp':
         // 上传到SFTP
-        filePath = `${storage.sftp.directory}/${processedFilename}`
+        filePath = `${storage.sftp.directory}/${generatePath}/${processedFilename}`
         try {
           const urlInfo = await uploadToSftp(processedPath, processedFilename)
           if (urlInfo) {
@@ -588,7 +606,7 @@ const uploadImageToStorage = async (file, req, isuser) => {
         break
       case 'ftp':
         // 上传到FTP
-        filePath = `${storage.ftp.directory}/${processedFilename}`
+        filePath = `${storage.ftp.directory}/${generatePath}/${processedFilename}`
         try {
           const urlInfo = await uploadToFtp(processedPath, processedFilename)
           if (urlInfo) {
@@ -600,7 +618,7 @@ const uploadImageToStorage = async (file, req, isuser) => {
         break
       case 'webdav':
         // 上传到WEBDAV
-        filePath = `${storage.webdav.directory}/${processedFilename}`
+        filePath = `${storage.webdav.directory}/${generatePath}/${processedFilename}`
         try {
           const urlInfo = await uploadToWebdav(processedPath, processedFilename)
           if (urlInfo) {
@@ -612,7 +630,7 @@ const uploadImageToStorage = async (file, req, isuser) => {
         break
       case 'telegram':
         try {
-          const urlInfo = await uploadToTelegram(processedPath, processedFilename, req.user)
+          const urlInfo = await uploadToTelegram(processedPath, processedFilename, user)
           if (urlInfo) {
             url = urlInfo.url
             filePath = urlInfo.fileId
@@ -622,9 +640,9 @@ const uploadImageToStorage = async (file, req, isuser) => {
         }
         break
       case 'github':
-        filePath = `${storage.github.directory}/${processedFilename}`
+        filePath = `${storage.github.directory}/${generatePath}/${processedFilename}`
         try {
-          const urlInfo = await uploadToGithub(processedPath, processedFilename, req.user)
+          const urlInfo = await uploadToGithub(processedPath, filePath, user)
           if (urlInfo) {
             url = urlInfo
           }
@@ -637,16 +655,8 @@ const uploadImageToStorage = async (file, req, isuser) => {
       default:
         throw new Error('未知的存储类型')
     }
-    // 清理本地未处理的图片源文件
-    try {
-      // 等待一小段时间确保文件不再被使用
-      await new Promise(resolve => setTimeout(resolve, 100))
-      await fs.unlink(storage.type === 'local' ? file.path : processedPath)
-    } catch (unlinkError) {
-      console.error('删除临时文件失败:', unlinkError)
-    }
     // 生成缩略图
-    const thumbnailPath = path.join('uploads', storage.local.path, 'thumbnails')
+    const thumbnailPath = path.join('uploads', 'thumbnails')
     await checkAndCreateDir(thumbnailPath)
     const thumbnailFilename = `thumb_${Date.now()}.${upload.convertFormat || format}`
     const thumbnailFullPath = path.join(thumbnailPath, thumbnailFilename)
@@ -664,13 +674,13 @@ const uploadImageToStorage = async (file, req, isuser) => {
     const image = new Image({
       name: file.originalname,
       url,
-      thumb: `/${uploadPath}thumbnails/${thumbnailFilename}`,
+      thumb: `/uploads/thumbnails/${thumbnailFilename}`,
       md5,
       sha1,
       safe: securityResult,
       label: labelResults,
-      type: storage.type,
-      user: isuser ? req.user._id : null,
+      type: upload.storageType,
+      user: isuser ? user._id : null,
       width,
       height,
       date: Date.now(),
@@ -683,7 +693,7 @@ const uploadImageToStorage = async (file, req, isuser) => {
     await image.save()
     // 上传日志也添加 SHA-1 值
     const log = new UploadLog({
-      user: isuser ? req.user._id : null,
+      user: isuser ? user._id : null,
       ip: bodyIp,
       image: image._id,
       originalName: file.originalname,
@@ -696,15 +706,16 @@ const uploadImageToStorage = async (file, req, isuser) => {
       filename: processedFilename
     })
     await log.save()
-    return image
-  } catch ({ message }) {
+    // 清理本地未处理的图片源文件
     try {
       // 等待一小段时间确保文件不再被使用
       await new Promise(resolve => setTimeout(resolve, 100))
-      await fs.unlink(file.path)
+      await fs.unlink(upload.storageType === 'local' ? file.path : processedPath)
     } catch (unlinkError) {
       console.error('删除临时文件失败:', unlinkError)
     }
+    return image
+  } catch ({ message }) {
     throw new Error(message)
   }
 }

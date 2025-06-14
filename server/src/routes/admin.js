@@ -1,6 +1,5 @@
 import express from 'express'
-import { auth } from '../middleware/auth.js'
-import { checkRole } from '../middleware/checkRole.js'
+import { auth, isAdmin } from '../middleware/auth.js'
 import { User } from '../models/User.js'
 import { Image } from '../models/Image.js'
 import { deleteImage } from '../utils/deleteImage.js'
@@ -14,6 +13,8 @@ import { Album } from '../models/Album.js'
 import sharp from 'sharp'
 import path from 'path'
 import fs from 'fs/promises'
+import { RoleGroup } from '../models/RoleGroup.js'
+import { Announcement } from '../models/Announcement.js'
 
 const router = express.Router()
 
@@ -44,7 +45,7 @@ const formatUptime = seconds => {
 }
 
 // 获取所有用户列表
-router.post('/users', auth, checkRole(['admin']), async (req, res) => {
+router.post('/users', auth, isAdmin, async (req, res) => {
   try {
     const { page, limit, username } = req.body
     const pageMath = Math.max(1, parseInt(page))
@@ -64,7 +65,7 @@ router.post('/users', auth, checkRole(['admin']), async (req, res) => {
 })
 
 // 删除任意用户
-router.delete('/users/:id', auth, checkRole(['admin']), async (req, res) => {
+router.delete('/users/:id', auth, isAdmin, async (req, res) => {
   try {
     const { id } = req.params
     // 查询当前用户信息
@@ -84,7 +85,7 @@ router.delete('/users/:id', auth, checkRole(['admin']), async (req, res) => {
 })
 
 // 更新用户数据
-router.patch('/users/:id', auth, checkRole(['admin']), async (req, res) => {
+router.patch('/users/:id', auth, isAdmin, async (req, res) => {
   try {
     const { id } = req.params
     const updates = req.body
@@ -154,7 +155,7 @@ router.patch('/users/:id', auth, checkRole(['admin']), async (req, res) => {
 })
 
 // 获取所有图片
-router.post('/images', auth, checkRole(['admin']), async (req, res) => {
+router.post('/images', auth, isAdmin, async (req, res) => {
   try {
     const { page, limit, searchQuery } = req.body
     const pageMath = Math.max(1, parseInt(page))
@@ -200,7 +201,7 @@ router.post('/images', auth, checkRole(['admin']), async (req, res) => {
 })
 
 // 更新图片数据
-router.patch('/images/:id', auth, checkRole(['admin']), async (req, res) => {
+router.patch('/images/:id', auth, isAdmin, async (req, res) => {
   try {
     const { id } = req.params
     const { remarks, orientation } = req.body
@@ -274,7 +275,7 @@ router.patch('/images/:id', auth, checkRole(['admin']), async (req, res) => {
 })
 
 // 删除任意图片
-router.delete('/images/:id', auth, checkRole(['admin']), async (req, res) => {
+router.delete('/images/:id', auth, isAdmin, async (req, res) => {
   try {
     const { id } = req.params
     // 查询当前图片信息
@@ -290,7 +291,7 @@ router.delete('/images/:id', auth, checkRole(['admin']), async (req, res) => {
 })
 
 // 获取系统统计信息
-router.post('/stats', auth, checkRole(['admin']), async (req, res) => {
+router.post('/stats', auth, isAdmin, async (req, res) => {
   try {
     // 检查缓存
     const cachedStats = statsCache.get('systemStats')
@@ -414,7 +415,7 @@ router.post('/stats', auth, checkRole(['admin']), async (req, res) => {
 })
 
 // 创建新用户
-router.post('/users/create', auth, checkRole(['admin']), async (req, res) => {
+router.post('/users/create', auth, isAdmin, async (req, res) => {
   try {
     const { username, email, password, role } = req.body
 
@@ -453,7 +454,7 @@ router.post('/users/create', auth, checkRole(['admin']), async (req, res) => {
 })
 
 // 生成邀请码
-router.post('/invite-codes/generate', auth, checkRole(['admin']), async (req, res) => {
+router.post('/invite-codes/generate', auth, isAdmin, async (req, res) => {
   try {
     const { count = 1 } = req.body
     const codes = []
@@ -472,7 +473,7 @@ router.post('/invite-codes/generate', auth, checkRole(['admin']), async (req, re
 })
 
 // 获取邀请码列表
-router.post('/invite-codes', auth, checkRole(['admin']), async (req, res) => {
+router.post('/invite-codes', auth, isAdmin, async (req, res) => {
   try {
     const { page, limit } = req.body
     const pageMath = Math.max(1, parseInt(page))
@@ -491,7 +492,7 @@ router.post('/invite-codes', auth, checkRole(['admin']), async (req, res) => {
 })
 
 // 导出邀请码
-router.get('/invite-codes/export', auth, checkRole(['admin']), async (req, res) => {
+router.get('/invite-codes/export', auth, isAdmin, async (req, res) => {
   try {
     // 获取邀请码数据并填充用户信息
     const codes = await InviteCode.find().populate('usedBy', 'username email').sort({ createdAt: -1 })
@@ -516,7 +517,7 @@ router.get('/invite-codes/export', auth, checkRole(['admin']), async (req, res) 
 })
 
 // 删除邀请码
-router.delete('/invite-codes/:id', auth, checkRole(['admin']), async (req, res) => {
+router.delete('/invite-codes/:id', auth, isAdmin, async (req, res) => {
   try {
     const { id } = req.params
     // 检查邀请码是否存在
@@ -533,7 +534,7 @@ router.delete('/invite-codes/:id', auth, checkRole(['admin']), async (req, res) 
 })
 
 // 获取相册列表
-router.post('/albums', auth, checkRole(['admin']), async (req, res) => {
+router.post('/albums', auth, isAdmin, async (req, res) => {
   try {
     const { page, limit, name, permission, username } = req.body
     const pageMath = Math.max(1, parseInt(page))
@@ -573,7 +574,7 @@ router.post('/albums', auth, checkRole(['admin']), async (req, res) => {
 })
 
 // 搜索用户
-router.post('/users/search', auth, checkRole(['admin']), async (req, res) => {
+router.post('/users/search', auth, isAdmin, async (req, res) => {
   try {
     const { username } = req.body
     if (!username) {
@@ -592,7 +593,7 @@ router.post('/users/search', auth, checkRole(['admin']), async (req, res) => {
 })
 
 // 创建相册
-router.post('/albums/new', auth, checkRole(['admin']), async (req, res) => {
+router.post('/albums/new', auth, isAdmin, async (req, res) => {
   try {
     const { userId, name, permission } = req.body
     if (!userId || !name || !permission) {
@@ -619,7 +620,7 @@ router.post('/albums/new', auth, checkRole(['admin']), async (req, res) => {
 })
 
 // 更新相册
-router.put('/albums/:id', auth, checkRole(['admin']), async (req, res) => {
+router.put('/albums/:id', auth, isAdmin, async (req, res) => {
   try {
     const { id } = req.params
     const { name, permission } = req.body
@@ -645,7 +646,7 @@ router.put('/albums/:id', auth, checkRole(['admin']), async (req, res) => {
 })
 
 // 删除相册
-router.delete('/albums/:id', auth, checkRole(['admin']), async (req, res) => {
+router.delete('/albums/:id', auth, isAdmin, async (req, res) => {
   try {
     const { id } = req.params
     // 验证相册是否存在
@@ -659,6 +660,145 @@ router.delete('/albums/:id', auth, checkRole(['admin']), async (req, res) => {
     res.json({ message: '相册删除成功' })
   } catch ({ message }) {
     res.status(500).json({ error: message })
+  }
+})
+
+// 获取角色组列表
+router.post('/role-groups', auth, isAdmin, async (req, res) => {
+  try {
+    const roleGroups = await RoleGroup.find()
+    res.json(roleGroups)
+  } catch (error) {
+    res.status(500).json({ error: error.message })
+  }
+})
+
+// 获取指定角色组
+router.post('/role-groups/info/:id', auth, isAdmin, async (req, res) => {
+  try {
+    const roleGroups = await RoleGroup.findOne({ _id: req.params.id })
+    if (!roleGroups) {
+      return res.status(400).json({ error: '用户组不存在' })
+    }
+    res.json(roleGroups)
+  } catch (error) {
+    res.status(500).json({ error: error.message })
+  }
+})
+
+// 创建角色组
+router.post('/role-groups/create', auth, isAdmin, async (req, res) => {
+  try {
+    const roleGroup = new RoleGroup(req.body)
+    await roleGroup.save()
+    res.json(roleGroup)
+  } catch (error) {
+    res.status(500).json({ error: error.message })
+  }
+})
+
+// 更新角色组
+router.put('/role-groups/:id', auth, isAdmin, async (req, res) => {
+  try {
+    const roleGroup = await RoleGroup.findByIdAndUpdate(req.params.id, req.body, { new: true })
+    res.json(roleGroup)
+  } catch (error) {
+    res.status(500).json({ error: error.message })
+  }
+})
+
+// 删除角色组
+router.delete('/role-groups/:id', auth, isAdmin, async (req, res) => {
+  try {
+    await RoleGroup.findByIdAndDelete(req.params.id)
+    res.json({ message: '删除成功' })
+  } catch (error) {
+    res.status(500).json({ error: error.message })
+  }
+})
+
+// 创建公告
+router.post('/announcements/new', auth, isAdmin, async (req, res) => {
+  try {
+    const { title, content, type, startTime, endTime } = req.body
+
+    const announcement = await Announcement.create({
+      title,
+      content,
+      type,
+      startTime: new Date(startTime),
+      endTime: new Date(endTime)
+    })
+    res.json({ message: '公告创建成功', announcement })
+  } catch ({ message }) {
+    res.status(500).json({ message })
+  }
+})
+
+// 获取公告列表
+router.post('/announcements', auth, isAdmin, async (req, res) => {
+  try {
+    const announcements = await Announcement.find().sort({ createdAt: -1 })
+    res.json(announcements)
+  } catch ({ message }) {
+    res.status(500).json({ message })
+  }
+})
+
+// 更新公告
+router.put('/announcements/:id', auth, isAdmin, async (req, res) => {
+  try {
+    const { title, content, type, startTime, endTime, isActive } = req.body
+
+    const announcement = await Announcement.findByIdAndUpdate(
+      req.params.id,
+      {
+        title,
+        content,
+        type,
+        startTime: new Date(startTime),
+        endTime: new Date(endTime),
+        isActive
+      },
+      { new: true }
+    )
+    if (!announcement) {
+      return res.status(404).json({ message: '公告不存在' })
+    }
+    res.json({ message: '公告更新成功', announcement })
+  } catch ({ message }) {
+    res.status(500).json({ message })
+  }
+})
+
+// 删除公告
+router.delete('/announcements/:id', auth, isAdmin, async (req, res) => {
+  try {
+    const announcement = await Announcement.findByIdAndDelete(req.params.id)
+
+    if (!announcement) {
+      return res.status(404).json({ message: '公告不存在' })
+    }
+
+    res.json({ message: '公告删除成功' })
+  } catch ({ message }) {
+    res.status(500).json({ message })
+  }
+})
+
+// 获取当前有效的公告
+router.post('/announcements/active', async (req, res) => {
+  try {
+    const now = new Date()
+    // 修改查询条件，确保按创建时间倒序排序
+    const announcement = await Announcement.findOne({
+      isActive: true
+      // startTime: { $lte: now },
+      // endTime: { $gte: now }
+    }).sort({ createdAt: -1 })
+    res.json(announcement)
+  } catch ({ message }) {
+    res.status(500).json({ message })
   }
 })
 

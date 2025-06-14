@@ -16,6 +16,8 @@ import requestIP from 'request-ip'
 import { fileURLToPath } from 'url'
 import publicRoutes from './routes/public.js'
 import ipaddr from 'ipaddr.js'
+import { RoleGroup } from './models/RoleGroup.js'
+import { User } from './models/User.js'
 
 dotenv.config()
 
@@ -52,7 +54,7 @@ app.use((req, res, next) => {
     'FORWARDED',
     'HTTP-CLIENT-IP',
     'HTTP-FORWARDED-FOR-IP',
-    'HTTP-PC-REMOTE-ADDR',
+    'HTTP-PC-REMOTE_ADDR',
     'HTTP-PROXY-CONNECTION',
     'HTTP-VIA',
     'HTTP-X-FORWARDED-FOR-IP',
@@ -276,10 +278,48 @@ const connectDB = async () => {
   }
 }
 
+// 初始化角色组和迁移用户权限
+const initializeRoles = async () => {
+  try {
+    // 获取所有角色组
+    const roleGroups = await RoleGroup.find({})
+    console.log(
+      '当前角色组列表:',
+      roleGroups.map(g => g.name)
+    )
+
+    // 检查是否存在必要的角色组
+    const adminGroup = roleGroups.find(g => g.isAdmin)
+    const defaultGroup = roleGroups.find(g => g.isDefault)
+    const guestGroup = roleGroups.find(g => g.isGuest)
+
+    // 如果缺少任何必要的角色组，执行初始化
+    if (!adminGroup || !defaultGroup || !guestGroup) {
+      console.log('缺少必要的角色组，开始初始化...')
+      if (!adminGroup) console.log('缺少管理员组')
+      if (!defaultGroup) console.log('缺少默认用户组')
+      if (!guestGroup) console.log('缺少游客组')
+      await RoleGroup.initialize()
+    } else {
+      console.log('所有必要的角色组已存在，跳过初始化')
+    }
+
+    // 执行用户权限迁移
+    console.log('开始迁移用户权限...')
+    await User.migrateRoles()
+    console.log('角色组初始化和用户权限迁移完成')
+  } catch (error) {
+    console.error('角色组初始化和用户权限迁移失败:', error)
+    throw error
+  }
+}
+
 // 启动服务器
 const startServer = async () => {
   try {
     await connectDB()
+    // 等待数据库连接成功后再执行初始化
+    await initializeRoles()
     app.listen(process.env.PORT, () => {
       console.log(`后端服务正在${process.env.PORT}端口上运行`)
     })

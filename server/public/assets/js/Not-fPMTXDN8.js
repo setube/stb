@@ -1,1 +1,0 @@
-import{e as s}from"./404-D23t8Jcl.js";import{k as t,g as a,m as e,h as r,j as o,a4 as n}from"./vendor-Ct0GE2cv.js";const m=["src"],i={__name:"Not",setup:i=>(i,l)=>{const c=n;return a(),t(c,{title:"404","sub-title":"页面不存在"},{icon:e((()=>[r("img",{src:o(s),class:"ant-result-icon ant-result-image"},null,8,m)])),_:1})}};export{i as default};

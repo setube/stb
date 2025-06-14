@@ -3,7 +3,9 @@
     <a-card class="user-info-card">
       <a-spin :spinning="loadingUser">
         <div v-if="user" class="user-profile">
-          <a-avatar :src="userStore?.config?.site?.url + user.avatar" :size="80" :icon="UserOutlined" />
+          <a-avatar :src="userStore?.config?.site?.url + user.avatar" :size="80">
+            {{ user.username }}
+          </a-avatar>
           <div class="user-details">
             <h2>{{ user.username }}</h2>
             <p>注册时间: {{ formatDate(user.createdAt) }}</p>

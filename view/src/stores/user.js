@@ -4,9 +4,12 @@ export const useUserStore = defineStore('user', {
   state: () => ({
     ip: null,
     user: null,
+    guest: null,
     token: null,
     config: null,
-    activeKey: '1'
+    activeKey: '1',
+    announcement: null,
+    announcementData: null
   }),
   getters: {
     menuVisibility: state => ({

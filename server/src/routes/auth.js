@@ -10,6 +10,7 @@ import { InviteCode } from '../models/InviteCode.js'
 import { VerificationCode } from '../models/VerificationCode.js'
 import { Album } from '../models/Album.js'
 import { Captcha } from '../models/Captcha.js'
+import { RoleGroup } from '../models/RoleGroup.js'
 
 const router = express.Router()
 
@@ -51,7 +52,7 @@ router.post('/config', async (req, res) => {
 // 获取当前用户信息
 router.post('/info', auth, async (req, res) => {
   try {
-    const user = await User.findById(req.user._id).select('-password')
+    const user = await User.findById(req.user._id).select('-password').populate('role')
     if (!user) {
       return res.status(404).json({ error: '用户不存在' })
     }
@@ -62,12 +63,34 @@ router.post('/info', auth, async (req, res) => {
     res.json({
       _id,
       username,
-      role,
+      role: {
+        isAdmin: role.isAdmin,
+        isDefault: role.isDefault,
+        isGuest: role.isGuest,
+        upload: role.upload
+      },
       status,
       email,
       founder,
       avatar,
       oauth
+    })
+  } catch ({ message }) {
+    res.status(500).json({ error: message })
+  }
+})
+
+// 获取游客用户组信息
+router.post('/guest', async (req, res) => {
+  try {
+    const user = await RoleGroup.findOne({ isGuest: true })
+    res.json({
+      role: {
+        isAdmin: user.isAdmin,
+        isDefault: user.isDefault,
+        isGuest: user.isGuest,
+        upload: user.upload
+      }
     })
   } catch ({ message }) {
     res.status(500).json({ error: message })
@@ -186,8 +209,6 @@ router.post('/register', async (req, res) => {
         await Captcha.deleteOne({ _id: captchaId })
         return res.status(400).json({ error: '滑动验证已过期,请重新验证' })
       }
-      // 删除已使用的验证记录
-      await Captcha.deleteOne({ _id: captchaId })
     }
 
     // 检查是否开启注册
@@ -239,10 +260,19 @@ router.post('/register', async (req, res) => {
     if (!password || password.length < 6) {
       return res.status(400).json({ error: '密码长度不能小于6位' })
     }
+    // 获取默认角色组
+    const defaultRoleGroup = await RoleGroup.findOne({ isDefault: true })
+    if (!defaultRoleGroup) {
+      throw new Error('未找到默认用户组')
+    }
+    const adminRoleGroup = await RoleGroup.findOne({ isAdmin: true })
+    if (!adminRoleGroup) {
+      throw new Error('未找到系统管理员组')
+    }
     // 查询当前用户列表数量，确定是否为创始人
     const userCount = await User.countDocuments()
     // 创建新用户
-    const user = new User({
+    const userinfo = new User({
       ip: {
         ipv4: clientIp.ipv4 || ip?.ipv4,
         ipv6: clientIp.ipv6 || ip?.ipv6
@@ -250,22 +280,25 @@ router.post('/register', async (req, res) => {
       username,
       password,
       email,
-      role: !userCount ? 'admin' : 'user',
+      role: !userCount ? adminRoleGroup._id : defaultRoleGroup._id,
       founder: !userCount ? true : false,
       lastLogin: Date.now(),
       status: 'active'
     })
-    await user.save()
+    await userinfo.save()
     // 如果使用了邀请码，更新邀请码状态
     if (site.inviteCodeRequired && inviteCode) {
       const codeRecord = await InviteCode.findOne({ code: inviteCode })
       if (codeRecord) {
         codeRecord.status = 'used'
-        codeRecord.usedBy = user._id
+        codeRecord.usedBy = userinfo._id
         codeRecord.usedAt = new Date()
         await codeRecord.save()
       }
     }
+    const user = await User.findOne({ _id: userinfo._id }).populate('role')
+    // 删除已使用的验证记录
+    await Captcha.deleteOne({ _id: captchaId })
     res.status(201).json({
       message: '注册成功',
       token: jwt.sign({ userId: user._id, role: user.role }, process.env.JWT_SECRET),
@@ -289,7 +322,6 @@ router.post('/register', async (req, res) => {
 router.post('/login', async (req, res) => {
   try {
     const { username, password, captchaId } = req.body
-
     // 检查是否开启验证码
     const { site } = await Config.findOne()
     if (site.captcha) {
@@ -305,11 +337,9 @@ router.post('/login', async (req, res) => {
         await Captcha.deleteOne({ _id: captchaId })
         return res.status(400).json({ error: '滑动验证已过期,请重新验证' })
       }
-      // 删除已使用的验证记录
-      await Captcha.deleteOne({ _id: captchaId })
     }
 
-    const user = await User.findOne({ username })
+    const user = await User.findOne({ username }).populate('role')
     if (!user || !(await user.comparePassword(password))) {
       throw new Error('用户名或密码错误')
     }
@@ -320,6 +350,8 @@ router.post('/login', async (req, res) => {
     // 更新最后登录时间
     user.lastLogin = Date.now()
     await user.save()
+    // 删除已使用的验证记录
+    await Captcha.deleteOne({ _id: captchaId })
     const token = jwt.sign({ userId: _id, role }, process.env.JWT_SECRET)
     res.json({
       token,

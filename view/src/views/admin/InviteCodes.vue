@@ -5,7 +5,7 @@
       <a-button @click="handleExport" :disabled="!codes.length">导出邀请码</a-button>
     </div>
     <a-spin :spinning="loading">
-      <el-table :data="codes" :scrollbar-always-on="true" fit>
+      <el-table :data="codes" scrollbar-always-on fit>
         <el-table-column prop="code" label="邀请码" />
         <el-table-column prop="status" label="状态">
           <template #default="{ row }">

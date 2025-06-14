@@ -39,7 +39,7 @@ export const deleteImage = async (imageInfo, id) => {
         await deleteFromS3(filePath)
         break
       case 'qiniu':
-        await deleteFromQiNiu(filename)
+        await deleteFromQiNiu(filePath)
         break
       case 'upyun':
         await deleteFromUpyun(filePath)

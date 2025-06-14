@@ -4,13 +4,13 @@
       <a-input-search
         v-model:value="searchQuery"
         placeholder="搜索文件名/MD5/SHA-1/备注/IP"
-        style="width: 260px; margin-right: 10px"
+        style="width: 275px"
         @search="handleSearch"
         allow-clear
       />
     </div>
     <a-spin :spinning="loading">
-      <el-table :data="images" :scrollbar-always-on="true" fit>
+      <el-table :data="images" scrollbar-always-on fit>
         <el-table-column label="预览" fixed>
           <template #default="{ row }">
             <a-image
@@ -242,16 +242,8 @@
   .header {
     margin-bottom: 20px;
     display: flex;
-    /* justify-content: flex-end; */
-    /* 可以根据需要调整对齐方式 */
+    justify-content: flex-end;
     align-items: center;
-    flex-wrap: wrap;
-    /* 防止在小屏幕上溢出 */
-  }
-
-  .header > * {
-    margin-bottom: 10px;
-    /* 给header内的元素添加底部间距 */
   }
 
   .pagination {

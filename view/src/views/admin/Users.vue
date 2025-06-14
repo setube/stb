@@ -5,7 +5,7 @@
       <a-button type="primary" @click="showCreateModal">创建用户</a-button>
     </div>
     <a-spin :spinning="loading">
-      <el-table :data="users" :scrollbar-always-on="true" fit>
+      <el-table :data="users" scrollbar-always-on fit>
         <el-table-column prop="username" label="用户名" fixed />
         <el-table-column prop="name" label="IP地址">
           <template #default="{ row }">
@@ -13,9 +13,9 @@
           </template>
         </el-table-column>
         <el-table-column prop="email" label="注册邮箱" />
-        <el-table-column prop="role" label="角色">
+        <el-table-column prop="role" label="角色组">
           <template #default="{ row }">
-            {{ row.role === 'admin' ? '管理员' : '注册用户' }}
+            {{ roleGroups.find(item => item._id === row.role).name }}
           </template>
         </el-table-column>
         <el-table-column prop="date" label="状态">
@@ -64,8 +64,9 @@
         </a-form-item>
         <a-form-item label="权限" name="role">
           <a-select v-model:value="createForm.role">
-            <a-select-option value="user">用户</a-select-option>
-            <a-select-option value="admin">管理员</a-select-option>
+            <a-select-option :value="item._id" v-for="item in roleGroups" :key="item._id">
+              {{ item.name }}
+            </a-select-option>
           </a-select>
         </a-form-item>
       </a-form>
@@ -80,8 +81,9 @@
         </a-form-item>
         <a-form-item label="权限" name="role">
           <a-select v-model:value="editForm.role" :disabled="editForm.founder">
-            <a-select-option value="user">用户</a-select-option>
-            <a-select-option value="admin">管理员</a-select-option>
+            <a-select-option :value="item._id" v-for="item in roleGroups" :key="item._id">
+              {{ item.name }}
+            </a-select-option>
           </a-select>
         </a-form-item>
         <a-form-item label="状态" name="status">
@@ -112,6 +114,7 @@
   const total = ref(0)
 
   const userName = ref('')
+  const roleGroups = ref([])
   // 创建用户相关的状态
   const createModalVisible = ref(false)
   const createFormRef = ref(null)
@@ -119,7 +122,7 @@
     username: '',
     email: '',
     password: '',
-    role: 'user'
+    role: ''
   })
 
   // 编辑用户相关的状态
@@ -167,11 +170,25 @@
     password: [{ min: 6, message: '密码长度不能小于6个字符', trigger: 'blur' }]
   }
 
+  // 获取角色组列表
+  const fetchRoleGroups = async () => {
+    loading.value = true
+    try {
+      const { data } = await axios.post('/api/admin/role-groups')
+      roleGroups.value = data
+    } catch ({ response }) {
+      message.error(response?.data?.error)
+    } finally {
+      loading.value = false
+    }
+  }
+
   // 获取用户列表
   const fetchUsers = async () => {
     loading.value = true
     users.value = []
     try {
+      fetchRoleGroups()
       const { data } = await axios.post(
         '/api/admin/users',
         qs.stringify({
@@ -215,7 +232,7 @@
       username: '',
       email: '',
       password: '',
-      role: 'user'
+      role: ''
     }
     createModalVisible.value = true
     if (createFormRef.value) {

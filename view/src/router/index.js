@@ -17,7 +17,17 @@ const publicNames = [
   'UserPublicAlbumDetail'
 ]
 
-const adminNames = ['Dashboard', 'Users', 'Images', 'Config', 'Logs', 'InviteCodes', 'Albums']
+const adminNames = [
+  'Dashboard',
+  'Users',
+  'Images',
+  'Config',
+  'Logs',
+  'InviteCodes',
+  'Albums',
+  'RoleGroups',
+  'Announcements'
+]
 
 const routes = publicNames.map(item => {
   let data = {
@@ -84,6 +94,9 @@ router.beforeEach((to, from, next) => {
       return next({ name })
     }
   }
+  if (token && ['Login', 'Register', 'ResetPassword'].includes(to.name)) {
+    return next('/')
+  }
   if (to.name === 'Docs' && !config?.site?.api) {
     return next({ name: '404' })
   }
@@ -93,7 +106,7 @@ router.beforeEach((to, from, next) => {
   if (to.name === 'Gallery' && !config?.site?.gallery) {
     return next({ name: '404' })
   }
-  if (to.name === 'Admin' && (!token || user?.role !== 'admin')) {
+  if (to.name === 'Admin' && (!token || !user?.role?.isAdmin)) {
     return next({ name: '404' })
   }
   if (to.name === 'My' && !token) {

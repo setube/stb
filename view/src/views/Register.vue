@@ -60,7 +60,7 @@
         <a-form-item>
           <router-link to="/login">已有账号？去登录</router-link>
           或者
-          <router-link to="/reset-password">找回密码</router-link>
+          <router-link to="/resetpassword">找回密码</router-link>
         </a-form-item>
       </a-form>
     </a-card>
@@ -181,6 +181,10 @@
       message.success('注册成功')
       router.push('/')
     } catch ({ response }) {
+      if (response?.data?.error === '滑动验证已失效,请重新验证') {
+        form.captcha = false
+        form.captchaId = null
+      }
       message.error(response?.data?.error || '注册失败')
     } finally {
       loading.value = false

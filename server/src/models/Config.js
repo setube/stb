@@ -14,6 +14,16 @@ const configSchema = new mongoose.Schema(
         type: String,
         default: ''
       },
+      // 网站备案号
+      beian: {
+        type: String,
+        default: ''
+      },
+      // html代码
+      html: {
+        type: String,
+        default: ''
+      },
       // 验证码
       captcha: {
         type: Boolean,
@@ -47,65 +57,6 @@ const configSchema = new mongoose.Schema(
       navigationOrder: {
         type: [String],
         default: ['home', 'my', 'gallery', 'docs']
-      }
-    },
-    upload: {
-      allowedFormats: {
-        type: [String],
-        default: ['jpeg', 'jpg', 'png', 'webp', 'gif', 'jp2', 'tiff', 'avif', 'heif', 'jxl', 'raw']
-      },
-      // 同时上传数量
-      concurrentUploads: {
-        type: Number,
-        default: 10
-      },
-      maxSize: {
-        type: Number, // 单位：MB
-        default: 5
-      },
-      minWidth: {
-        type: Number,
-        default: 0
-      },
-      minHeight: {
-        type: Number,
-        default: 0
-      },
-      maxWidth: {
-        type: Number,
-        default: 0
-      },
-      maxHeight: {
-        type: Number,
-        default: 0
-      },
-      convertFormat: {
-        type: String,
-        enum: ['', 'jpeg', 'jpg', 'png', 'webp', 'gif', 'jp2', 'tiff', 'avif', 'heif', 'jxl', 'raw'],
-        default: ''
-      },
-      qualityOpen: {
-        type: Boolean,
-        default: false
-      },
-      quality: {
-        type: Number,
-        min: 1,
-        max: 100,
-        default: 80
-      },
-      dailyLimit: {
-        type: Number,
-        default: 100
-      },
-      namingRule: {
-        type: String,
-        default: '{Ymd}/{uniqid}.{ext}' // 默认规则：年月日/唯一ID.扩展名
-      },
-      // 上传目录
-      path: {
-        type: String,
-        default: 'uploads'
       }
     },
     watermark: {
@@ -275,11 +226,7 @@ const configSchema = new mongoose.Schema(
         },
         directory: {
           type: String,
-          default: 'uploads'
-        },
-        useSSL: {
-          type: Boolean,
-          default: false
+          default: ''
         }
       },
       // 七牛云
@@ -297,6 +244,10 @@ const configSchema = new mongoose.Schema(
           default: ''
         },
         domain: {
+          type: String,
+          default: ''
+        },
+        directory: {
           type: String,
           default: ''
         }

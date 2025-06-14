@@ -1,13 +1,12 @@
 import express from 'express'
-import { auth } from '../middleware/auth.js'
-import { checkRole } from '../middleware/checkRole.js'
+import { auth, isAdmin } from '../middleware/auth.js'
 import { UploadLog } from '../models/UploadLog.js'
 import { User } from '../models/User.js'
 
 const router = express.Router()
 
 // 获取上传日志列表
-router.post('/logs', auth, checkRole(['admin']), async (req, res) => {
+router.post('/logs', auth, isAdmin, async (req, res) => {
   try {
     const { page, limit, startDate, endDate, username, ip } = req.body
     const query = {}
@@ -49,7 +48,7 @@ router.post('/logs', auth, checkRole(['admin']), async (req, res) => {
 })
 
 // 获取日志统计信息
-router.post('/logs/stats', auth, checkRole(['admin']), async (req, res) => {
+router.post('/logs/stats', auth, isAdmin, async (req, res) => {
   try {
     const { startDate, endDate } = req.body
     const match = {}
@@ -118,7 +117,7 @@ router.post('/logs/stats', auth, checkRole(['admin']), async (req, res) => {
 })
 
 // 删除指定日志
-router.delete('/logs/:id', auth, checkRole(['admin']), async (req, res) => {
+router.delete('/logs/:id', auth, isAdmin, async (req, res) => {
   try {
     const { id } = req.params
     const log = await UploadLog.findById(id)
@@ -134,7 +133,7 @@ router.delete('/logs/:id', auth, checkRole(['admin']), async (req, res) => {
 })
 
 // 清空所有日志
-router.delete('/logs', auth, checkRole(['admin']), async (req, res) => {
+router.delete('/logs', auth, isAdmin, async (req, res) => {
   try {
     // 删除所有日志
     await UploadLog.deleteMany({})

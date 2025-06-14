@@ -22,7 +22,7 @@
       </a-form>
     </div>
     <a-spin :spinning="loading">
-      <el-table :data="logs" :scrollbar-always-on="true" fit>
+      <el-table :data="logs" scrollbar-always-on fit>
         <el-table-column label="用户名" fixed>
           <template #default="{ row }">
             {{ row?.user?.username || '游客' }}

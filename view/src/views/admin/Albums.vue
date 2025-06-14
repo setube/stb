@@ -15,7 +15,7 @@
       <a-button type="primary" @click="showCreateModal">新建相册</a-button>
     </div>
     <a-spin :spinning="loading">
-      <el-table :data="albums" :scrollbar-always-on="true" fit>
+      <el-table :data="albums" scrollbar-always-on fit>
         <el-table-column prop="name" label="相册名称" />
         <el-table-column label="所属用户">
           <template #default="{ row }">

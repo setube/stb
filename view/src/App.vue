@@ -7,34 +7,43 @@
         </div>
       </div>
       <div class="app-header-right">
-        <template v-if="userStore.token">
-          <a-dropdown :arrow="{ pointAtCenter: true }">
-            <a class="user-dropdown" @click.prevent>
-              <a-avatar :size="32" :src="userStore.config.site.url + userStore.user?.avatar">
-                <template #icon>
-                  <UserOutlined />
-                </template>
-              </a-avatar>
-            </a>
-            <template #overlay>
-              <a-menu>
-                <a-menu-item key="user" @click="router.push(`/user/${userStore.user._id}`)">
-                  <UserOutlined />
-                  个人主页
-                </a-menu-item>
-                <a-menu-item key="settings" @click="router.push('/settings')">
-                  <SettingOutlined />
-                  个人设置
-                </a-menu-item>
-                <a-menu-divider />
-                <a-menu-item key="logout" @click="handleLogout">
-                  <LogoutOutlined />
-                  退出登录
-                </a-menu-item>
-              </a-menu>
-            </template>
-          </a-dropdown>
-        </template>
+        <a-dropdown :arrow="{ pointAtCenter: true }">
+          <a class="user-dropdown" @click.prevent>
+            <a-avatar :size="32" :src="userStore?.config?.site?.url + userStore?.user?.avatar">
+              <template #icon>
+                <UserOutlined />
+              </template>
+            </a-avatar>
+          </a>
+          <template #overlay>
+            <a-menu v-if="userStore.token">
+              <a-menu-item key="user" @click="router.push(`/user/${userStore?.user?._id}`)">
+                <UserOutlined />
+                个人主页
+              </a-menu-item>
+              <a-menu-item key="settings" @click="router.push('/settings')">
+                <SettingOutlined />
+                个人设置
+              </a-menu-item>
+              <a-menu-divider />
+              <a-menu-item key="logout" @click="handleLogout">
+                <LogoutOutlined />
+                退出登录
+              </a-menu-item>
+            </a-menu>
+            <a-menu v-else>
+              <a-menu-item key="user" @click="router.push(`/login`)">
+                <UserOutlined />
+                登录账号
+              </a-menu-item>
+              <a-menu-divider />
+              <a-menu-item key="settings" @click="router.push('/register')">
+                <UserAddOutlined />
+                注册账号
+              </a-menu-item>
+            </a-menu>
+          </template>
+        </a-dropdown>
       </div>
     </div>
     <a-config-provider :locale="zhCN">
@@ -85,18 +94,27 @@
         <router-view />
       </div>
       <div class="footer">
-        All rights reserved © 2025
-        <a-button class="goLink" type="link" href="https://github.com/setube/stb" target="_blank">Stb</a-button>
+        All rights reserved © {{ new Date().getFullYear() }}
+        <a class="goLink" type="link" href="https://github.com/setube/stb" target="_blank">Stb</a>
+        <template v-if="userStore?.config?.site?.beian">
+          ・
+          <a type="link" href="https://beian.miit.gov.cn" target="_blank">
+            {{ userStore?.config?.site?.beian }}
+          </a>
+        </template>
       </div>
     </a-config-provider>
+    <div v-if="userStore?.config?.site?.html" ref="htmlContainer" v-html="userStore?.config?.site?.html" />
   </div>
 </template>
 
 <script setup>
-  import { ref, onMounted, watch, computed } from 'vue'
+  import { ref, onMounted, watch } from 'vue'
   import { useRouter, useRoute } from 'vue-router'
   import { useUserStore } from '@/stores/user'
   import { getIpAddress } from '@/stores/getIp'
+  import { ElMessageBox } from 'element-plus'
+  import 'element-plus/es/components/message-box/style/css'
   import axios from '@/stores/axios'
   import { message } from 'ant-design-vue'
   import zhCN from 'ant-design-vue/es/locale/zh_CN'
@@ -109,7 +127,8 @@
     UserOutlined,
     QuestionCircleOutlined,
     SmileOutlined,
-    LogoutOutlined
+    LogoutOutlined,
+    UserAddOutlined
   } from '@ant-design/icons-vue'
 
   const route = useRoute()
@@ -117,6 +136,7 @@
   const userStore = useUserStore()
   const selectedKeys = ref(['home'])
   const isMenuActive = ref(false)
+  const htmlContainer = ref(null)
   const userIp = ref({
     ipv4: '',
     ipv6: ''
@@ -131,16 +151,7 @@
   ]
 
   // 计算属性返回过滤和排序后的菜单
-  const menus = computed(() => {
-    const order = userStore.config?.site?.navigationOrder
-    const sortedMenuItems = [...menuItems].sort((a, b) => {
-      return order.indexOf(a.name) - order.indexOf(b.name)
-    })
-    return sortedMenuItems.map(item => ({
-      ...item,
-      show: userStore.menuVisibility[item.name]
-    }))
-  })
+  const menus = ref([])
 
   const adminMenus = [
     { name: 'dashboard', title: '仪表盘' },
@@ -148,8 +159,10 @@
     { name: 'users', title: '用户管理' },
     { name: 'images', title: '图片管理' },
     { name: 'albums', title: '相册管理' },
-    { name: 'invitecodes', title: '邀请码管理' },
-    { name: 'config', title: '系统配置' }
+    { name: 'announcements', title: '公告管理' },
+    { name: 'config', title: '系统配置' },
+    { name: 'rolegroups', title: '角色组管理' },
+    { name: 'invitecodes', title: '邀请码管理' }
   ]
 
   // 获取配置
@@ -157,6 +170,46 @@
     try {
       const { data } = await axios.post('/api/auth/config')
       userStore.config = data
+      const order = data?.site?.navigationOrder
+      const sortedMenuItems = [...menuItems].sort((a, b) => {
+        return order.indexOf(a.name) - order.indexOf(b.name)
+      })
+      menus.value = sortedMenuItems.map(item => ({
+        ...item,
+        show: userStore.menuVisibility[item.name]
+      }))
+    } catch ({ response }) {
+      message.error(response?.data?.error)
+    }
+  }
+
+  // 获取公告
+  const checkAnnouncement = async () => {
+    try {
+      const { data } = await axios.post('/api/admin/announcements/active')
+      if (data) {
+        userStore.announcementData = data
+        let time = Date.now()
+        let nextTime = userStore?.announcement?.nextTime ? userStore?.announcement?.nextTime : Date.now()
+        if (data._id != userStore?.announcement?._id) {
+          userStore.announcements = null
+          nextTime = Date.now()
+        }
+        if (data.type === 'modal' && time >= nextTime && data.isActive) {
+          ElMessageBox.alert(data.content, data.title, {
+            type: data.effect,
+            callback: () => {
+              userStore.announcement = {
+                _id: data._id,
+                nextTime: Date.now() + data.nextTime * 24 * 60 * 60 * 1000
+              }
+            },
+            showCancelButton: false,
+            confirmButtonText: '知道了',
+            dangerouslyUseHTMLString: true
+          })
+        }
+      }
     } catch ({ response }) {
       message.error(response?.data?.error)
     }
@@ -171,8 +224,17 @@
     }
   }
 
-  const handleLogout = () => {
-    userStore.user = null
+  const fetchGuestInfo = async () => {
+    try {
+      const { data } = await axios.post('/api/auth/guest')
+      userStore.guest = data
+    } catch ({ response }) {
+      message.error(response?.data?.error)
+    }
+  }
+
+  const handleLogout = async () => {
+    userStore.user = userStore.guest
     userStore.token = null
     router.push('/login')
     message.warning('账号已退出')
@@ -180,7 +242,7 @@
 
   const routerWatch = url => {
     const segments = url.split('/').filter(Boolean)
-    if (['register', 'reset-password'].includes(segments[0])) return (selectedKeys.value = ['login'])
+    if (['register', 'resetpassword'].includes(segments[0])) return (selectedKeys.value = ['login'])
     selectedKeys.value = segments.length > 1 ? [segments[1]] : [segments[0] || 'home']
   }
 
@@ -216,6 +278,7 @@
         }
       })
       routerWatch(newPath)
+      await fetchGuestInfo()
     }
   )
 
@@ -223,11 +286,26 @@
     fetchConfig()
     routerWatch(location.pathname)
     handleOAuthCallback()
+    checkAnnouncement()
+    if (htmlContainer.value) {
+      const scripts = htmlContainer.value.getElementsByTagName('script')
+      const styles = htmlContainer.value.getElementsByTagName('style')
+      for (let style of styles) {
+        const newStyle = document.createElement('style')
+        newStyle.textContent = style.textContent
+        document.head.appendChild(newStyle)
+      }
+      for (let script of scripts) {
+        const newScript = document.createElement('script')
+        newScript.textContent = script.textContent
+        script.parentNode.replaceChild(newScript, script)
+      }
+    }
     if (userStore.token) {
       try {
         await fetchUserInfo()
       } catch (error) {
-        handleLogout()
+        await handleLogout()
       }
     }
   })

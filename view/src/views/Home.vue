@@ -1,10 +1,22 @@
 <template>
   <div class="home-container" @paste="handlePaste">
+    <el-alert
+      :title="userStore.announcementData.title"
+      :type="userStore.announcementData.effect"
+      show-icon
+      @close="closeAlert"
+      v-if="alertShow"
+      class="announcementAlert"
+    >
+      <template #default>
+        <div v-html="userStore.announcementData.content" />
+      </template>
+    </el-alert>
     <!-- 上传区域 -->
     <a-card class="upload-card">
       <p class="ant-upload-hint">
-        您单次最多可以上传{{ userStore.config?.upload?.concurrentUploads }}张图片, 最大文件大小：{{
-          userStore.config?.upload?.maxSize
+        您单次最多可以上传{{ userStore.user?.role?.upload?.concurrentUploads }}张图片, 最大文件大小：{{
+          userStore.user?.role?.upload?.maxSize
         }}MB
       </p>
       <!-- 上传区域 -->
@@ -12,7 +24,7 @@
         :beforeUpload="beforeUpload"
         :accept="formats"
         multiple
-        :maxCount="userStore.config?.upload?.concurrentUploads"
+        :maxCount="userStore.user?.role?.upload?.concurrentUploads"
         :showUploadList="false"
       >
         <p class="ant-upload-drag-icon">
@@ -68,6 +80,11 @@
                   <UploadOutlined />
                 </a-button>
               </a-tooltip>
+              <a-tooltip title="重新上传" v-if="file.status === 'error'">
+                <a-button type="text" @click="uploadSingleFile(file)">
+                  <RedoOutlined />
+                </a-button>
+              </a-tooltip>
               <a-tooltip title="删除">
                 <a-button type="text" danger @click="removeFile(file)" :disabled="file.status === 'uploading'">
                   <DeleteOutlined />
@@ -103,13 +120,14 @@
 </template>
 
 <script setup>
-  import { ref, computed } from 'vue'
+  import { ref, computed, onMounted } from 'vue'
   import ClipboardJS from 'clipboard'
   import {
     CloudUploadOutlined,
     DeleteOutlined,
     CopyOutlined,
-    UploadOutlined
+    UploadOutlined,
+    RedoOutlined
   } from '@ant-design/icons-vue'
   import { message } from 'ant-design-vue'
   import { useUserStore } from '@/stores/user'
@@ -119,6 +137,7 @@
   const userStore = useUserStore()
   const fileList = ref([])
   const images = ref([])
+  const alertShow = ref(false)
   const uploadedImages = ref({
     url: [],
     html: [],
@@ -186,7 +205,7 @@
 
   // 生成MIME类型字符串
   const formats = computed(() => {
-    const { allowedFormats } = userStore.config?.upload
+    const { allowedFormats } = userStore.user?.role?.upload
     if (!allowedFormats?.length) {
       return 'image/*'
     }
@@ -195,12 +214,33 @@
 
   // 生成文件扩展名字符串
   const mimeTypes = computed(() => {
-    const { allowedFormats } = userStore.config?.upload
+    const { allowedFormats } = userStore.user?.role?.upload
     if (!allowedFormats?.length) {
       return 'all'
     }
     return allowedFormats.join(', ').toUpperCase()
   })
+
+  // 关闭公告
+  const closeAlert = () => {
+    const data = userStore?.announcementData
+    userStore.announcement = {
+      _id: data._id,
+      nextTime: Date.now() + data.nextTime * 24 * 60 * 60 * 1000
+    }
+  }
+
+  // 判断是否需要打开公告
+  const isOpenAlert = () => {
+    let time = Date.now()
+    let nextTime = userStore?.announcement?.nextTime ? userStore?.announcement?.nextTime : Date.now()
+    const data = userStore?.announcementData
+    if (data._id != userStore?.announcement?._id) {
+      userStore.announcements = null
+      nextTime = Date.now()
+    }
+    alertShow.value = data.type === 'alert' && time >= nextTime && data.isActive
+  }
 
   const beforeUpload = file => {
     const isImage = file.type.startsWith('image/')
@@ -331,9 +371,16 @@
       fileList.value[index].error = error.message || '上传失败'
     }
   }
+
+  onMounted(() => {
+    isOpenAlert()
+  })
 </script>
 
 <style scoped>
+  .announcementAlert {
+    margin-bottom: 20px;
+  }
   .home-container {
     padding: 24px;
     max-width: 1200px;

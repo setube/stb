@@ -16,7 +16,7 @@ import * as ftp from 'basic-ftp'
 import { createClient } from 'webdav'
 import TelegramBot from 'node-telegram-bot-api'
 import { Octokit } from '@octokit/rest'
-import fs from 'fs'
+import fs from 'fs/promises'
 import { createReadStream } from 'fs'
 import { Config } from '../models/Config.js'
 import path from 'path'
@@ -151,51 +151,46 @@ export const deleteFromOSS = async ossPath => {
 export const uploadToS3 = async (filePath, Key) => {
   try {
     const { storage } = await Config.findOne()
-    const { s3 } = storage
-
-    // 创建 S3 客户端
+    const { region, accessKeyId, bucket, secretAccessKey, endpoint } = storage.s3
     const s3Client = new S3Client({
-      region: s3.region,
-      endpoint: s3.endpoint,
+      region,
       credentials: {
-        accessKeyId: s3.accessKeyId,
-        secretAccessKey: s3.secretAccessKey
+        accessKeyId,
+        secretAccessKey
       },
+      endpoint,
       forcePathStyle: true,
-      sslEnabled: s3.useSSL
+      sslEnabled: true
     })
-
     // 获取文件扩展名
     const ext = path.extname(filePath).toLowerCase()
     // 根据扩展名设置 Content-Type
-    const contentType =
-      {
-        '.jpg': 'image/jpeg',
-        '.jpeg': 'image/jpeg',
-        '.png': 'image/png',
-        '.gif': 'image/gif',
-        '.webp': 'image/webp'
-      }[ext] || 'application/octet-stream'
-    const stats = await fs.promises.stat(filePath)
-    // 上传文件
+    const contentType = {
+      '.jpg': 'image/jpeg',
+      '.jpeg': 'image/jpeg',
+      '.png': 'image/png',
+      '.gif': 'image/gif',
+      '.webp': 'image/webp',
+      '.svg': 'image/svg+xml'
+    }
+    const stats = await fs.stat(filePath)
     await s3Client.send(
       new PutObjectCommand({
-        Bucket: s3.bucket,
+        Bucket: bucket,
         Key,
         Body: createReadStream(filePath),
-        ContentType: contentType,
+        ContentType: contentType[ext],
         ContentLength: stats.size
       })
     )
-    // 构建访问URL
-    return `${s3.useSSL ? 'https' : 'http'}://${s3.endpoint}/${s3.bucket}/${Key}`
+    return `${endpoint}${Key}`
   } catch ({ message }) {
     throw new Error(message)
   }
 }
 
 // 从 S3 删除
-export const deleteFromS3 = async filename => {
+export const deleteFromS3 = async Key => {
   try {
     const { storage } = await Config.findOne()
     const { region, accessKeyId, bucket, secretAccessKey, endpoint } = storage.s3
@@ -205,13 +200,14 @@ export const deleteFromS3 = async filename => {
         accessKeyId,
         secretAccessKey
       },
-      ...(endpoint && { endpoint })
+      endpoint
     })
-    const command = new DeleteObjectCommand({
-      Bucket: bucket,
-      Key: filename
-    })
-    await s3Client.send(command)
+    const data = await s3Client.send(
+      new DeleteObjectCommand({
+        Bucket: bucket,
+        Key
+      })
+    )
   } catch ({ message }) {
     throw new Error(message)
   }
@@ -264,7 +260,7 @@ export const deleteFromQiNiu = async key => {
       if (respInfo.statusCode == 200) {
         resolve()
       } else {
-        reject(new Error(`七牛云删除失败: ${respInfo}`))
+        reject(new Error(`七牛云删除失败:${respInfo.data.error}`))
       }
     })
   })
@@ -630,7 +626,6 @@ export const uploadToGithub = async (filePath, key, user) => {
         retries,
         repo,
         retryAfter,
-        directory,
         owner,
         branch,
         customDomain,
@@ -648,30 +643,28 @@ export const uploadToGithub = async (filePath, key, user) => {
         }
       })
       // 读取文件内容
-      const fileContent = await fs.promises.readFile(filePath)
+      const fileContent = await fs.readFile(filePath)
       const content = fileContent.toString('base64')
-      // 构建文件路径，移除开头的斜杠
-      const path = `${directory}/${key}`
       // 上传文件
       await octokit.repos.createOrUpdateFileContents({
         owner,
         repo,
-        path,
-        message: `用户: ${user.username}, 上传文件: ${key}`,
-        content: content,
+        path: key,
+        message: `用户: ${user.username} 上传文件: ${key}`,
+        content,
         branch
       })
       // 开启自定义域名
       if (customDomain && !isGithubPages) {
         // 构建自定义域名URL
-        return `${domain}/${path}`
+        return `${domain}/${key}`
       }
       if (customDomain && isGithubPages) {
         // 构建自定义域名URL
-        return `${githubPages}/${repo}/${path}`
+        return `${githubPages}/${repo}/${key}`
       }
       // 构建访问URL
-      return `https://raw.githubusercontent.com/${owner}/${repo}/${branch}/${path}`
+      return `https://raw.githubusercontent.com/${owner}/${repo}/${branch}/${key}`
     } catch ({ message }) {
       retryCount++
       if (retryCount < maxRetries) {
@@ -685,31 +678,43 @@ export const uploadToGithub = async (filePath, key, user) => {
 
 // 从 GitHub 删除
 export const deleteFromGithub = async filePath => {
-  try {
-    const { storage } = await Config.findOne()
-    const { token, repo, owner, branch } = storage.github
-    // 创建 Octokit 实例
-    const octokit = new Octokit({ auth: token })
-    // 先获取文件的 SHA 值
-    const { data: fileData } = await octokit.repos.getContent({
-      owner,
-      repo,
-      path: filePath,
-      ref: branch
-    })
-    if (!fileData || !fileData.sha) {
-      throw new Error('无法获取文件的 SHA 值')
+  let retryCount = 0
+  const maxRetries = 3
+  const retryDelay = 5000 // 5秒
+
+  while (retryCount < maxRetries) {
+    try {
+      const { storage } = await Config.findOne()
+      const { token, repo, owner, branch } = storage.github
+      // 创建 Octokit 实例
+      const octokit = new Octokit({ auth: token })
+      // 先获取文件的 SHA 值
+      const { data: fileData } = await octokit.repos.getContent({
+        owner,
+        repo,
+        path: filePath,
+        ref: branch
+      })
+      if (!fileData || !fileData.sha) {
+        throw new Error('无法获取文件的 SHA 值')
+      }
+      // 删除文件
+      await octokit.repos.deleteFile({
+        owner,
+        repo,
+        path: filePath,
+        message: `删除文件: ${filePath}`,
+        sha: fileData.sha,
+        branch
+      })
+    } catch ({ message }) {
+      retryCount++
+      if (retryCount < maxRetries) {
+        await new Promise(resolve => setTimeout(resolve, retryDelay))
+      } else {
+        throw new Error(`GitHub删除失败，已重试${maxRetries}次: ${message}`)
+      }
+      throw new Error(message)
     }
-    // 删除文件
-    await octokit.repos.deleteFile({
-      owner,
-      repo,
-      path: filePath,
-      message: `删除文件: ${filePath}`,
-      sha: fileData.sha,
-      branch
-    })
-  } catch ({ message }) {
-    throw new Error(message)
   }
 }

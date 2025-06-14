@@ -10,6 +10,16 @@
             <a-form-item required label="网站URL">
               <a-input v-model:value="formState.site.url" />
             </a-form-item>
+            <a-form-item label="备案号">
+              <a-input v-model:value="formState.site.beian" />
+            </a-form-item>
+            <a-form-item label="HTML代码">
+              <a-textarea
+                v-model:value="formState.site.html"
+                placeholder="支持HTML标签, 支持<style>标签, 支持<script>标签"
+                :auto-size="{ minRows: 5 }"
+              />
+            </a-form-item>
             <a-form-item label="是否开启验证码">
               <a-switch v-model:checked="formState.site.captcha" checked-children="启用" un-checked-children="禁用" />
             </a-form-item>
@@ -169,6 +179,7 @@
             <template v-if="formState.storage.type === 'local'">
               <a-form-item required label="储存目录">
                 <a-input v-model:value="formState.storage.local.path" placeholder="输入储存目录" />
+                <p>不能以"/"或"\"结尾</p>
               </a-form-item>
             </template>
             <template v-if="formState.storage.type === 'oss'">
@@ -186,6 +197,7 @@
               </a-form-item>
               <a-form-item label="储存目录">
                 <a-input v-model:value="formState.storage.oss.path" placeholder="输入储存目录" />
+                <p>不能以"/"或"\"结尾</p>
               </a-form-item>
               <a-form-item label="OSS Region">
                 <a-input v-model:value="formState.storage.oss.region" placeholder="输入 Region，例如：cn-shanghai" />
@@ -226,13 +238,14 @@
               </a-form-item>
               <a-form-item required label="储存目录">
                 <a-input v-model:value="formState.storage.cos.filePath" placeholder="输入储存目录" />
+                <p>不能以"/"或"\"结尾</p>
               </a-form-item>
             </template>
             <template v-if="formState.storage.type === 's3'">
               <a-form-item required label="Endpoint">
                 <a-input
                   v-model:value="formState.storage.s3.endpoint"
-                  placeholder="输入 Endpoint，例如：s3.amazonaws.com 或 minio.example.com:9000 或 r2.cloudflarestorage.com"
+                  placeholder="输入 Endpoint，例如：https://s3.amazonaws.com"
                 />
               </a-form-item>
               <a-form-item required label="AccessKeyId">
@@ -247,18 +260,15 @@
               <a-form-item label="Region">
                 <a-input
                   v-model:value="formState.storage.s3.region"
-                  placeholder="输入 Region，例如：us-east-1 或 auto"
+                  placeholder="输入 Region，例如：us-east-1 或者 auto"
                 />
               </a-form-item>
-              <a-form-item required label="Bucket">
+              <a-form-item label="Bucket">
                 <a-input v-model:value="formState.storage.s3.bucket" placeholder="输入 Bucket" />
               </a-form-item>
               <a-form-item required label="存储目录">
-                <a-input v-model:value="formState.storage.s3.directory" placeholder="输入存储目录" />
-              </a-form-item>
-              <a-form-item label="使用 SSL">
-                <a-switch v-model:checked="formState.storage.s3.useSSL" />
-                <p>如果使用 MinIO 或 Cloudflare R2，请根据服务器配置选择是否启用 SSL</p>
+                <a-input v-model:value="formState.storage.s3.directory" placeholder="输入储存目录" />
+                <p>不能以"/"或"\"结尾</p>
               </a-form-item>
             </template>
             <template v-if="formState.storage.type === 'qiniu'">
@@ -274,6 +284,10 @@
               <a-form-item required label="Bucket 域名">
                 <a-input v-model:value="formState.storage.qiniu.domain" placeholder="输入 Bucket 域名" />
               </a-form-item>
+              <a-form-item required label="存储目录">
+                <a-input v-model:value="formState.storage.qiniu.directory" placeholder="输入储存目录" />
+                <p>不能以"/"或"\"结尾</p>
+              </a-form-item>
             </template>
             <template v-if="formState.storage.type === 'upyun'">
               <a-form-item required label="又拍云服务名">
@@ -287,6 +301,7 @@
               </a-form-item>
               <a-form-item required label="存储目录">
                 <a-input v-model:value="formState.storage.upyun.directory" placeholder="输入储存目录" />
+                <p>不能以"/"或"\"结尾</p>
               </a-form-item>
               <a-form-item required label="访问域名">
                 <a-input
@@ -310,6 +325,7 @@
               </a-form-item>
               <a-form-item required label="储存目录">
                 <a-input v-model:value="formState.storage.sftp.directory" placeholder="输入储存目录" />
+                <p>不能以"/"或"\"结尾</p>
               </a-form-item>
               <a-form-item required label="连接超时时间">
                 <a-input
@@ -354,6 +370,7 @@
             <template v-if="formState.storage.type === 'ftp'">
               <a-form-item required label="储存目录">
                 <a-input v-model:value="formState.storage.ftp.directory" placeholder="输入储存目录" />
+                <p>不能以"/"或"\"结尾</p>
               </a-form-item>
               <a-form-item required label="主机地址">
                 <a-input v-model:value="formState.storage.ftp.host" placeholder="输入主机地址" />
@@ -408,6 +425,7 @@
             <template v-if="formState.storage.type === 'webdav'">
               <a-form-item label="储存目录">
                 <a-input v-model:value="formState.storage.webdav.directory" />
+                <p>不能以"/"或"\"结尾</p>
               </a-form-item>
               <a-form-item required label="连接地址">
                 <a-input v-model:value="formState.storage.webdav.url" placeholder="输入连接地址" />
@@ -476,6 +494,7 @@
               <a-form-item required label="存储目录">
                 <a-input v-model:value="formState.storage.github.directory" placeholder="输入存储目录" />
                 <p>Github不允许文件路径以斜杠"/"开头</p>
+                <p>不能以"/"或"\"结尾</p>
               </a-form-item>
               <a-form-item required label="连接超时时间">
                 <a-input
@@ -606,98 +625,7 @@
               </template>
             </template>
           </a-collapse-panel>
-          <a-collapse-panel key="6" header="上传设置">
-            <a-form-item label="允许的图片格式">
-              <a-select
-                v-model:value="formState.upload.allowedFormats"
-                mode="multiple"
-                placeholder="选择允许的图片格式"
-              >
-                <a-select-option :value="item" v-for="item in imageExitType" :key="item">
-                  {{ item.toUpperCase() }}
-                </a-select-option>
-              </a-select>
-            </a-form-item>
-            <a-form-item label="最大文件大小(MB)">
-              <a-input-number v-model:value="formState.upload.maxSize" :min="1" :max="100" />
-            </a-form-item>
-            <a-form-item label="最多同时上传图片数量">
-              <a-input-number v-model:value="formState.upload.concurrentUploads" :min="1" />
-            </a-form-item>
-            <a-row :gutter="16">
-              <a-col :span="12">
-                <a-form-item label="最小宽度(px)">
-                  <a-input-number v-model:value="formState.upload.minWidth" :min="0" />
-                </a-form-item>
-              </a-col>
-              <a-col :span="12">
-                <a-form-item label="最小高度(px)">
-                  <a-input-number v-model:value="formState.upload.minHeight" :min="0" />
-                </a-form-item>
-              </a-col>
-            </a-row>
-            <a-row :gutter="16">
-              <a-col :span="12">
-                <a-form-item label="最大宽度(px)">
-                  <a-input-number v-model:value="formState.upload.maxWidth" :min="0" />
-                </a-form-item>
-              </a-col>
-              <a-col :span="12">
-                <a-form-item label="最大高度(px)">
-                  <a-input-number v-model:value="formState.upload.maxHeight" :min="0" />
-                </a-form-item>
-              </a-col>
-            </a-row>
-            <a-form-item label="转换格式">
-              <a-select v-model:value="formState.upload.convertFormat" allowClear placeholder="选择转换格式">
-                <a-select-option value="">不转换</a-select-option>
-                <a-select-option :value="item" v-for="item in imageExitType" :key="item">
-                  {{ item.toUpperCase() }}
-                </a-select-option>
-              </a-select>
-            </a-form-item>
-            <a-form-item label="图片压缩">
-              <a-switch
-                v-model:checked="formState.upload.qualityOpen"
-                checked-children="启用"
-                un-checked-children="禁用"
-              />
-            </a-form-item>
-            <a-form-item label="图片质量" v-if="formState.upload.qualityOpen">
-              <a-slider
-                v-model:value="formState.upload.quality"
-                :min="1"
-                :max="100"
-                :marks="{
-                  1: '1%',
-                  25: '25%',
-                  50: '50%',
-                  75: '75%',
-                  100: '100%'
-                }"
-              />
-            </a-form-item>
-            <a-form-item label="每日上传限制">
-              <a-input-number v-model:value="formState.upload.dailyLimit" :min="0" placeholder="0表示不限制" />
-              <p>该功能仅限制已登录用户, 游客模式下无效</p>
-            </a-form-item>
-            <a-form-item label="文件命名规则">
-              <a-input v-model:value="formState.upload.namingRule" placeholder="输入文件命名规则" />
-              <a-collapse class="namingRule-collapse">
-                <a-collapse-panel header="支持的文件命名规则">
-                  <el-table :data="namingRuleData">
-                    <el-table-column
-                      :prop="item.prop"
-                      :label="item.label"
-                      v-for="(item, index) in namingRuleColumns"
-                      :key="index"
-                    />
-                  </el-table>
-                </a-collapse-panel>
-              </a-collapse>
-            </a-form-item>
-          </a-collapse-panel>
-          <a-collapse-panel key="7" header="IP设置">
+          <a-collapse-panel key="6" header="IP设置">
             <a-form-item label="黑名单开关">
               <a-switch v-model:checked="formState.ip.enabled" checked-children="启用" un-checked-children="禁用" />
             </a-form-item>
@@ -710,7 +638,7 @@
               />
             </a-form-item>
           </a-collapse-panel>
-          <a-collapse-panel key="8" header="社会化登录">
+          <a-collapse-panel key="7" header="社会化登录">
             <a-form-item label="启用社会化登录">
               <a-switch v-model:checked="formState.oauth.enabled" checked-children="启用" un-checked-children="禁用" />
             </a-form-item>
@@ -794,7 +722,7 @@
   import { message } from 'ant-design-vue'
   import axios from '@/stores/axios'
   import { useUserStore } from '@/stores/user'
-  import { imageStoreType, imageExitType } from '@/stores/formatDate'
+  import { imageStoreType } from '@/stores/formatDate'
 
   const userStore = useUserStore()
   const loading = ref(false)
@@ -815,35 +743,12 @@
 
   const formState = ref({
     site: {},
-    upload: {},
     storage: {},
     watermark: {},
     ip: {},
     ai: {},
     oauth: {}
   })
-
-  const namingRuleColumns = [
-    { label: '变量', prop: 'variable' },
-    { label: '说明', prop: 'description' },
-    { label: '示例', prop: 'example' }
-  ]
-
-  const namingRuleData = [
-    { variable: '{Y}', description: '年份（4位）', example: '2024' },
-    { variable: '{y}', description: '年份（2位）', example: '24' },
-    { variable: '{m}', description: '月份', example: '03' },
-    { variable: '{d}', description: '日期', example: '15' },
-    { variable: '{Ymd}', description: '年月日', example: '20240315' },
-    { variable: '{filename}', description: '原始文件名', example: 'image' },
-    { variable: '{ext}', description: '文件扩展名', example: 'jpg' },
-    { variable: '{time}', description: '时间戳', example: '1748695143942' },
-    { variable: '{uniqid}', description: '唯一ID', example: 'a1b2c3d4' },
-    { variable: '{md5}', description: '文件MD5值', example: 'd41d8cd98f00b204e9800998ecf8427e' },
-    { variable: '{sha1}', description: '文件SHA1值', example: 'da39a3ee5e6b4b0d3255bfef95601890afd80709' },
-    { variable: '{uuid}', description: 'UUID', example: '550e8400-e29b-41d4-a716-446655440000' },
-    { variable: '{uid}', description: '用户ID（仅登录用户）', example: '123456' }
-  ]
 
   // 获取配置
   const fetchConfig = async () => {
@@ -900,11 +805,10 @@
     submitting.value = true
     try {
       const { data } = await axios.put('/api/admin/config', formState.value)
-      const { site, upload, ai, oauth } = formState.value
+      const { site, ai, oauth } = formState.value
       userStore.config = JSON.parse(
         JSON.stringify({
           site,
-          upload,
           ai: {
             enabled: ai.enabled
           },
@@ -929,7 +833,6 @@
       submitting.value = false
     }
   }
-
   watch(
     () => activeKey.value,
     newValue => {

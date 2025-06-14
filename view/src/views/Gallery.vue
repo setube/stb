@@ -132,7 +132,7 @@
       } else {
         is404.value = false
       }
-    } catch (response) {
+    } catch ({ response }) {
       message.error(response?.data?.error)
       is404.value = true
     } finally {

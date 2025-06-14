@@ -1,8 +1,7 @@
 import express from 'express'
 import multer from 'multer'
 import path from 'path'
-import { auth } from '../middleware/auth.js'
-import { checkRole } from '../middleware/checkRole.js'
+import { auth, isAdmin } from '../middleware/auth.js'
 import { Config } from '../models/Config.js'
 import sharp from 'sharp'
 import fs from 'fs/promises'
@@ -37,7 +36,7 @@ const upload = multer({
 })
 
 // 获取系统配置
-router.post('/config', auth, checkRole(['admin']), async (req, res) => {
+router.post('/config', auth, isAdmin, async (req, res) => {
   try {
     await Config.initialize()
     let config = await Config.findOne()
@@ -49,7 +48,7 @@ router.post('/config', auth, checkRole(['admin']), async (req, res) => {
 })
 
 // 更新系统配置
-router.put('/config', auth, checkRole(['admin']), async (req, res) => {
+router.put('/config', auth, isAdmin, async (req, res) => {
   try {
     await Config.findOneAndUpdate({}, { $set: req.body }, { new: true, upsert: true })
     res.status(200).json({ message: '站点配置保存成功' })
@@ -59,7 +58,7 @@ router.put('/config', auth, checkRole(['admin']), async (req, res) => {
 })
 
 // 上传水印图片
-router.post('/upload-watermark', auth, checkRole(['admin']), upload.single('image'), async (req, res) => {
+router.post('/upload-watermark', auth, isAdmin, upload.single('image'), async (req, res) => {
   try {
     const { file } = req
     if (!file) {
@@ -95,7 +94,7 @@ router.post('/upload-watermark', auth, checkRole(['admin']), upload.single('imag
 })
 
 // 删除水印图片
-router.delete('/delete-watermark/:imgPath', auth, checkRole(['admin']), async (req, res) => {
+router.delete('/delete-watermark/:imgPath', auth, isAdmin, async (req, res) => {
   try {
     const { imgPath } = req.params
     if (!imgPath) {

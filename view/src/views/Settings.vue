@@ -4,9 +4,11 @@
       <a-tabs v-model:activeKey="activeKey">
         <a-tab-pane key="basic" tab="基本信息">
           <a-form :model="basicForm" layout="vertical">
-            <a-form-item label="">
+            <a-form-item>
               <div class="avatar-upload">
-                <a-avatar :size="100" :src="userStore.config.site.url + userStore.user?.avatar" :icon="UserOutlined" />
+                <a-avatar :size="100" :src="userStore.config.site.url + userStore.user?.avatar">
+                  {{ basicForm.username }}
+                </a-avatar>
                 <a-upload
                   name="avatar"
                   :show-upload-list="false"
