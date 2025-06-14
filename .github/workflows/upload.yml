@@ -19,7 +19,15 @@ jobs:
               text: markdown,
               mode: 'gfm'
             })
-            return html.data
+            // 处理 HTML 内容，移除不支持的标签
+            const processedHtml = html.data
+              .replace(/<p>/g, '')
+              .replace(/<\/p>/g, '\n')
+              .replace(/<br>/g, '\n')
+              .replace(/<a class="[^"]*" href="([^"]*)">([^<]*)<\/a>/g, '<a href="$1">$2</a>')
+              .replace(/<tt>([^<]*)<\/tt>/g, '$1')
+              .replace(/<strong>([^<]*)<\/strong>/g, '<b>$1</b>')
+            return processedHtml
 
       - name: 发送Telegram通知
         uses: appleboy/telegram-action@master
