@@ -19,7 +19,7 @@ jobs:
               text: markdown,
               mode: 'gfm'
             })
-            // 处理 HTML 内容，移除不支持的标签
+            // 处理 HTML 内容，移除不支持的标签和属性
             const processedHtml = html.data
               .replace(/<p>/g, '')
               .replace(/<\/p>/g, '\n')
@@ -27,6 +27,9 @@ jobs:
               .replace(/<a class="[^"]*" href="([^"]*)">([^<]*)<\/a>/g, '<a href="$1">$2</a>')
               .replace(/<tt>([^<]*)<\/tt>/g, '$1')
               .replace(/<strong>([^<]*)<\/strong>/g, '<b>$1</b>')
+              .replace(/"/g, '') // 移除所有引号
+              .replace(/\n{3,}/g, '\n\n') // 将多个换行符替换为两个
+              .trim() // 移除首尾空白
             return processedHtml
 
       - name: 发送Telegram通知
