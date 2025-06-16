@@ -23,6 +23,10 @@ const roleGroupSchema = new mongoose.Schema(
       type: Boolean,
       default: false
     },
+    maxCapacity: {
+      type: Number,
+      default: 0
+    },
     upload: {
       allowedFormats: {
         type: [String],
@@ -84,6 +88,75 @@ const roleGroupSchema = new mongoose.Schema(
         type: String,
         enum: ['local', 'oss', 'cos', 's3', 'qiniu', 'upyun', 'sftp', 'ftp', 'webdav', 'telegram', 'github'],
         default: 'local'
+      }
+    },
+    watermark: {
+      enabled: {
+        type: Boolean,
+        default: false
+      },
+      type: {
+        type: String,
+        enum: ['text', 'image'],
+        default: 'text'
+      },
+      tile: {
+        type: Boolean,
+        default: false
+      },
+      text: {
+        content: {
+          type: String,
+          default: ''
+        },
+        fontSize: {
+          type: Number,
+          default: 24
+        },
+        color: {
+          type: String,
+          default: '#000000'
+        },
+        top: {
+          type: Number,
+          default: 0
+        },
+        left: {
+          type: Number,
+          default: 0
+        },
+        opacity: {
+          type: Number,
+          default: 0.5
+        },
+        position: {
+          type: String,
+          enum: ['northwest', 'northeast', 'southwest', 'southeast', 'north', 'center', 'south'],
+          default: 'center'
+        }
+      },
+      image: {
+        top: {
+          type: Number,
+          default: 0
+        },
+        left: {
+          type: Number,
+          default: 0
+        },
+        path: {
+          type: String,
+          default: ''
+        },
+        opacity: {
+          type: Number,
+          default: 0.5
+        },
+        position: {
+          type: String,
+          enum: ['northwest', 'northeast', 'southwest', 'southeast', 'north', 'center', 'south'],
+          default: 'center'
+        }
       }
     }
   },

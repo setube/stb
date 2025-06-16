@@ -55,10 +55,42 @@ router.post('/users', auth, isAdmin, async (req, res) => {
     if (username) {
       query.username = { $regex: username, $options: 'i' }
     }
+
     // 查询用户
-    const users = await User.find(query, '-password').skip(skip).limit(limitMath)
+    const users = await User.find(query, '-password')
+      .populate('role', 'name maxCapacity') // 获取角色组信息
+      .skip(skip)
+      .limit(limitMath)
+    // 获取每个用户的图片统计信息
+    const usersWithStats = await Promise.all(
+      users.map(async user => {
+        const stats = await Image.aggregate([
+          { $match: { user: user._id } },
+          {
+            $group: {
+              _id: null,
+              totalCount: { $sum: 1 },
+              totalSize: { $sum: '$size' }
+            }
+          }
+        ])
+        const userStats = stats[0] || { totalCount: 0, totalSize: 0 }
+        const usedCapacity = userStats.totalSize / (1024 * 1024)
+        const { maxCapacity } = user.role
+        return {
+          ...user.toObject(),
+          stats: {
+            imageCount: userStats.totalCount,
+            usedCapacity: Math.round(usedCapacity * 100) / 100,
+            maxCapacity,
+            remainingCapacity: Math.round((maxCapacity - usedCapacity) * 100) / 100
+          }
+        }
+      })
+    )
+
     const total = await User.countDocuments(query)
-    res.json({ users, total })
+    res.json({ users: usersWithStats, total })
   } catch ({ message }) {
     res.status(500).json({ error: message })
   }

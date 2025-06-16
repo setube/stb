@@ -11,7 +11,7 @@
               { type: 'email', message: '请输入有效的邮箱地址' }
             ]"
           >
-            <a-input v-model:value="emailForm.email" placeholder="请输入注册邮箱">
+            <a-input v-model:value="emailForm.email" type="email" placeholder="请输入注册邮箱">
               <template #prefix>
                 <mail-outlined />
               </template>

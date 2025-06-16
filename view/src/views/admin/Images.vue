@@ -76,7 +76,7 @@
           </template>
         </el-table-column>
         <el-table-column prop="ip" label="IP地址" />
-        <el-table-column sortable label="上传时间">
+        <el-table-column prop="date" sortable label="上传时间">
           <template #default="{ row }">
             {{ formatDate(row.date) }}
           </template>

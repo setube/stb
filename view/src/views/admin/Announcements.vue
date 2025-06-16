@@ -16,17 +16,17 @@
             <el-tag :type="row.effect" disable-transitions>{{ row.effect }}</el-tag>
           </template>
         </el-table-column>
-        <el-table-column label="开始时间">
+        <el-table-column prop="startTime" sortable label="开始时间">
           <template #default="{ row }">
             {{ formatDate(row.startTime) }}
           </template>
         </el-table-column>
-        <el-table-column label="结束时间">
+        <el-table-column prop="endTime" sortable label="结束时间">
           <template #default="{ row }">
             {{ formatDate(row.endTime) }}
           </template>
         </el-table-column>
-        <el-table-column label="下次显示时间">
+        <el-table-column prop="nextTime" sortable label="下次显示时间">
           <template #default="{ row }">{{ row.nextTime }}天</template>
         </el-table-column>
         <el-table-column label="状态">

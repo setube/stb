@@ -6,17 +6,35 @@
     </div>
     <a-spin :spinning="loading">
       <el-table :data="users" scrollbar-always-on fit>
-        <el-table-column prop="username" label="用户名" fixed />
-        <el-table-column prop="name" label="IP地址">
+        <el-table-column label="头像" fixed>
+          <template #default="{ row }">
+            <a-avatar :src="userStore?.config?.site?.url + row.avatar">
+              {{ row.username[0] }}
+            </a-avatar>
+          </template>
+        </el-table-column>
+        <el-table-column prop="username" label="用户名" />
+        <el-table-column label="角色组">
+          <template #default="{ row }">
+            {{ roleGroups.find(item => item.name === row.role.name).name }}
+          </template>
+        </el-table-column>
+        <el-table-column label="IP地址">
           <template #default="{ row }">
             {{ row.ip?.ipv4 || row.ip?.ipv6 }}
           </template>
         </el-table-column>
         <el-table-column prop="email" label="注册邮箱" />
-        <el-table-column prop="role" label="角色组">
+        <el-table-column prop="imageCount" sortable label="图片数量">
           <template #default="{ row }">
-            {{ roleGroups.find(item => item._id === row.role).name }}
+            {{ row.stats.imageCount }}
           </template>
+        </el-table-column>
+        <el-table-column prop="usedCapacity" sortable label="已用容量">
+          <template #default="{ row }">{{ row.stats.usedCapacity }}MB</template>
+        </el-table-column>
+        <el-table-column prop="remainingCapacity" sortable label="剩余容量">
+          <template #default="{ row }">{{ row.stats.remainingCapacity }}MB</template>
         </el-table-column>
         <el-table-column prop="date" label="状态">
           <template #default="{ row }">
@@ -37,6 +55,7 @@
         </el-table-column>
         <el-table-column label="操作" fixed="right">
           <template #default="{ row }">
+            <a-button type="link" @click="router.push(`/user/${row._id}`)">查看</a-button>
             <a-button type="link" @click="showEditModal(row)">编辑</a-button>
             <a-button type="link" danger @click="handleDeleteOne(row)" :disabled="row.founder">删除</a-button>
           </template>
@@ -62,8 +81,8 @@
         <a-form-item label="密码" name="password">
           <a-input-password v-model:value="createForm.password" placeholder="请输入密码" />
         </a-form-item>
-        <a-form-item label="权限" name="role">
-          <a-select v-model:value="createForm.role">
+        <a-form-item label="角色组" name="role">
+          <a-select v-model:value="createForm.role" placeholder="请选择角色组">
             <a-select-option :value="item._id" v-for="item in roleGroups" :key="item._id">
               {{ item.name }}
             </a-select-option>
@@ -77,10 +96,10 @@
           <a-input v-model:value="editForm.username" placeholder="请输入用户名" />
         </a-form-item>
         <a-form-item label="邮箱" name="email">
-          <a-input v-model:value="editForm.email" placeholder="请输入邮箱" />
+          <a-input v-model:value="editForm.email" type="email" placeholder="请输入邮箱" />
         </a-form-item>
-        <a-form-item label="权限" name="role">
-          <a-select v-model:value="editForm.role" :disabled="editForm.founder">
+        <a-form-item label="角色组" name="role">
+          <a-select v-model:value="editForm.role._id" :disabled="editForm.founder">
             <a-select-option :value="item._id" v-for="item in roleGroups" :key="item._id">
               {{ item.name }}
             </a-select-option>
@@ -103,11 +122,15 @@
 <script setup>
   import { ref, onMounted } from 'vue'
   import axios from '@/stores/axios'
+  import { useRouter } from 'vue-router'
   import { formatDate } from '@/stores/formatDate'
   import { message, Modal } from 'ant-design-vue'
+  import { useUserStore } from '@/stores/user'
   import qs from 'qs'
 
   const users = ref([])
+  const router = useRouter()
+  const userStore = useUserStore()
   const loading = ref(false)
   const current = ref(1)
   const pageSizeRef = ref(10)

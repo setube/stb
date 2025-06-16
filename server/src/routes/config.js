@@ -3,6 +3,7 @@ import multer from 'multer'
 import path from 'path'
 import { auth, isAdmin } from '../middleware/auth.js'
 import { Config } from '../models/Config.js'
+import { RoleGroup } from '../models/RoleGroup.js'
 import sharp from 'sharp'
 import fs from 'fs/promises'
 
@@ -26,13 +27,7 @@ const storage = multer.diskStorage({
 
 const upload = multer({
   storage,
-  fileFilter: (req, file, cb) => {
-    if (file.mimetype.startsWith('image/')) {
-      cb(null, true)
-    } else {
-      cb(new Error('只能上传图片文件'))
-    }
-  }
+  fileFilter: (req, file, cb) => cb(null, true)
 })
 
 // 获取系统配置
@@ -60,51 +55,52 @@ router.put('/config', auth, isAdmin, async (req, res) => {
 // 上传水印图片
 router.post('/upload-watermark', auth, isAdmin, upload.single('image'), async (req, res) => {
   try {
-    const { file } = req
+    const { file, body } = req
     if (!file) {
-      return res.status(400).json({ error: '请选择要上传的图片' })
+      return res.status(400).json({ error: '请选择要上传的文件' })
     }
-    const { watermark } = await Config.findOne()
+    const { watermark } = await RoleGroup.findById(body.id)
     // 如果有旧的水印
-    if (watermark.image.path) {
+    if (watermark[body.type].path) {
       // 确保水印目录存在
-      const imagePath = path.join(process.cwd(), watermark.image.path)
+      const imagePath = path.join(process.cwd(), watermark[body.type].path)
       // 删除旧水印文件
       await fs.unlink(imagePath)
     }
-    // 确保水印目录存在
+    // 确保水印文件目录存在
     await fs.mkdir(path.join('uploads', 'watermarks'), { recursive: true })
     // 生成水印文件名
-    const watermarkFilename = `watermark_${Date.now()}.png`
+    const watermarkFilename = `watermark_${Date.now()}.${body.type === 'image' ? 'png' : 'ttf'}`
     const watermarkPath = path.join('uploads', 'watermarks', watermarkFilename)
-    // 处理水印图片
-    await sharp(file.path)
-      .resize(200) // 限制水印大小
-      .png() // 转换为PNG格式以支持透明度
-      .toFile(watermarkPath)
-    // 删除临时文件
-    await fs.unlink(file.path)
+    if (body.type === 'image') {
+      // 处理水印图片
+      await sharp(file.path).resize(200).png().toFile(watermarkPath)
+      // 删除临时文件
+      await fs.unlink(file.path)
+    } else {
+      fs.rename(file.path, watermarkPath)
+    }
     const relativePath = `/uploads/watermarks/${watermarkFilename}`
-    // 更新配置中的水印图片路径
-    await Config.findOneAndUpdate({}, { 'watermark.image.path': relativePath }, { upsert: true })
+    // 更新配置中的文件路径
+    await RoleGroup.findOneAndUpdate({}, { [`watermark.${body.type}.path`]: relativePath }, { upsert: true })
     res.json({ path: relativePath })
   } catch ({ message }) {
     res.status(500).json({ error: message })
   }
 })
 
-// 删除水印图片
-router.delete('/delete-watermark/:imgPath', auth, isAdmin, async (req, res) => {
+// 删除文件
+router.put('/delete-watermark', auth, isAdmin, async (req, res) => {
   try {
-    const { imgPath } = req.params
-    if (!imgPath) {
-      return res.status(400).json({ error: '需要删除的水印图片为空' })
+    const { filePath, type } = req.body
+    if (!filePath) {
+      return res.status(400).json({ error: '需要删除的文件为空' })
     }
     // 确保水印目录存在
-    const imagePath = path.join(process.cwd(), imgPath)
+    const imagePath = path.join(process.cwd(), filePath)
     await fs.unlink(imagePath)
-    // 更新配置中的水印图片路径
-    await Config.findOneAndUpdate({}, { 'watermark.image.path': '' }, { upsert: true })
+    // 更新配置中的文件路径
+    await RoleGroup.findOneAndUpdate({}, { [`watermark.${type}.path`]: '' }, { upsert: true })
     res.json({ message: '删除成功' })
   } catch ({ message }) {
     res.status(500).json({ error: message })

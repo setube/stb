@@ -1,0 +1,1 @@
+import{e as s}from"./404-D23t8Jcl.js";import{m as t,f as a,k as e,g as r,j as n,a5 as o}from"./vendor-DLaggKmm.js";const i=["src"],l={__name:"Not",setup:l=>(l,m)=>{const c=o;return a(),t(c,{title:"404","sub-title":"页面不存在"},{icon:e((()=>[r("img",{src:n(s),class:"ant-result-icon ant-result-image"},null,8,i)])),_:1})}};export{l as default};

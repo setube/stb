@@ -10,7 +10,7 @@
           </a-input>
         </a-form-item>
         <a-form-item name="email" :rules="rules.email">
-          <a-input v-model:value="form.email" placeholder="请输入邮箱">
+          <a-input v-model:value="form.email" type="email" placeholder="请输入邮箱">
             <template #prefix>
               <MailOutlined />
             </template>

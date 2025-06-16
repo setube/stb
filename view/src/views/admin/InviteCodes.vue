@@ -19,12 +19,12 @@
             {{ row.usedBy ? row.usedBy.username : '-' }}
           </template>
         </el-table-column>
-        <el-table-column prop="usedAt" label="使用时间">
+        <el-table-column prop="usedAt" sortable label="使用时间">
           <template #default="{ row }">
             {{ row.usedAt ? formatDate(row.usedAt) : '-' }}
           </template>
         </el-table-column>
-        <el-table-column prop="createdAt" label="生成时间">
+        <el-table-column prop="createdAt" sortable label="生成时间">
           <template #default="{ row }">
             {{ formatDate(row.createdAt) }}
           </template>

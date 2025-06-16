@@ -4,8 +4,8 @@
     @update:open="handleOpenChange"
     :class="['gallery-modal', { isUser: userStore.token }]"
     :maskClosable="false"
-    :closable="false"
-    title=" "
+    :title="imageInfo.name"
+    :width="550"
   >
     <div class="modal-image-container">
       <a-image
@@ -15,36 +15,45 @@
         :preview="false"
       />
     </div>
-    <a-descriptions bordered :column="1" size="middle" v-if="userStore.token">
-      <a-descriptions-item label="上传用户">
-        <span class="username" @click="goUserPage(imageInfo, 'user')">
-          {{ imageInfo?.user?.username || '游客' }}
-        </span>
-      </a-descriptions-item>
-      <a-descriptions-item label="所属相册">
-        <span class="username" @click="goUserPage(imageInfo, 'album')">
-          {{ imageInfo?.album?.name || '独立图片' }}
-        </span>
-      </a-descriptions-item>
-      <a-descriptions-item label="图片名称">{{ imageInfo.filename }}</a-descriptions-item>
-      <a-descriptions-item label="原始名称">{{ imageInfo.name }}</a-descriptions-item>
-      <a-descriptions-item label="图片大小">{{ formatFileSize(imageInfo.size) }}</a-descriptions-item>
-      <a-descriptions-item label="物理路径">{{ imageInfo.filePath }}</a-descriptions-item>
-      <a-descriptions-item label="图片类型">image/{{ imageInfo.filename.split('.').pop() }}</a-descriptions-item>
-      <a-descriptions-item label="MD5">{{ imageInfo.md5 }}</a-descriptions-item>
-      <a-descriptions-item label="SHA1">{{ imageInfo.sha1 }}</a-descriptions-item>
-      <a-descriptions-item label="尺寸">{{ imageInfo.width }} x {{ imageInfo.height }}</a-descriptions-item>
-      <a-descriptions-item
-        label="上传IP"
-        v-if="userStore?.user && (userStore?.user?.username === imageInfo.user?.username || userStore.user?.founder)"
-      >
-        {{ imageInfo.ip }} (仅自己与管理员可见)
-      </a-descriptions-item>
-      <a-descriptions-item label="上传时间">{{ formatDate(imageInfo.updatedAt) }}</a-descriptions-item>
-    </a-descriptions>
+    <a-collapse class="modal-collapse">
+      <a-collapse-panel header="查看图片信息" v-if="userStore.token">
+        <a-descriptions bordered :column="1" size="middle">
+          <a-descriptions-item label="上传用户">
+            <span class="username" @click="goUserPage(imageInfo, 'user')">
+              {{ imageInfo?.user?.username || '游客' }}
+            </span>
+          </a-descriptions-item>
+          <a-descriptions-item label="所属相册">
+            <span class="username" @click="goUserPage(imageInfo, 'album')">
+              {{ imageInfo?.album?.name || '独立图片' }}
+            </span>
+          </a-descriptions-item>
+          <a-descriptions-item label="图片名称">{{ imageInfo.filename }}</a-descriptions-item>
+          <a-descriptions-item label="原始名称">{{ imageInfo.name }}</a-descriptions-item>
+          <a-descriptions-item label="图片大小">{{ formatFileSize(imageInfo.size) }}</a-descriptions-item>
+          <a-descriptions-item label="物理路径">{{ imageInfo.filePath }}</a-descriptions-item>
+          <a-descriptions-item label="图片类型">image/{{ imageInfo.filename.split('.').pop() }}</a-descriptions-item>
+          <a-descriptions-item label="MD5">{{ imageInfo.md5 }}</a-descriptions-item>
+          <a-descriptions-item label="SHA1">{{ imageInfo.sha1 }}</a-descriptions-item>
+          <a-descriptions-item label="尺寸">{{ imageInfo.width }} x {{ imageInfo.height }}</a-descriptions-item>
+          <a-descriptions-item
+            label="上传IP"
+            v-if="
+              userStore?.user && (userStore?.user?.username === imageInfo.user?.username || userStore.user?.founder)
+            "
+          >
+            {{ imageInfo.ip }} (仅自己与管理员可见)
+          </a-descriptions-item>
+          <a-descriptions-item label="上传时间">{{ formatDate(imageInfo.updatedAt) }}</a-descriptions-item>
+        </a-descriptions>
+      </a-collapse-panel>
+    </a-collapse>
     <template #footer>
       <a-button type="primary" @click="copyImages($event, imageInfo, userStore)">复制链接</a-button>
-      <a-button type="primary" @click="handleClose">关闭弹窗</a-button>
+      <a-button type="primary" @click="handleClose">
+        关闭弹窗
+        <span class="esc">(Esc)</span>
+      </a-button>
     </template>
     <div v-if="imageKey > 0" class="ant-image-preview-switch-left" @click="prevImage">
       <span class="anticon anticon-left">
@@ -167,7 +176,7 @@
     border-radius: 5px;
   }
 
-  .gallery-modal .ant-descriptions {
+  .gallery-modal .modal-collapse {
     margin-top: 20px;
   }
 
@@ -219,6 +228,10 @@
 
     .gallery-modal .ant-image-preview-switch-left {
       left: 0;
+    }
+
+    .gallery-modal .esc {
+      display: none;
     }
   }
 </style>

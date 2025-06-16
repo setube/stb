@@ -46,13 +46,13 @@
         </h2>
         <a-empty v-if="images.length === 0 && !loadingImages" description="暂无图片" />
         <div v-else class="image-grid">
-          <div v-for="image in images" :key="image._id" class="image-item">
+          <div v-for="(image, key) in images" :key="key" class="image-item">
             <a-card hoverable>
               <template #cover>
                 <a-image
                   :src="userStore.config.site.url + image.thumb"
                   :preview="{ visible: false }"
-                  @click="showImageInfo(image)"
+                  @click="showImageInfo(image, key)"
                 />
               </template>
               <a-card-meta>
@@ -312,9 +312,10 @@
     })
   }
 
-  const showImageInfo = image => {
+  const showImageInfo = (image, index) => {
     imageInfo.value = image
     modalOpen.value = true
+    imageKey.value = index
   }
 
   const handlePageChange = page => {

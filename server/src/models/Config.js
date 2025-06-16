@@ -20,7 +20,7 @@ const configSchema = new mongoose.Schema(
         default: ''
       },
       // html代码
-      html: {
+      html: { 
         type: String,
         default: ''
       },
@@ -57,55 +57,6 @@ const configSchema = new mongoose.Schema(
       navigationOrder: {
         type: [String],
         default: ['home', 'my', 'gallery', 'docs']
-      }
-    },
-    watermark: {
-      enabled: {
-        type: Boolean,
-        default: false
-      },
-      type: {
-        type: String,
-        enum: ['text', 'image'],
-        default: 'text'
-      },
-      tile: {
-        type: Boolean,
-        default: false
-      },
-      text: {
-        content: {
-          type: String,
-          default: ''
-        },
-        fontSize: {
-          type: Number,
-          default: 24
-        },
-        color: {
-          type: String,
-          default: '#000000'
-        },
-        position: {
-          type: String,
-          enum: ['top-left', 'top-right', 'bottom-left', 'bottom-right', 'center'],
-          default: 'bottom-right'
-        }
-      },
-      image: {
-        path: {
-          type: String,
-          default: ''
-        },
-        opacity: {
-          type: Number,
-          default: 0.5
-        },
-        position: {
-          type: String,
-          enum: ['top-left', 'top-right', 'bottom-left', 'bottom-right', 'center'],
-          default: 'bottom-right'
-        }
       }
     },
     ip: {

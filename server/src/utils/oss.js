@@ -173,10 +173,7 @@ export const uploadToS3 = async (filePath, Key) => {
       '.webp': 'image/webp',
       '.svg': 'image/svg+xml'
     }
-
-    // 方案1: 尝试直接读取文件内容到 Buffer
     const fileBuffer = await fs.readFile(filePath)
-
     await s3Client.send(
       new PutObjectCommand({
         Bucket: bucket,
@@ -186,31 +183,9 @@ export const uploadToS3 = async (filePath, Key) => {
         ContentLength: fileBuffer.length
       })
     )
-
     return `${endpoint}/${bucket}${Key}`
-
-    /* 
-    // 方案2: 使用流处理
-    const stats = await fs.stat(filePath)
-    const fileStream = createReadStream(filePath)
-    
-    await s3Client.send(
-      new PutObjectCommand({
-        Bucket: bucket,
-        Key,
-        Body: fileStream,
-        ContentType: contentType[ext] || 'application/octet-stream',
-        ContentLength: stats.size
-      })
-    )
-    
-    return `${endpoint}${Key}`
-    */
-
-  } catch (error) {
-    // 改进错误处理，提供更详细的错误信息
-    console.error('S3 上传错误详情:', error)
-    throw new Error(`S3上传失败: ${error.message || error}`)
+  } catch ({ message }) {
+    throw new Error(message)
   }
 }
 
@@ -227,7 +202,7 @@ export const deleteFromS3 = async Key => {
       },
       endpoint
     })
-    const data = await s3Client.send(
+    await s3Client.send(
       new DeleteObjectCommand({
         Bucket: bucket,
         Key

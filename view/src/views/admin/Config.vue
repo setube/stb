@@ -97,78 +97,7 @@
               </template>
             </template>
           </a-collapse-panel>
-          <a-collapse-panel key="3" header="水印设置">
-            <a-form-item>
-              <a-switch
-                v-model:checked="formState.watermark.enabled"
-                checked-children="启用"
-                un-checked-children="禁用"
-              />
-            </a-form-item>
-            <template v-if="formState.watermark.enabled">
-              <a-form-item label="水印类型">
-                <a-radio-group v-model:value="formState.watermark.type">
-                  <a-radio value="text">文字水印</a-radio>
-                  <a-radio value="image">图片水印</a-radio>
-                </a-radio-group>
-              </a-form-item>
-              <template v-if="formState.watermark.type === 'text'">
-                <a-form-item label="水印文字">
-                  <a-input v-model:value="formState.watermark.text.content" />
-                </a-form-item>
-                <a-form-item label="字体大小">
-                  <a-input-number v-model:value="formState.watermark.text.fontSize" :min="12" :max="72" />
-                </a-form-item>
-                <a-form-item label="字体颜色">
-                  <a-input v-model:value="formState.watermark.text.color" type="color" />
-                </a-form-item>
-              </template>
-              <template v-else>
-                <a-form-item label="上传水印">
-                  <a-upload
-                    v-model:fileList="watermarkFileList"
-                    :beforeUpload="handleWatermarkUpload"
-                    :showUploadList="false"
-                  >
-                    <a-button>选择水印图片</a-button>
-                  </a-upload>
-                </a-form-item>
-                <template v-if="formState.watermark.image.path">
-                  <a-form-item label="水印管理">
-                    <a-button @click="deleteWatermark">删除水印图片</a-button>
-                  </a-form-item>
-                  <a-form-item label="水印图片">
-                    <a-image :src="userStore.config.site.url + formState.watermark.image.path" />
-                  </a-form-item>
-                  <a-form-item label="水印图片URL">
-                    <a-textarea v-model:value="formState.watermark.image.path" auto-size disabled />
-                  </a-form-item>
-                  <a-form-item label="透明度">
-                    <a-slider v-model:value="formState.watermark.image.opacity" :min="0" :max="1" :step="0.1" />
-                  </a-form-item>
-                </template>
-              </template>
-              <a-form-item label="水印位置">
-                <a-select v-model:value="formState.watermark[formState.watermark.type].position">
-                  <a-select-option value="top-left">左上</a-select-option>
-                  <a-select-option value="top-right">右上</a-select-option>
-                  <a-select-option value="bottom-left">左下</a-select-option>
-                  <a-select-option value="bottom-right">右下</a-select-option>
-                  <a-select-option value="center">居中</a-select-option>
-                </a-select>
-              </a-form-item>
-              <a-form-item label="是否平铺水印">
-                <a-switch
-                  v-model:checked="formState.watermark.tile"
-                  checked-children="启用"
-                  un-checked-children="禁用"
-                />
-                <p>本功能仅支持: jpg、jpeg、png 或 webp</p>
-                <p>开启后水印将会铺满整张图片</p>
-              </a-form-item>
-            </template>
-          </a-collapse-panel>
-          <a-collapse-panel key="4" header="存储设置">
+          <a-collapse-panel key="3" header="存储设置">
             <a-form-item label="存储类型">
               <a-select v-model:value="formState.storage.type">
                 <a-select-option v-for="(item, index) in imageStoreArray" :value="item.value" :key="index">
@@ -537,7 +466,7 @@
               </a-form-item>
             </template>
           </a-collapse-panel>
-          <a-collapse-panel key="5" header="鉴黄设置">
+          <a-collapse-panel key="4" header="鉴黄设置">
             <a-form-item label="鉴黄开关">
               <a-switch v-model:checked="formState.ai.enabled" checked-children="启用" un-checked-children="禁用" />
               <p>设置上传是否需要应用第三方审查，违规的图片会被标记为不健康的图片，或直接被删除。</p>
@@ -625,7 +554,7 @@
               </template>
             </template>
           </a-collapse-panel>
-          <a-collapse-panel key="6" header="IP设置">
+          <a-collapse-panel key="5" header="IP设置">
             <a-form-item label="黑名单开关">
               <a-switch v-model:checked="formState.ip.enabled" checked-children="启用" un-checked-children="禁用" />
             </a-form-item>
@@ -638,7 +567,7 @@
               />
             </a-form-item>
           </a-collapse-panel>
-          <a-collapse-panel key="7" header="社会化登录">
+          <a-collapse-panel key="6" header="社会化登录">
             <a-form-item label="启用社会化登录">
               <a-switch v-model:checked="formState.oauth.enabled" checked-children="启用" un-checked-children="禁用" />
             </a-form-item>
@@ -727,7 +656,6 @@
   const userStore = useUserStore()
   const loading = ref(false)
   const submitting = ref(false)
-  const watermarkFileList = ref([])
   const ipBlacklistText = ref('')
   const activeKey = ref('1')
   const imageStoreArray = Object.entries(imageStoreType)
@@ -762,32 +690,6 @@
       message.error(response?.data?.error)
     } finally {
       loading.value = false
-    }
-  }
-
-  // 处理水印图片上传
-  const handleWatermarkUpload = async file => {
-    try {
-      const formData = new FormData()
-      formData.append('image', file)
-      const { data } = await axios.post('/api/admin/upload-watermark', formData)
-      formState.value.watermark.image.path = data.path
-      message.success('水印图片上传成功')
-      return false
-    } catch ({ response }) {
-      message.error(response?.data?.error)
-      return false
-    }
-  }
-
-  // 删除水印图片
-  const deleteWatermark = async () => {
-    try {
-      await axios.delete(`/api/admin/delete-watermark/${encodeURIComponent(formState.value.watermark.image.path)}`)
-      formState.value.watermark.image.path = ''
-      message.success('水印图片删除成功')
-    } catch ({ response }) {
-      message.error(response?.data?.error)
     }
   }
 

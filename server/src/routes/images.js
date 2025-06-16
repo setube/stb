@@ -211,6 +211,30 @@ const generate = async (variable, file, req, isuser) => {
     .replace(/{uid}/g, uid)
 }
 
+// 处理文件名编码
+const decodeFileName = filename => {
+  try {
+    // 尝试使用 Buffer 解码
+    return Buffer.from(filename, 'latin1').toString('utf8')
+  } catch (error) {
+    // 如果解码失败，返回原始文件名
+    return filename
+  }
+}
+
+// 检查用户上传容量
+const checkUploadCapacity = async (userId, role) => {
+  const { maxCapacity } = role
+  // 获取用户所有图片的总大小
+  const totalSize = await Image.aggregate([
+    { $match: { user: userId } },
+    { $group: { _id: null, total: { $sum: '$size' } } }
+  ])
+  // 将字节转换为MB
+  const usedCapacity = totalSize[0]?.total ? totalSize[0].total / (1024 * 1024) : 0
+  return usedCapacity < maxCapacity
+}
+
 // 上传图片相关函数
 const uploadImageToStorage = async (file, req, isuser) => {
   const md5 = await calculateMD5(file.path)
@@ -219,12 +243,17 @@ const uploadImageToStorage = async (file, req, isuser) => {
     let userRole = {}
     if (isuser) {
       const { role } = await User.findById(user._id).populate('role')
+      // 检查用户上传容量
+      const hasCapacity = await checkUploadCapacity(user._id, role)
+      if (!hasCapacity) {
+        throw new Error(`您的累计上传容量已达到角色组设置上限的${role.maxCapacity}MB`)
+      }
       userRole = role
     } else {
       userRole = await RoleGroup.findOne({ isGuest: true })
     }
-    const upload = userRole.upload
-    const { site, storage, watermark, ai } = await Config.findOne()
+    const { upload, watermark } = userRole
+    const { site, storage, ai } = await Config.findOne()
     const bodyIp = clientIp.ipv4 || clientIp.ipv6 || body.ip
     // 检查有没有填写网站URL
     if (!site.url) {
@@ -422,7 +451,7 @@ const uploadImageToStorage = async (file, req, isuser) => {
     if (watermark.enabled) {
       if (watermark.type === 'text' && watermark.text.content) {
         // 添加文字水印
-        const { content, fontSize, color, position } = watermark.text
+        const { content, fontSize, color, opacity, position, top, left } = watermark.text
         // 创建文字水印
         const svgText = `
             <svg width="100%" height="100%">
@@ -433,79 +462,37 @@ const uploadImageToStorage = async (file, req, isuser) => {
                   font-family: Arial, sans-serif;
                 }
               </style>
-              <text class="watermark" x="50%" y="50%" text-anchor="middle" dominant-baseline="middle">
+              <text class="watermark" x="50%" y="50%" text-anchor="middle" dominant-baseline="middle" opacity="${opacity}">
                 ${content}
               </text>
             </svg>
           `
-        // 根据位置计算偏移
-        let gravity
-        switch (position) {
-          case 'top-left':
-            gravity = 'northwest'
-            break
-          case 'top-right':
-            gravity = 'northeast'
-            break
-          case 'bottom-left':
-            gravity = 'southwest'
-            break
-          case 'bottom-right':
-            gravity = 'southeast'
-            break
-          case 'center':
-            gravity = 'center'
-            break
-          default:
-            gravity = 'southeast'
-        }
         // 添加文字水印
         imageProcessor = imageProcessor.composite([
           {
             input: Buffer.from(svgText),
-            gravity,
+            gravity: position,
             tile: watermark.tile,
-            top: 10,
-            left: 10
+            top,
+            left
           }
         ])
       } else if (watermark.type === 'image' && watermark.image.path) {
         // 添加图片水印
-        const { path: watermarkPath, opacity, position } = watermark.image
+        const { path: watermarkPath, opacity, position, top, left } = watermark.image
         // 读取水印图片
         const watermarkBuffer = await sharp(path.join(process.cwd(), watermarkPath))
-          .resize(200) // 调整水印大小
+          .ensureAlpha(opacity)
+          .resize(200)
           .toBuffer()
-        // 根据位置计算偏移
-        let gravity
-        switch (position) {
-          case 'top-left':
-            gravity = 'northwest'
-            break
-          case 'top-right':
-            gravity = 'northeast'
-            break
-          case 'bottom-left':
-            gravity = 'southwest'
-            break
-          case 'bottom-right':
-            gravity = 'southeast'
-            break
-          case 'center':
-            gravity = 'center'
-            break
-          default:
-            gravity = 'southeast'
-        }
         // 添加图片水印
         imageProcessor = imageProcessor.composite([
           {
             input: watermarkBuffer,
-            gravity,
+            gravity: position,
             tile: watermark.tile,
-            top: 10,
-            left: 10,
-            blend: 'over'
+            top,
+            left
           }
         ])
       }
@@ -672,7 +659,7 @@ const uploadImageToStorage = async (file, req, isuser) => {
       .toFile(thumbnailFullPath)
     // 保存图片记录，添加 SHA-1 值
     const image = new Image({
-      name: file.originalname,
+      name: decodeFileName(file.originalname),
       url,
       thumb: `/uploads/thumbnails/${thumbnailFilename}`,
       md5,

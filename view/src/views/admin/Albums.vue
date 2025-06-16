@@ -28,12 +28,12 @@
           </template>
         </el-table-column>
         <el-table-column prop="imageCount" sortable label="图片数量" />
-        <el-table-column label="创建时间">
+        <el-table-column prop="createdAt" sortable label="创建时间">
           <template #default="{ row }">
             {{ formatDate(row.createdAt) }}
           </template>
         </el-table-column>
-        <el-table-column label="最后修改时间">
+        <el-table-column prop="updatedAt" sortable label="最后修改时间">
           <template #default="{ row }">
             {{ formatDate(row.updatedAt) }}
           </template>

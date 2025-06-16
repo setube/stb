@@ -28,12 +28,15 @@
             </a-tag>
           </template>
         </el-table-column>
-        <el-table-column label="创建时间">
+        <el-table-column prop="maxCapacity" sortable label="可用容量">
+          <template #default="{ row }">{{ row.maxCapacity }}MB</template>
+        </el-table-column>
+        <el-table-column prop="createdAt" sortable label="创建时间">
           <template #default="{ row }">
             {{ formatDate(row.createdAt) }}
           </template>
         </el-table-column>
-        <el-table-column label="编辑时间">
+        <el-table-column prop="updatedAt" sortable label="编辑时间">
           <template #default="{ row }">
             {{ formatDate(row.updatedAt) }}
           </template>
@@ -71,6 +74,10 @@
           <a-form-item label="是否为游客组">
             <a-switch v-model:checked="formState.isGuest" />
           </a-form-item>
+          <a-form-item label="可用容量(MB)" v-if="!formState.isGuest" required>
+            <a-input-number style="width: 100%" v-model:value="formState.maxCapacity" />
+            <p>该设置项在游客组下无效</p>
+          </a-form-item>
           <a-form-item label="存储类型">
             <a-select v-model:value="formState.upload.storageType">
               <a-select-option v-for="(item, index) in imageStoreArray" :value="item.value" :key="index">
@@ -78,9 +85,9 @@
               </a-select-option>
             </a-select>
           </a-form-item>
-          <a-collapse>
-            <a-collapse-panel header="上传设置">
-              <a-form-item label="允许的图片格式">
+          <a-collapse v-model:activeKey="activeKey">
+            <a-collapse-panel key="1" header="上传设置">
+              <a-form-item label="允许的图片格式" required>
                 <a-select
                   v-model:value="formState.upload.allowedFormats"
                   mode="multiple"
@@ -91,37 +98,37 @@
                   </a-select-option>
                 </a-select>
               </a-form-item>
-              <a-form-item label="最大文件大小(MB)">
+              <a-form-item label="最大文件大小(MB)" required>
                 <a-input-number style="width: 100%" v-model:value="formState.upload.maxSize" :min="1" :max="100" />
               </a-form-item>
-              <a-form-item label="最多同时上传图片数量">
+              <a-form-item label="最多同时上传图片数量" required>
                 <a-input-number style="width: 100%" v-model:value="formState.upload.concurrentUploads" :min="1" />
               </a-form-item>
               <a-row :gutter="16">
                 <a-col :span="12">
-                  <a-form-item label="最小宽度(px)">
+                  <a-form-item label="最小宽度(px)" required>
                     <a-input-number v-model:value="formState.upload.minWidth" :min="0" />
                   </a-form-item>
                 </a-col>
                 <a-col :span="12">
-                  <a-form-item label="最小高度(px)">
+                  <a-form-item label="最小高度(px)" required>
                     <a-input-number v-model:value="formState.upload.minHeight" :min="0" />
                   </a-form-item>
                 </a-col>
               </a-row>
               <a-row :gutter="16">
                 <a-col :span="12">
-                  <a-form-item label="最大宽度(px)">
+                  <a-form-item label="最大宽度(px)" required>
                     <a-input-number v-model:value="formState.upload.maxWidth" :min="0" />
                   </a-form-item>
                 </a-col>
                 <a-col :span="12">
-                  <a-form-item label="最大高度(px)">
+                  <a-form-item label="最大高度(px)" required>
                     <a-input-number v-model:value="formState.upload.maxHeight" :min="0" />
                   </a-form-item>
                 </a-col>
               </a-row>
-              <a-form-item label="转换格式">
+              <a-form-item label="转换格式" required>
                 <a-select v-model:value="formState.upload.convertFormat" allowClear placeholder="选择转换格式">
                   <a-select-option value="">不转换</a-select-option>
                   <a-select-option :value="item" v-for="item in imageExitType" :key="item">
@@ -129,14 +136,14 @@
                   </a-select-option>
                 </a-select>
               </a-form-item>
-              <a-form-item label="图片压缩">
+              <a-form-item label="图片压缩" required>
                 <a-switch
                   v-model:checked="formState.upload.qualityOpen"
                   checked-children="启用"
                   un-checked-children="禁用"
                 />
               </a-form-item>
-              <a-form-item label="图片质量" v-if="formState.upload.qualityOpen">
+              <a-form-item label="图片质量" required v-if="formState.upload.qualityOpen">
                 <a-slider
                   v-model:value="formState.upload.quality"
                   :min="1"
@@ -150,7 +157,7 @@
                   }"
                 />
               </a-form-item>
-              <a-form-item label="每日上传限制">
+              <a-form-item label="每日上传限制" required>
                 <a-input-number
                   style="width: 100%"
                   v-model:value="formState.upload.dailyLimit"
@@ -159,11 +166,11 @@
                 />
                 <p>该功能仅限制已登录用户, 游客模式下无效</p>
               </a-form-item>
-              <a-form-item label="文件目录命名规则">
+              <a-form-item label="文件目录命名规则" required>
                 <a-input v-model:value="formState.upload.catalogue" placeholder="输入文件目录命名规则" />
                 <p>目录命名规则不能以"/"结尾, 不能包含"\"</p>
               </a-form-item>
-              <a-form-item label="文件名命名规则">
+              <a-form-item label="文件名命名规则" required>
                 <a-input v-model:value="formState.upload.namingRule" placeholder="输入文件命名规则" />
                 <p>文件名命名规则中不能含有"/"和"\"</p>
                 <p>如果设置了"格式转换", 文件后缀将以"转换后"的格式为准</p>
@@ -181,6 +188,99 @@
                 </a-collapse-panel>
               </a-collapse>
             </a-collapse-panel>
+            <a-collapse-panel key="2" header="水印设置">
+              <a-form-item>
+                <a-switch
+                  v-model:checked="formState.watermark.enabled"
+                  checked-children="启用"
+                  un-checked-children="禁用"
+                />
+              </a-form-item>
+              <template v-if="formState.watermark.enabled">
+                <a-form-item label="水印类型">
+                  <a-radio-group v-model:value="formState.watermark.type">
+                    <a-radio value="text">文字水印</a-radio>
+                    <a-radio value="image">图片水印</a-radio>
+                  </a-radio-group>
+                </a-form-item>
+                <template v-if="formState.watermark.type === 'text'">
+                  <a-form-item label="水印文字" required>
+                    <a-input v-model:value="formState.watermark.text.content" />
+                  </a-form-item>
+                  <a-form-item label="字体大小" required>
+                    <a-input-number
+                      style="width: 100%"
+                      v-model:value="formState.watermark.text.fontSize"
+                      :min="12"
+                      :max="72"
+                    />
+                  </a-form-item>
+                  <a-form-item label="字体颜色" required>
+                    <a-input v-model:value="formState.watermark.text.color" type="color" />
+                  </a-form-item>
+                </template>
+                <template v-else>
+                  <a-form-item label="上传水印">
+                    <a-upload
+                      v-model:fileList="watermarkFileList"
+                      :beforeUpload="handleWatermarkUpload"
+                      :showUploadList="false"
+                    >
+                      <a-button>选择水印图片</a-button>
+                    </a-upload>
+                  </a-form-item>
+                  <template v-if="formState.watermark.image.path">
+                    <a-form-item label="水印管理">
+                      <a-button @click="deleteWatermark">删除水印图片</a-button>
+                    </a-form-item>
+                    <a-form-item label="水印图片">
+                      <a-image :src="userStore?.config?.site?.url + formState.watermark.image.path" />
+                    </a-form-item>
+                    <a-form-item label="水印图片URL">
+                      <a-input v-model:value="formState.watermark.image.path" disabled />
+                    </a-form-item>
+                  </template>
+                </template>
+                <a-form-item label="透明度" required>
+                  <a-slider
+                    v-model:value="formState.watermark[formState.watermark.type].opacity"
+                    :min="0"
+                    :max="1"
+                    :step="0.1"
+                  />
+                </a-form-item>
+                <a-form-item label="水印位置" required>
+                  <a-select v-model:value="formState.watermark[formState.watermark.type].position">
+                    <a-select-option :value="item.key" v-for="item in positionS" :key="item.key">
+                      {{ item.value }}
+                    </a-select-option>
+                  </a-select>
+                </a-form-item>
+                <a-form-item label="距顶部边缘的像素偏移">
+                  <a-input-number
+                    style="width: 100%"
+                    v-model:value="formState.watermark[formState.watermark.type].top"
+                  />
+                  <p>设置之后将会覆盖"水印位置"设置项</p>
+                </a-form-item>
+                <a-form-item label="距左边缘的像素偏移">
+                  <a-input-number
+                    style="width: 100%"
+                    v-model:value="formState.watermark[formState.watermark.type].left"
+                  />
+                  <p>设置之后将会覆盖"水印位置"设置项</p>
+                </a-form-item>
+                <a-form-item label="是否平铺水印">
+                  <a-switch
+                    v-model:checked="formState.watermark.tile"
+                    checked-children="启用"
+                    un-checked-children="禁用"
+                  />
+                  <p>本功能仅支持: jpg、jpeg、png 或 webp</p>
+                  <p>开启后水印将会铺满整张图片</p>
+                </a-form-item>
+              </template>
+            </a-collapse-panel>
           </a-collapse>
         </a-form>
       </a-modal>
@@ -189,16 +289,20 @@
 </template>
 
 <script setup>
-  import { ref, onMounted } from 'vue'
+  import { ref, onMounted, computed } from 'vue'
   import { message } from 'ant-design-vue'
   import axios from '@/stores/axios'
+  import { useUserStore } from '@/stores/user'
   import { imageStoreType, imageExitType, formatDate } from '@/stores/formatDate'
 
+  const userStore = useUserStore()
   const loading = ref(false)
   const submitting = ref(false)
   const modalVisible = ref(false)
   const editingRoleGroup = ref(null)
   const roleGroups = ref([])
+  const activeKey = ref('')
+  const watermarkFileList = ref([])
 
   const imageStoreArray = Object.entries(imageStoreType)
     .filter(([key]) => key !== 'get')
@@ -211,6 +315,24 @@
     isDefault: false,
     isGuest: false,
     upload: {}
+  })
+
+  const positionS = computed(() => {
+    const obj = {
+      northwest: '左上',
+      west: '左中',
+      southwest: '左下',
+      northeast: '右上',
+      east: '右中',
+      southeast: '右下',
+      north: '上中',
+      center: '居中',
+      south: '下中'
+    }
+    return Object.keys(obj).map(key => ({
+      key,
+      value: obj[key]
+    }))
   })
 
   const namingRuleColumns = [
@@ -287,6 +409,33 @@
       message.error(response?.data?.error)
     } finally {
       submitting.value = false
+    }
+  }
+
+  // 处理水印图片上传
+  const handleWatermarkUpload = async file => {
+    try {
+      const formData = new FormData()
+      formData.append('image', file)
+      formData.append('id', formState.value._id)
+      const { data } = await axios.post('/api/admin/upload-watermark', formData)
+      formState.value.watermark.image.path = data.path
+      message.success('水印图片上传成功')
+      return false
+    } catch ({ response }) {
+      message.error(response?.data?.error)
+      return false
+    }
+  }
+
+  // 删除水印图片
+  const deleteWatermark = async () => {
+    try {
+      await axios.delete(`/api/admin/delete-watermark/${encodeURIComponent(formState.value.watermark.image.path)}`)
+      formState.value.watermark.image.path = ''
+      message.success('水印图片删除成功')
+    } catch ({ response }) {
+      message.error(response?.data?.error)
     }
   }
 
