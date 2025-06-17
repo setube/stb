@@ -240,20 +240,16 @@ router.patch('/images/:id', auth, isAdmin, async (req, res) => {
     // 获取图片信息
     const image = await Image.findById(id)
     if (!image) {
-      throw new Error('图片不存在')
+      throw new Error('图片数据不存在')
     }
-    if (remarks.length > 500) {
+    if (remarks && remarks.length > 500) {
       throw new Error('图片备注不能超过500个字符')
-    }
-    // 更新备注
-    if (remarks !== undefined) {
-      image.remarks = remarks
     }
     if (image.type !== 'local') {
       throw new Error('修改图片方向功能仅限本地图片, 第三方存储无效')
     }
     // 如果方向发生变化，重新生成图片
-    if (orientation !== undefined && orientation !== 0) {
+    if (orientation) {
       const imagePath = path.join(process.cwd(), image.url)
       const thumbPath = path.join(process.cwd(), image.thumb)
       try {
@@ -295,6 +291,8 @@ router.patch('/images/:id', auth, isAdmin, async (req, res) => {
         throw new Error(message)
       }
     }
+    // 更新备注
+    image.remarks = remarks
     await image.save()
     // 返回更新后的图片信息
     const updatedImage = await Image.findById(image._id)

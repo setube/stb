@@ -13,18 +13,18 @@
             </a-avatar>
           </template>
         </el-table-column>
-        <el-table-column prop="username" label="用户名" />
+        <el-table-column prop="username" show-overflow-tooltip label="用户名" />
         <el-table-column label="角色组">
           <template #default="{ row }">
             {{ roleGroups.find(item => item.name === row.role.name).name }}
           </template>
         </el-table-column>
-        <el-table-column label="IP地址">
+        <el-table-column show-overflow-tooltip label="IP地址">
           <template #default="{ row }">
             {{ row.ip?.ipv4 || row.ip?.ipv6 }}
           </template>
         </el-table-column>
-        <el-table-column prop="email" label="注册邮箱" />
+        <el-table-column prop="email" show-overflow-tooltip label="注册邮箱" />
         <el-table-column prop="imageCount" sortable label="图片数量">
           <template #default="{ row }">
             {{ row.stats.imageCount }}
@@ -43,12 +43,12 @@
             </a-tag>
           </template>
         </el-table-column>
-        <el-table-column prop="createdAt" sortable label="注册时间">
+        <el-table-column prop="createdAt" show-overflow-tooltip sortable label="注册时间">
           <template #default="{ row }">
             {{ formatDate(row.createdAt) }}
           </template>
         </el-table-column>
-        <el-table-column prop="lastLogin" sortable label="最后登录">
+        <el-table-column prop="lastLogin" show-overflow-tooltip sortable label="最后登录">
           <template #default="{ row }">
             {{ formatDate(row.lastLogin) }}
           </template>
@@ -73,7 +73,7 @@
     <a-modal v-model:open="createModalVisible" title="创建用户" @ok="handleCreate" @cancel="createModalVisible = false">
       <a-form :model="createForm" :rules="rules" layout="vertical" ref="createFormRef">
         <a-form-item label="用户名" name="username">
-          <a-input v-model:value="createForm.username" placeholder="请输入用户名" />
+          <a-input v-model:value="createForm.username" show-count :maxlength="10" placeholder="请输入用户名" />
         </a-form-item>
         <a-form-item label="邮箱" name="email">
           <a-input v-model:value="createForm.email" placeholder="请输入邮箱" />

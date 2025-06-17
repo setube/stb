@@ -23,18 +23,18 @@
     </div>
     <a-spin :spinning="loading">
       <el-table :data="logs" scrollbar-always-on fit>
-        <el-table-column label="用户名" fixed>
+        <el-table-column label="用户名" show-overflow-tooltip fixed>
           <template #default="{ row }">
             {{ row?.user?.username || '游客' }}
           </template>
         </el-table-column>
-        <el-table-column prop="ip" label="IP地址" />
-        <el-table-column prop="createdAt" sortable label="上传时间">
+        <el-table-column prop="ip" show-overflow-tooltip label="IP地址" />
+        <el-table-column prop="createdAt" show-overflow-tooltip sortable label="上传时间">
           <template #default="{ row }">
             {{ formatDate(row.createdAt) }}
           </template>
         </el-table-column>
-        <el-table-column prop="originalName" label="文件名" />
+        <el-table-column prop="originalName" show-overflow-tooltip label="文件名" />
         <el-table-column prop="size" sortable label="文件大小">
           <template #default="{ row }">
             {{ formatFileSize(row.size) }}

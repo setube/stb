@@ -117,7 +117,7 @@
     >
       <a-form :model="albumForm" :rules="albumRules" ref="albumFormRef" layout="vertical">
         <a-form-item label="相册名称" name="name">
-          <a-input v-model:value="albumForm.name" placeholder="请输入相册名称" />
+          <a-input v-model:value="albumForm.name" show-count :maxlength="10" placeholder="请输入相册名称" />
         </a-form-item>
         <a-form-item label="权限" name="permission">
           <a-select v-model:value="albumForm.permission" placeholder="请选择相册权限">

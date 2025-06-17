@@ -5,7 +5,7 @@
     </div>
     <a-spin :spinning="spinning">
       <el-table :data="announcements" scrollbar-always-on fit>
-        <el-table-column prop="title" label="标题" fixed />
+        <el-table-column prop="title" show-overflow-tooltip label="标题" fixed />
         <el-table-column label="类型">
           <template #default="{ row }">
             {{ row.type === 'modal' ? '弹窗' : '提示' }}
@@ -16,12 +16,12 @@
             <el-tag :type="row.effect" disable-transitions>{{ row.effect }}</el-tag>
           </template>
         </el-table-column>
-        <el-table-column prop="startTime" sortable label="开始时间">
+        <el-table-column prop="startTime" show-overflow-tooltip sortable label="开始时间">
           <template #default="{ row }">
             {{ formatDate(row.startTime) }}
           </template>
         </el-table-column>
-        <el-table-column prop="endTime" sortable label="结束时间">
+        <el-table-column prop="endTime" show-overflow-tooltip sortable label="结束时间">
           <template #default="{ row }">
             {{ formatDate(row.endTime) }}
           </template>
@@ -54,13 +54,15 @@
     >
       <a-form :model="form" layout="vertical">
         <a-form-item label="标题" required>
-          <a-input v-model:value="form.title" placeholder="请输入公告标题" />
+          <a-input v-model:value="form.title" show-count :maxlength="10" placeholder="请输入公告标题" />
         </a-form-item>
         <a-form-item label="内容" required>
           <a-textarea
             v-model:value="form.content"
             placeholder="请输入公告内容, 支持HTML, 不支持输出<style>标签和<script>标签"
             :auto-size="{ minRows: 4 }"
+            show-count
+            :maxlength="100"
           />
         </a-form-item>
         <a-form-item label="类型" required>

@@ -16,7 +16,7 @@
     </div>
     <a-spin :spinning="loading">
       <el-table :data="albums" scrollbar-always-on fit>
-        <el-table-column prop="name" label="相册名称" />
+        <el-table-column prop="name" show-overflow-tooltip label="相册名称" />
         <el-table-column label="所属用户">
           <template #default="{ row }">
             {{ row.user.username }}
@@ -28,12 +28,12 @@
           </template>
         </el-table-column>
         <el-table-column prop="imageCount" sortable label="图片数量" />
-        <el-table-column prop="createdAt" sortable label="创建时间">
+        <el-table-column prop="createdAt" show-overflow-tooltip sortable label="创建时间">
           <template #default="{ row }">
             {{ formatDate(row.createdAt) }}
           </template>
         </el-table-column>
-        <el-table-column prop="updatedAt" sortable label="最后修改时间">
+        <el-table-column prop="updatedAt" show-overflow-tooltip sortable label="最后修改时间">
           <template #default="{ row }">
             {{ formatDate(row.updatedAt) }}
           </template>
@@ -71,7 +71,7 @@
           ></a-select>
         </a-form-item>
         <a-form-item label="相册名称" name="name">
-          <a-input v-model:value="albumForm.name" placeholder="请输入相册名称" />
+          <a-input v-model:value="albumForm.name" show-count :maxlength="10" placeholder="请输入相册名称" />
         </a-form-item>
         <a-form-item label="权限" name="permission">
           <a-select v-model:value="albumForm.permission">

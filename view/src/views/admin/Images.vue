@@ -22,9 +22,9 @@
             />
           </template>
         </el-table-column>
-        <el-table-column prop="name" label="文件名" />
-        <el-table-column prop="md5" label="MD5" />
-        <el-table-column prop="sha1" label="SHA-1" />
+        <el-table-column prop="name" show-overflow-tooltip label="文件名" />
+        <el-table-column prop="md5" show-overflow-tooltip label="MD5" />
+        <el-table-column prop="sha1" show-overflow-tooltip label="SHA-1" />
         <el-table-column sortable label="大小">
           <template #default="{ row }">
             {{ formatFileSize(row.size) }}
@@ -35,7 +35,7 @@
             {{ row.album?.name || '独立图片' }}
           </template>
         </el-table-column>
-        <el-table-column prop="remarks" label="备注">
+        <el-table-column prop="remarks" show-overflow-tooltip label="备注">
           <template #default="{ row }">
             {{ row.remarks || '暂无备注' }}
           </template>
@@ -65,7 +65,7 @@
             </template>
           </el-table-column>
         </template>
-        <el-table-column label="存储目录">
+        <el-table-column show-overflow-tooltip label="存储目录">
           <template #default="{ row }">
             {{ row.filePath }}
           </template>
@@ -75,8 +75,8 @@
             {{ !row.user ? '游客' : row.user.username }}
           </template>
         </el-table-column>
-        <el-table-column prop="ip" label="IP地址" />
-        <el-table-column prop="date" sortable label="上传时间">
+        <el-table-column prop="ip" show-overflow-tooltip label="IP地址" />
+        <el-table-column prop="date" sortable show-overflow-tooltip label="上传时间">
           <template #default="{ row }">
             {{ formatDate(row.date) }}
           </template>
@@ -106,7 +106,7 @@
     >
       <a-form :model="editForm" :rules="editRules" layout="vertical">
         <a-form-item label="备注" name="remarks">
-          <a-textarea v-model:value="editForm.remarks" placeholder="添加图片备注" :rows="4" />
+          <a-textarea v-model:value="editForm.remarks" placeholder="添加图片备注" :rows="4" show-count :maxlength="500" />
         </a-form-item>
         <a-form-item label="图片方向" name="orientation">
           <a-select v-model:value="editForm.orientation" style="width: 100%" :disabled="editForm.type !== 'local'">

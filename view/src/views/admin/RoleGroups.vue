@@ -60,10 +60,10 @@
       >
         <a-form :model="formState" layout="vertical">
           <a-form-item label="名称" required>
-            <a-input v-model:value="formState.name" placeholder="输入角色组名称" />
+            <a-input v-model:value="formState.name" show-count :maxlength="10" placeholder="输入角色组名称" />
           </a-form-item>
           <a-form-item label="描述">
-            <a-textarea v-model:value="formState.description" placeholder="输入角色组描述" />
+            <a-textarea v-model:value="formState.description" show-count :maxlength="20" placeholder="输入角色组描述" />
           </a-form-item>
           <a-form-item label="是否为管理组">
             <a-switch v-model:checked="formState.isAdmin" />

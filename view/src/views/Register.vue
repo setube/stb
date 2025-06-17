@@ -3,7 +3,7 @@
     <a-card class="register-card" title="注册">
       <a-form :model="form" @finish="handleSubmit">
         <a-form-item name="username" :rules="rules.username">
-          <a-input v-model:value="form.username" placeholder="请输入用户名">
+          <a-input v-model:value="form.username" show-count :maxlength="10" placeholder="请输入用户名">
             <template #prefix>
               <UserOutlined />
             </template>
