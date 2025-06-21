@@ -169,6 +169,35 @@ router.post('/images', async (req, res) => {
   }
 })
 
+// 随机图片
+router.get('/randImage', async (req, res) => {
+  try {
+    const { site } = await Config.findOne()
+    if (!site.random) {
+      res.status(500).json({ error: '随机图片功能未开启' })
+      return
+    }
+    if (!site.randId) {
+      res.status(500).json({ error: '相册ID未填写' })
+      return
+    }
+    const images = await Image.find({ album: site.randId })
+    if (!images.length) {
+      res.status(500).json({ error: '该相册下没有任何图片' })
+      return
+    }
+    const imageUrls = images.map(item => {
+      if (item.type === 'local') {
+        item.url = site.url + item.url
+      }
+      return item.url
+    })
+    res.redirect(302, imageUrls[Math.floor(Math.random() * imageUrls.length)])
+  } catch ({ message }) {
+    res.status(500).json({ error: message })
+  }
+})
+
 // 正则处理函数
 const generate = async (variable, file, req, isuser) => {
   let userRole

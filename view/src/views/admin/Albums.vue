@@ -16,6 +16,7 @@
     </div>
     <a-spin :spinning="loading">
       <el-table :data="albums" scrollbar-always-on fit>
+        <el-table-column prop="_id" show-overflow-tooltip label="相册ID" />
         <el-table-column prop="name" show-overflow-tooltip label="相册名称" />
         <el-table-column label="所属用户">
           <template #default="{ row }">

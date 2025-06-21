@@ -29,7 +29,7 @@
             <a-form-item label="是否开启图片广场页面">
               <a-switch v-model:checked="formState.site.gallery" checked-children="启用" un-checked-children="禁用" />
             </a-form-item>
-            <a-form-item label="是否游客上传">
+            <a-form-item label="是否开启游客上传">
               <a-switch
                 v-model:checked="formState.site.anonymousUpload"
                 checked-children="启用"
@@ -59,6 +59,17 @@
               </a-select>
               <p>注意: 修改该设置后访问网站根目录时会自动重定向到该设置的第一项</p>
             </a-form-item>
+            <a-form-item label="是否开启随机图片">
+              <a-switch v-model:checked="formState.site.random" checked-children="启用" un-checked-children="禁用" />
+            </a-form-item>
+            <template v-if="formState.site.random">
+              <a-form-item required label="用作展示随机图片的相册ID">
+                <a-input v-model:value="formState.site.randId" />
+              </a-form-item>
+              <a-form-item label="随机图片API">
+                <a-input disabled :value="`${formState.site.url}/api/randImage`" />
+              </a-form-item>
+            </template>
           </a-collapse-panel>
           <a-collapse-panel key="2" header="SMTP设置">
             <template v-if="formState.site.register">
@@ -590,7 +601,11 @@
                   />
                 </a-form-item>
                 <a-form-item label="回调地址">
-                  <a-input v-model:value="formState.oauth.github.callbackUrl" placeholder="输入回调地址" />
+                  <a-input
+                    :value="`${formState.site.url}${formState.oauth.github.callbackUrl}`"
+                    disabled
+                    placeholder="输入回调地址"
+                  />
                 </a-form-item>
               </template>
               <a-form-item label="Google登录开关">
@@ -611,7 +626,11 @@
                   />
                 </a-form-item>
                 <a-form-item label="回调地址">
-                  <a-input v-model:value="formState.oauth.google.callbackUrl" placeholder="输入回调地址" />
+                  <a-input
+                    :value="`${formState.site.url}${formState.oauth.google.callbackUrl}`"
+                    disabled
+                    placeholder="输入回调地址"
+                  />
                 </a-form-item>
               </template>
               <a-form-item label="Linux DO登录开关">
@@ -632,7 +651,11 @@
                   />
                 </a-form-item>
                 <a-form-item label="回调地址">
-                  <a-input v-model:value="formState.oauth.linuxdo.callbackUrl" placeholder="输入回调地址" />
+                  <a-input
+                    :value="`${formState.site.url}${formState.oauth.linuxdo.callbackUrl}`"
+                    disabled
+                    placeholder="输入回调地址"
+                  />
                 </a-form-item>
               </template>
             </template>
@@ -652,6 +675,7 @@
   import axios from '@/stores/axios'
   import { useUserStore } from '@/stores/user'
   import { imageStoreType } from '@/stores/formatDate'
+  import { CopyOutlined } from '@ant-design/icons-vue'
 
   const userStore = useUserStore()
   const loading = ref(false)

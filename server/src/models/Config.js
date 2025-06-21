@@ -20,7 +20,7 @@ const configSchema = new mongoose.Schema(
         default: ''
       },
       // html代码
-      html: { 
+      html: {
         type: String,
         default: ''
       },
@@ -53,6 +53,15 @@ const configSchema = new mongoose.Schema(
       gallery: {
         type: Boolean,
         default: true
+      },
+      // 是否开启随机图片
+      random: {
+        type: Boolean,
+        default: false
+      },
+      randId: {
+        type: String,
+        default: ''
       },
       navigationOrder: {
         type: [String],
