@@ -210,13 +210,8 @@ roleGroupSchema.statics.initialize = async function () {
         isGuest: true
       })
     }
-
     // 重新获取所有角色组
     const updatedRoleGroups = await this.find({})
-    console.log(
-      '最终角色组列表:',
-      updatedRoleGroups.map(g => g.name)
-    )
     return updatedRoleGroups
   } catch (error) {
     console.error('角色组初始化失败:', error)

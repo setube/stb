@@ -136,8 +136,6 @@ userSchema.statics.migrateRoles = async function () {
           }
           await user.save()
           migratedCount++
-        } else {
-          console.log(`用户 ${user.username} 的权限已经是正确的角色组，跳过迁移`)
         }
       } catch (userError) {
         console.error(`处理用户 ${user.username} 时出错:`, userError)
@@ -145,7 +143,7 @@ userSchema.statics.migrateRoles = async function () {
         continue
       }
     }
-    console.log(`成功迁移 ${migratedCount} 个用户的权限`)
+    if (migratedCount) console.log(`成功迁移 ${migratedCount} 个用户的权限`)
   } catch (error) {
     console.error('用户权限迁移失败:', error)
     throw error

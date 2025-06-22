@@ -283,11 +283,6 @@ const initializeRoles = async () => {
   try {
     // 获取所有角色组
     const roleGroups = await RoleGroup.find({})
-    console.log(
-      '当前角色组列表:',
-      roleGroups.map(g => g.name)
-    )
-
     // 检查是否存在必要的角色组
     const adminGroup = roleGroups.find(g => g.isAdmin)
     const defaultGroup = roleGroups.find(g => g.isDefault)
@@ -300,14 +295,8 @@ const initializeRoles = async () => {
       if (!defaultGroup) console.log('缺少默认用户组')
       if (!guestGroup) console.log('缺少游客组')
       await RoleGroup.initialize()
-    } else {
-      console.log('所有必要的角色组已存在，跳过初始化')
     }
-
-    // 执行用户权限迁移
-    console.log('开始迁移用户权限...')
     await User.migrateRoles()
-    console.log('角色组初始化和用户权限迁移完成')
   } catch (error) {
     console.error('角色组初始化和用户权限迁移失败:', error)
     throw error
