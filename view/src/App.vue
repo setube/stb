@@ -187,8 +187,8 @@
   const checkAnnouncement = async () => {
     try {
       const { data } = await axios.post('/api/admin/announcements/active')
+      userStore.announcementData = data
       if (data) {
-        userStore.announcementData = data
         let time = Date.now()
         let nextTime = userStore?.announcement?.nextTime ? userStore?.announcement?.nextTime : Date.now()
         if (data._id != userStore?.announcement?._id) {
@@ -209,6 +209,8 @@
             dangerouslyUseHTMLString: true
           })
         }
+      } else {
+        userStore.announcement = null
       }
     } catch ({ response }) {
       message.error(response?.data?.error)

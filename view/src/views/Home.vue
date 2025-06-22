@@ -235,6 +235,7 @@
     let time = Date.now()
     let nextTime = userStore?.announcement?.nextTime ? userStore?.announcement?.nextTime : Date.now()
     const data = userStore?.announcementData
+    if (!data) return
     if (data._id != userStore?.announcement?._id) {
       userStore.announcements = null
       nextTime = Date.now()
